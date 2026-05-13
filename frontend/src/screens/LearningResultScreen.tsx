@@ -10,13 +10,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { LearnStackParamList } from '../constants/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 
 // ─── 메인 컴포넌트 ───
 const LearningResultScreen = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<LearnStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -49,8 +48,8 @@ const LearningResultScreen = () => {
             <View style={styles.statIconWrap}>
               <Ionicons name="star-outline" size={20} color="#3C6933" />
             </View>
-            <Text style={styles.statValue}>+50</Text>
-            <Text style={styles.statUnit}>EXP</Text>
+            <Text style={styles.statValueScore}>+50</Text>
+            <Text style={styles.statUnitEXP}>EXP</Text>
             <Text style={styles.statLabel}>획득한 점수</Text>
           </View>
 
@@ -59,7 +58,7 @@ const LearningResultScreen = () => {
             <View style={[styles.statIconWrap, { backgroundColor: '#edf7e6' }]}>
               <Ionicons name="checkmark-circle" size={20} color="#3C6933" />
             </View>
-            <Text style={styles.statValue}>6/6</Text>
+            <Text style={styles.statValueCount}>6/6</Text>
             <Text style={styles.statLabel}>정답 횟수</Text>
           </View>
         </View>
@@ -81,7 +80,7 @@ const LearningResultScreen = () => {
         {/* 홈으로 돌아가기 버튼 */}
         <TouchableOpacity
           style={styles.homeButton}
-          onPress={() => navigation.navigate('StoryHome')}
+          onPress={() => navigation.navigate('MainTab', { screen: 'Content' })}
         >
           <Text style={styles.homeButtonText}>홈으로 돌아가기  →</Text>
         </TouchableOpacity>
@@ -174,15 +173,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  statValue: {
+  statValueScore: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#1a1a1a',
+    color: '#BFCD8E',
+  },
+  statValueCount: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#BFCD8E',
   },
   statUnit: {
     fontSize: 16,
     fontWeight: '700',
     color: '#1a1a1a',
+    marginTop: -2,
+  },
+  statUnitEXP: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#BFCD8E',
     marginTop: -2,
   },
   statLabel: {
