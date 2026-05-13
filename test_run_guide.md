@@ -12,3 +12,5 @@ cd frontend
 npm install        # node_modules 다운로드
 npm start          # Expo Dev Server 시작
 터미널에 뜨는 QR 코드를 폰의 Expo Go 앱으로 스캔.
+
+5. 같은 네트워크의 모바일 기기로 expo go 앱을 통해 QR코드 스캔
