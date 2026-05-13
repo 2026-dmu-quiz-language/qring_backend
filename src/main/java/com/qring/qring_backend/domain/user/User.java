@@ -1,6 +1,8 @@
 package com.qring.qring_backend.domain.user;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -8,7 +10,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
-@Getter @Setter @NoArgsConstructor
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
+@Builder
 public class User {
 
     @Id
@@ -19,24 +23,33 @@ public class User {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(nullable = false, length = 255)
+    @Column(length = 255)
     private String password;
 
-    @Column(length = 50)
+    @Column(unique = true, length = 50)
     private String nickname;
 
     @Column(name = "story_nickname", length = 50)
     private String storyNickname;
 
     @Column(name = "create_at")
+    @Builder.Default
     private LocalDateTime createAt = LocalDateTime.now();
 
     @Column(name = "email_verified", nullable = false)
+    @Builder.Default
     private Boolean emailVerified = false;
 
-    @Column(name = "auth_provider", length = 20)
-    private String authProvider;
+    @Column(name = "auth_provider", nullable = false, length = 20)
+    @Builder.Default
+    private String authProvider = "LOCAL";
 
     @Column(name = "social_id", length = 100)
     private String socialId;
+
+    @Column(length = 10)
+    private String language;
+
+    @Column(name = "level_code")
+    private Integer levelCode;
 }
