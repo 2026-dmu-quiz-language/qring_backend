@@ -128,6 +128,9 @@ public class AuthController {
     }
 
     /* ---------- (개발용) 전체 회원 목록 ---------- */
+    // TODO(security): 아래 /users, /users/{userId} 엔드포인트는 현재 권한 체크가 없어
+    //   로그인한 일반 사용자도 다른 사용자를 조회/삭제할 수 있음.
+    //   운영 배포 전에 ADMIN 권한 체크를 추가하거나 엔드포인트 자체를 제거할 것.
 
     /** (개발용) 전체 사용자 목록 조회. */
     @GetMapping("/users")
