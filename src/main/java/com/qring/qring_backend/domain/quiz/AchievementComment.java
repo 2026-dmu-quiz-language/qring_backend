@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/** 진도율 구간(minRate~maxRate)별 성취 코멘트 문구. 대시보드 노출용. */
 @Entity
 @Table(name = "achievement_comment")
 @Getter

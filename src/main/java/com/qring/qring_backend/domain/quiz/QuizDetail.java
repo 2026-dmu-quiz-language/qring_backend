@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** 스크립트에 연결된 퀴즈 — 유형, 정답, 해설 보관. */
 @Entity
 @Table(name = "Quiz_Detail")
 @Getter @Setter @NoArgsConstructor

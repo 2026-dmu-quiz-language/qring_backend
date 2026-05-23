@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** 콘텐츠를 구성하는 챕터 단위 — 챕터 번호·제목과 진입에 필요한 포인트. */
 @Entity
 @Table(name = "Chapter")
 @Getter @Setter @NoArgsConstructor

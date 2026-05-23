@@ -13,3 +13,43 @@ spring:
       hibernate:
         format_sql: true
     generate-ddl: true
+    # JPA가 테이블 생성한 뒤에 data.sql 이 실행되도록 지연
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      # MySQL 등 외부 DB에서도 data.sql/schema.sql 을 항상 실행
+      mode: always
+      encoding: UTF-8
+
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:qring-default-secret-key-please-change-in-production-min-32-bytes}
+  access-token-validity-ms: 3600000
+  refresh-token-validity-ms: 1209600000
+
+qring:
+  email:
+    # true 이면 실제 메일 전송 없이 로그에만 인증 코드를 출력 (로컬/데모용)
+    dev-mode: ${QRING_EMAIL_DEV_MODE:true}
+
+oauth:
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+  kakao:
+    app-key: ${KAKAO_APP_KEY:}
+    client-secret: ${KAKAO_CLIENT_SECRET:}
+  line:
+    channel-id: ${LINE_CHANNEL_ID:}
+    channel-secret: ${LINE_CHANNEL_SECRET:}
