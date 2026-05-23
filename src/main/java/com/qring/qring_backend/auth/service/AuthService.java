@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
+/** 인증 도메인의 핵심 비즈니스 로직 (가입·로그인·소셜·토큰 재발급·학습 설정). */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -67,7 +68,7 @@ public class AuthService {
         );
     }
 
-    /** Step 2: 이메일 인증 코드 검증 후 토큰 발급 */
+    /** Step 2: 이메일 인증 코드 검증 후 토큰 발급. */
     @Transactional
     public AuthResponse verifyEmail(AuthRequest.VerifyEmail request) {
         EmailService.VerifyResult result =
@@ -85,7 +86,7 @@ public class AuthService {
         return buildAuthResponse(user, false);
     }
 
-    /** 미인증 사용자용 코드 재발송 */
+    /** 미인증 사용자용 코드 재발송. */
     public void resendCode(AuthRequest.ResendCode request) {
         User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
@@ -95,6 +96,7 @@ public class AuthService {
         emailService.sendVerificationCode(request.getEmail());
     }
 
+    /** 이메일·비밀번호 검증과 이메일 인증 완료 여부 확인 후 토큰 발급. */
     public AuthResponse login(AuthRequest.Login request) {
         User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new IllegalArgumentException("INVALID_CREDENTIALS"));
@@ -114,6 +116,7 @@ public class AuthService {
 
     /* -------------------------- 소셜 로그인 -------------------------- */
 
+    /** Google ID 토큰 검증 후 내부 사용자로 매핑/생성. */
     public AuthResponse googleLogin(AuthRequest.SocialLogin request) {
         Map<String, Object> u = oAuthService.verifyGoogleToken(request.getToken());
         return socialLogin(
@@ -124,6 +127,7 @@ public class AuthService {
         );
     }
 
+    /** Kakao 인가 코드 → 사용자 프로필 → 내부 사용자로 매핑/생성. */
     @SuppressWarnings("unchecked")
     public AuthResponse kakaoLogin(AuthRequest.SocialLogin request) {
         Map<String, Object> u = oAuthService.verifyKakaoCode(request.getToken(), request.getRedirectUri());
@@ -135,11 +139,15 @@ public class AuthService {
         return socialLogin("KAKAO", socialId, email, nickname);
     }
 
+    /** LINE 인가 코드 → 사용자 프로필 → 내부 사용자로 매핑/생성. */
     public AuthResponse lineLogin(AuthRequest.SocialLogin request) {
         Map<String, Object> p = oAuthService.verifyLineCode(request.getToken(), request.getRedirectUri());
         return socialLogin("LINE", (String) p.get("userId"), null, (String) p.get("displayName"));
     }
 
+    /**
+     * 소셜 사용자 매핑 공통 로직: (provider, socialId) 매칭 → 이메일 충돌 검사 → 신규 생성.
+     */
     @Transactional
     protected AuthResponse socialLogin(String provider, String socialId, String email, String name) {
         var existing = userRepository.findByAuthProviderAndSocialId(provider, socialId);
@@ -175,6 +183,7 @@ public class AuthService {
         return buildAuthResponse(created, true);
     }
 
+    /** 닉네임 후보 정규화 (허용 문자 외 제거 + 길이 보정). */
     private String sanitizeNickname(String raw) {
         String s = raw.replaceAll("[^a-zA-Z0-9가-힣_]", "");
         if (s.length() < 2) s = "user" + s;
@@ -182,6 +191,7 @@ public class AuthService {
         return s;
     }
 
+    /** 리프레시 토큰 검증 후 동일 사용자에 대해 새 토큰 발급. */
     public AuthResponse refresh(String refreshToken) {
         if (!tokenProvider.validateToken(refreshToken)) {
             throw new IllegalArgumentException("INVALID_REFRESH_TOKEN");
@@ -192,7 +202,7 @@ public class AuthService {
         return buildAuthResponse(user, false);
     }
 
-    /** 학습 설정 업데이트 (소셜 가입 후 OnboardingScreen에서 호출) */
+    /** 학습 설정 업데이트 (소셜 가입 후 OnboardingScreen에서 호출). */
     @Transactional
     public AuthResponse updatePreferences(Long userId, AuthRequest.UpdatePreferences request) {
         User user = userRepository.findById(userId)
@@ -203,6 +213,7 @@ public class AuthService {
         return buildAuthResponse(user, false);
     }
 
+    /** 사용자 정보 + 새로 발급한 토큰을 묶어 표준 인증 응답을 만든다. */
     private AuthResponse buildAuthResponse(User user, boolean isNewUser) {
         String at = tokenProvider.generateAccessToken(user.getUserId());
         String rt = tokenProvider.generateRefreshToken(user.getUserId());

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.LocalDateTime;
 
+/** 사용자 엔티티 — 로컬/소셜 가입 공용. authProvider=LOCAL이면 password 사용. */
 @Entity
 @Table(name = "users")
 @Getter @Setter

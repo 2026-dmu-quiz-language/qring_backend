@@ -12,6 +12,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 import java.util.Set;
 
+/** Google/Kakao/LINE 외부 OAuth 제공자와의 통신 및 토큰 검증. */
 @Slf4j
 @Service
 public class OAuthService {
@@ -37,7 +38,7 @@ public class OAuthService {
         "accounts.google.com", "https://accounts.google.com"
     );
 
-    /** Google ID 토큰 검증 (tokeninfo 엔드포인트) */
+    /** Google ID 토큰 검증 (tokeninfo 엔드포인트). aud/iss/email_verified 확인 후 페이로드 반환. */
     @SuppressWarnings("unchecked")
     public Map<String, Object> verifyGoogleToken(String idToken) {
         String url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken;
@@ -71,7 +72,7 @@ public class OAuthService {
         }
     }
 
-    /** Kakao authorization code → access token → user info */
+    /** Kakao authorization code → access token → user info. */
     @SuppressWarnings("unchecked")
     public Map<String, Object> verifyKakaoCode(String code, String redirectUri) {
         log.info("[KAKAO] start. appKey configured={}, redirectUri={}, code(len)={}",
@@ -121,7 +122,7 @@ public class OAuthService {
         }
     }
 
-    /** LINE authorization code → access token → user profile */
+    /** LINE authorization code → access token → user profile. */
     @SuppressWarnings("unchecked")
     public Map<String, Object> verifyLineCode(String code, String redirectUri) {
         log.info("[LINE] start. channelIdConfigured={}, redirectUri={}",

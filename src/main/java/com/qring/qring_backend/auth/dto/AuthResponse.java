@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** 인증 성공 응답 — JWT 토큰 페어 + 사용자 기본 정보 + 신규 가입 여부. */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

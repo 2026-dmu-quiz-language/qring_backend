@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** 사용자별 자산 — 보유 포인트·누적 경험치·연속 학습일. User와 1:1. */
 @Entity
 @Table(name = "User_Asset")
 @Getter @Setter @NoArgsConstructor

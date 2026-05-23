@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** 대시보드 HTTP 엔드포인트. 경로: {@code /api/v1/dash}. */
 @RestController
 @RequestMapping("/api/v1/dash")
 @RequiredArgsConstructor
@@ -16,6 +17,7 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
 
+    /** 현재 로그인 사용자의 대시보드 데이터(진도율·연속일·코멘트 등) 조회. */
     @PostMapping
     public ResponseEntity<DashboardResponse> getDashboard(Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();

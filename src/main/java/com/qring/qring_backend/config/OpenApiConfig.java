@@ -8,11 +8,13 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/** springdoc-openapi 설정 — Swagger UI에 JWT Bearer 인증 스킴을 등록한다. */
 @Configuration
 public class OpenApiConfig {
 
     private static final String BEARER_SCHEME = "bearerAuth";
 
+    /** API 메타데이터 + JWT Bearer 보안 스킴 등록. Swagger UI의 Authorize 버튼에서 토큰 입력 가능. */
     @Bean
     public OpenAPI qringOpenAPI() {
         return new OpenAPI()

@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** 난이도 등급 — levelCode(1~N)와 표시명/설명 보관. */
 @Entity
 @Table(name = "Difficulty_Level")
 @Getter @Setter @NoArgsConstructor

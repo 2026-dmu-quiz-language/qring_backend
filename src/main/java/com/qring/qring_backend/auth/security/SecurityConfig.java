@@ -16,17 +16,20 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+/** Spring Security 설정: 무상태 세션, CORS 허용, 인증 화이트리스트, JWT 필터 등록. */
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    /** 비밀번호 해싱용 BCrypt 인코더. */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /** 보안 필터 체인: 인증 없이 접근 가능한 경로 화이트리스트 + JWT 필터 삽입. */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -60,6 +63,7 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /** 모든 오리진/메서드/헤더 허용 CORS 설정 (개발 편의 위주). */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();

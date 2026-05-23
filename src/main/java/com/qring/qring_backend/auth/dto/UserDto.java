@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/** 외부 노출용 사용자 정보 DTO (비밀번호 등 민감 필드 제외). */
 @Data
 @AllArgsConstructor
 public class UserDto {
@@ -19,6 +20,7 @@ public class UserDto {
     private String language;
     private Integer levelCode;
 
+    /** User 엔티티 → UserDto 변환. */
     public static UserDto from(User user) {
         return new UserDto(
             user.getUserId(),

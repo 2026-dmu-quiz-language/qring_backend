@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/** 대시보드 응답 — 닉네임, 연속 학습일, 진도율(%), 성취 코멘트, 완료 스토리 수, 레벨 정보. */
 @Getter
 @Builder
 @NoArgsConstructor

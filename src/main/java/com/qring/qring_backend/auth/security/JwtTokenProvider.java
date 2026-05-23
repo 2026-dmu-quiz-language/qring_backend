@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.util.Date;
 
+/** JWT 액세스/리프레시 토큰 생성·검증·subject(userId) 추출. */
 @Component
 public class JwtTokenProvider {
 
@@ -29,10 +30,12 @@ public class JwtTokenProvider {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
+    /** 액세스 토큰 발급 (기본 1시간). */
     public String generateAccessToken(Long userId) {
         return generateToken(userId, accessTokenValidityMs, "access");
     }
 
+    /** 리프레시 토큰 발급 (기본 14일). */
     public String generateRefreshToken(Long userId) {
         return generateToken(userId, refreshTokenValidityMs, "refresh");
     }
@@ -49,6 +52,7 @@ public class JwtTokenProvider {
             .compact();
     }
 
+    /** 서명/만료 검증. 예외 발생 시 false. */
     public boolean validateToken(String token) {
         try {
             Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
@@ -58,6 +62,7 @@ public class JwtTokenProvider {
         }
     }
 
+    /** 토큰 subject 클레임을 userId(Long)로 변환해 반환. */
     public Long getUserIdFromToken(String token) {
         Claims claims = Jwts.parser().verifyWith(key).build()
             .parseSignedClaims(token).getPayload();

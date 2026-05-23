@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Set;
 
+/** 일회용/임시 이메일 도메인을 차단하기 위한 화이트리스트 기반 판별기. */
 @Service
 public class DisposableEmailService {
 
@@ -32,6 +33,7 @@ public class DisposableEmailService {
         "tempe.ml", "tempsky.com", "1secmail.com", "1secmail.net", "1secmail.org"
     );
 
+    /** 이메일의 도메인이 일회용 도메인 목록에 속하면 true. */
     public boolean isDisposable(String email) {
         if (email == null || !email.contains("@")) return false;
         String domain = email.substring(email.lastIndexOf('@') + 1).toLowerCase().trim();

@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/** 이메일 인증 코드 생성·발송·검증. 코드는 메모리 맵에 (이메일 → 코드+만료시각) 형태로 보관. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -33,6 +34,7 @@ public class EmailService {
 
     private final Map<String, Entry> store = new ConcurrentHashMap<>();
 
+    /** 새 코드 생성 후 저장소에 기록하고 메일 발송 (devMode면 로그 출력으로 대체). */
     public void sendVerificationCode(String email) {
         String code = generateCode();
         store.put(email, new Entry(code, Instant.now().plus(CODE_TTL)));
@@ -63,6 +65,7 @@ public class EmailService {
 
     public enum VerifyResult { OK, NOT_FOUND, EXPIRED, MISMATCH }
 
+    /** 입력 코드를 저장소 값과 대조. 성공/만료 시 항목 제거 (1회용). */
     public VerifyResult verifyCode(String email, String code) {
         Entry entry = store.get(email);
         if (entry == null) {
@@ -83,6 +86,7 @@ public class EmailService {
         return VerifyResult.OK;
     }
 
+    /** 100000~999999 범위의 6자리 숫자 코드. */
     private String generateCode() {
         return String.valueOf(RANDOM.nextInt(900000) + 100000);
     }

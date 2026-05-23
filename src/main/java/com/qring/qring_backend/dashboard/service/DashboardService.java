@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
+/** 대시보드용 통계 집계: 평균 진도율, 완료 스토리 수, 연속 학습일, 성취 코멘트, 난이도 설명. */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -26,6 +27,7 @@ public class DashboardService {
     private final DifficultyLevelRepository difficultyLevelRepository;
     private final AchievementCommentRepository achievementCommentRepository;
 
+    /** 사용자별 대시보드 응답 조립. 평균 진도율은 반올림 정수, 코멘트/레벨 설명은 옵션. */
     public DashboardResponse getDashboard(Long userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));

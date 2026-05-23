@@ -3,8 +3,10 @@ package com.qring.qring_backend.auth.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
+/** 인증 관련 요청 DTO 모음 — 회원가입·로그인·이메일 인증·소셜 로그인·토큰 갱신 등. */
 public class AuthRequest {
 
+    /** 로컬 회원가입 요청. 학습 설정(language/levelCode)은 선택. */
     @Data
     public static class SignUp {
         @Email @NotBlank
@@ -38,6 +40,7 @@ public class AuthRequest {
         private Integer levelCode;
     }
 
+    /** 학습 설정(언어/레벨) 업데이트 요청. */
     @Data
     public static class UpdatePreferences {
         @NotBlank
@@ -49,6 +52,7 @@ public class AuthRequest {
         private Integer levelCode;
     }
 
+    /** 이메일 인증 코드 검증 요청. */
     @Data
     public static class VerifyEmail {
         @Email @NotBlank
@@ -59,12 +63,14 @@ public class AuthRequest {
         private String code;
     }
 
+    /** 인증 코드 재발송 요청. */
     @Data
     public static class ResendCode {
         @Email @NotBlank
         private String email;
     }
 
+    /** 로컬 로그인 요청. */
     @Data
     public static class Login {
         @Email @NotBlank
@@ -74,6 +80,7 @@ public class AuthRequest {
         private String password;
     }
 
+    /** 소셜 로그인 요청 — Google은 ID 토큰, Kakao/LINE은 authorization code를 token에 담아 전달. */
     @Data
     public static class SocialLogin {
         @NotBlank
@@ -82,6 +89,7 @@ public class AuthRequest {
         private String redirectUri;
     }
 
+    /** 리프레시 토큰 갱신 요청. */
     @Data
     public static class RefreshToken {
         @NotBlank
