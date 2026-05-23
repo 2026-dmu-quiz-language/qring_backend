@@ -1,3 +1,5 @@
+> **TODO:** 임시 frontend 폴더는 제거됨. 프론트엔드팀 최신 코드를 머지한 후 아래 4-5번(프론트 실행/QR 스캔) 단계 갱신 필요.
+
 1. MySQL 데이터베이스 생성
 MySQL에서
 CREATE DATABASE qring_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
