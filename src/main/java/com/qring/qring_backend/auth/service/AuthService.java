@@ -117,6 +117,7 @@ public class AuthService {
     /* -------------------------- 소셜 로그인 -------------------------- */
 
     /** Google ID 토큰 검증 후 내부 사용자로 매핑/생성. */
+    @Transactional
     public AuthResponse googleLogin(AuthRequest.SocialLogin request) {
         Map<String, Object> u = oAuthService.verifyGoogleToken(request.getToken());
         return socialLogin(
@@ -128,6 +129,7 @@ public class AuthService {
     }
 
     /** Kakao 인가 코드 → 사용자 프로필 → 내부 사용자로 매핑/생성. */
+    @Transactional
     @SuppressWarnings("unchecked")
     public AuthResponse kakaoLogin(AuthRequest.SocialLogin request) {
         Map<String, Object> u = oAuthService.verifyKakaoCode(request.getToken(), request.getRedirectUri());
@@ -140,6 +142,7 @@ public class AuthService {
     }
 
     /** LINE 인가 코드 → 사용자 프로필 → 내부 사용자로 매핑/생성. */
+    @Transactional
     public AuthResponse lineLogin(AuthRequest.SocialLogin request) {
         Map<String, Object> p = oAuthService.verifyLineCode(request.getToken(), request.getRedirectUri());
         return socialLogin("LINE", (String) p.get("userId"), null, (String) p.get("displayName"));
@@ -147,9 +150,9 @@ public class AuthService {
 
     /**
      * 소셜 사용자 매핑 공통 로직: (provider, socialId) 매칭 → 이메일 충돌 검사 → 신규 생성.
+     * 호출자(googleLogin/kakaoLogin/lineLogin)의 트랜잭션 안에서 동작한다.
      */
-    @Transactional
-    protected AuthResponse socialLogin(String provider, String socialId, String email, String name) {
+    private AuthResponse socialLogin(String provider, String socialId, String email, String name) {
         var existing = userRepository.findByAuthProviderAndSocialId(provider, socialId);
         if (existing.isPresent()) {
             return buildAuthResponse(existing.get(), false);
