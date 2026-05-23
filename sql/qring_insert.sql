@@ -646,6 +646,17 @@ Could you give me his ______ ______? I want to get tutoring too.
   (107, 'taken aback', '''taken aback''은 당황하거나 놀란 상태를 나타내는 표현이야. 과외 선생님이 남자친구라고 하니까 당황한 상황에 딱 맞아.', 'fill_in_blank', 6, 360, 'His voice suddenly changed when I mentioned who I was. He sounded ______ and flustered.', '["taken aback", "excited", "confident", "pleased"]', 2, '["taken aback"]'),
   (108, 'His voice suddenly changed and he sounded flustered.', '''flustered''는 당황하고 어쩔 줄 몰라 하는 상태를 표현할 때 쓰는 자연스러운 영어 표현이야.', 'contextual', 6, 360, '이야기 맥락에서 ''목소리가 확 달라지고 당황하는 느낌''을 영어로 가장 자연스럽게 표현한 것은?', '["His voice suddenly changed and he sounded flustered.", "His voice became louder and more confident.", "His voice got softer and more romantic.", "His voice remained calm and professional."]', 3, '["His voice suddenly changed and he sounded flustered."]');
 
+-- =============================================
+-- 4. achievement_comment (진도율 구간별 성취 멘트)
+-- =============================================
+INSERT INTO achievement_comment (min_rate, max_rate, comment_text) VALUES
+  (0,   20,  '시작이 반이에요! 차근차근 가봐요'),
+  (21,  40,  '꾸준히 진행 중이네요'),
+  (41,  60,  '절반을 향해 잘 가고 있어요'),
+  (61,  80,  '꽤 많이 익히셨네요!'),
+  (81,  99,  '거의 다 왔어요!'),
+  (100, 100, '완벽해요! 다음 스토리도 도전해보세요');
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- 완료!
