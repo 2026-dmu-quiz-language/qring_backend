@@ -13,6 +13,14 @@ spring:
       hibernate:
         format_sql: true
     generate-ddl: true
+    # JPA가 테이블 생성한 뒤에 data.sql 이 실행되도록 지연
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      # MySQL 등 외부 DB에서도 data.sql/schema.sql 을 항상 실행
+      mode: always
+      encoding: UTF-8
 
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
