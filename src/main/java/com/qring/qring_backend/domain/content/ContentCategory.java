@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** 콘텐츠 카테고리 분류 — 표시 순서로 정렬. */
 @Entity
 @Table(name = "Content_Category")
 @Getter @Setter @NoArgsConstructor

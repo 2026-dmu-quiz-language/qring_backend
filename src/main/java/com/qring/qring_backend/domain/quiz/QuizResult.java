@@ -19,6 +19,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/** 사용자별 퀴즈 풀이 결과 — 난이도·시도 횟수·힌트 사용·획득 점수. */
 @Entity
 @Table(name = "quiz_result")
 @Getter

@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+/** {@link ScoreTable} 복합키 — (난이도, 시도 횟수, 힌트 사용 여부). */
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode

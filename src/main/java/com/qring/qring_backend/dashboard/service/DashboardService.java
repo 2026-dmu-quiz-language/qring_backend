@@ -1,0 +1,82 @@
+package com.qring.qring_backend.dashboard.service;
+
+import com.qring.qring_backend.auth.repository.UserRepository;
+import com.qring.qring_backend.dashboard.dto.DashboardResponse;
+import com.qring.qring_backend.domain.difficulty.DifficultyLevel;
+import com.qring.qring_backend.domain.difficulty.DifficultyLevelRepository;
+import com.qring.qring_backend.domain.quiz.AchievementCommentRepository;
+import com.qring.qring_backend.domain.user.User;
+import com.qring.qring_backend.domain.user.UserStudyLogRepository;
+import com.qring.qring_backend.domain.user.UserprogressRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.List;
+
+/** 대시보드용 통계 집계: 평균 진도율, 완료 스토리 수, 연속 학습일, 성취 코멘트, 난이도 설명. */
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class DashboardService {
+
+    private final UserRepository userRepository;
+    private final UserprogressRepository userprogressRepository;
+    private final UserStudyLogRepository userStudyLogRepository;
+    private final DifficultyLevelRepository difficultyLevelRepository;
+    private final AchievementCommentRepository achievementCommentRepository;
+
+    /** 사용자별 대시보드 응답 조립. 평균 진도율은 반올림 정수, 코멘트/레벨 설명은 옵션. */
+    public DashboardResponse getDashboard(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
+
+        Double avgRaw = userprogressRepository.findAverageProgressRate(userId);
+        int progressRate = avgRaw == null ? 0 : (int) Math.round(avgRaw);
+
+        long completedStoryCount = userprogressRepository.countCompletedStories(userId);
+
+        String commentText = achievementCommentRepository.findCommentByRate(progressRate).orElse(null);
+
+        long consecutiveDays = computeConsecutiveDays(userId);
+
+        Integer levelCode = user.getLevelCode();
+        String levelDesc = null;
+        if (levelCode != null) {
+            levelDesc = difficultyLevelRepository.findById(levelCode)
+                .map(DifficultyLevel::getLevelDesc)
+                .orElse(null);
+        }
+
+        return DashboardResponse.builder()
+            .name(user.getNickname())
+            .consecutiveDays(consecutiveDays)
+            .progressRate(progressRate)
+            .commentText(commentText)
+            .completedStoryCount(completedStoryCount)
+            .levelDesc(levelDesc)
+            .levelCode(levelCode)
+            .build();
+    }
+
+    /** 가장 최근 학습일이 오늘 또는 어제일 때만 연속일 카운트. 그 이전에 끊겼으면 0. */
+    private long computeConsecutiveDays(Long userId) {
+        List<LocalDate> dates = userStudyLogRepository.findDistinctStudyDatesDesc(userId);
+        if (dates.isEmpty()) return 0;
+
+        LocalDate today = LocalDate.now();
+        LocalDate latest = dates.get(0);
+        if (!latest.equals(today) && !latest.equals(today.minusDays(1))) return 0;
+
+        long count = 1;
+        for (int i = 1; i < dates.size(); i++) {
+            if (dates.get(i).equals(dates.get(i - 1).minusDays(1))) {
+                count++;
+            } else {
+                break;
+            }
+        }
+        return count;
+    }
+}

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.LocalDateTime;
 
+/** 사용자별 콘텐츠 진행 상태 — 최근 챕터와 진도율(%) 보관. */
 @Entity
 @Table(name = "User_Progress")
 @Getter @Setter @NoArgsConstructor

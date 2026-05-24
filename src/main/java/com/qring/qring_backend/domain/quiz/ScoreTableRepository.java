@@ -15,8 +15,8 @@ public interface ScoreTableRepository extends JpaRepository<ScoreTable, ScoreTab
            "AND s.id.attempt = :attempt " +
            "AND s.id.hintUsed = :hintUsed")
     Optional<Integer> findScoreByDifficultyAndAttemptAndHintUsed(
-            @Param("difficulty") int difficulty, 
-            @Param("attempt") int attempt, 
+            @Param("difficulty") int difficulty,
+            @Param("attempt") int attempt,
             @Param("hintUsed") boolean hintUsed
     );
 }

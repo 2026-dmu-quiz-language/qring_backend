@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** 챕터 내 스크립트 한 줄 — 등장 인물 대사와 선택지(옵션) 연결. */
 @Entity
 @Table(name = "Script")
 @Getter @Setter @NoArgsConstructor

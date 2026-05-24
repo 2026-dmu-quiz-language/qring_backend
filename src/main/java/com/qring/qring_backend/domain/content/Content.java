@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** 학습 콘텐츠(스토리) 엔티티 — 카테고리·난이도·썸네일·총 챕터 수 보관. */
 @Entity
 @Table(name = "Content")
 @Getter @Setter @NoArgsConstructor

@@ -8,11 +8,12 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/** 점수 산정 테이블 — (난이도, 시도 횟수, 힌트 사용 여부) 복합키로 점수 매핑. */
 @Entity
 @Table(name = "score_table")
 @Getter
 @NoArgsConstructor
-@IdClass(ScoreTableId.class) 
+@IdClass(ScoreTableId.class)
 public class ScoreTable {
 
     @Id

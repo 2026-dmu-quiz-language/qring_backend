@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** 스크립트 선택지 — 선택 시 이동할 다음 스크립트와 엔딩 점수 가중치 보관. */
 @Entity
 @Table(name = "Script_Option")
 @Getter @Setter @NoArgsConstructor
