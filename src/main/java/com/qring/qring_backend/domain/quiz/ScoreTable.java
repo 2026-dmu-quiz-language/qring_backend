@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "score_table")
 @Getter
 @NoArgsConstructor
-@IdClass(ScoreTableId.class) // 💡 방금 만든 복합키 클래스 연결!
+@IdClass(ScoreTableId.class) 
 public class ScoreTable {
 
     @Id
