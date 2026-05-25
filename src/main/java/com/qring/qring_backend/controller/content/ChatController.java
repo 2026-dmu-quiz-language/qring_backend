@@ -1,5 +1,6 @@
 package com.qring.qring_backend.controller.content;
 
+import com.qring.qring_backend.auth.security.JwtTokenProvider;
 import com.qring.qring_backend.dto.content.ChatResponseDto;
 import com.qring.qring_backend.service.content.ChatService;
 import lombok.RequiredArgsConstructor;
@@ -11,13 +12,14 @@ import org.springframework.web.bind.annotation.*;
 public class ChatController {
 
     private final ChatService chatService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/chat")
     public ResponseEntity<ChatResponseDto> getChat(
             @RequestHeader("Authorization") String token,
             @RequestParam Long contentId) {
 
-        // TODO: 태형님 토큰 방식 확정되면 token 검증 로직 추가
+        jwtTokenProvider.getUserIdFromToken(token); // 토큰 유효성 검증
         ChatResponseDto response = chatService.getChatData(contentId);
         return ResponseEntity.ok(response);
     }
