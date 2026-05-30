@@ -33,7 +33,7 @@ INSERT IGNORE INTO content_category (category_id, category_name, display_order) 
 
 -- ----- [짝사랑] 도서관 좌석번호 64번 -----
 INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (1, '도서관 좌석번호 64번', 1, 2, 1, 'ACTIVE', NULL);
+  (1, '도서관 좌석번호 64번', 1, 2, 1, 'ACTIVE', '/images/짝사랑_썸네일.png');
 
 INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
   (1, 1, '도서관 좌석번호 64번', 0, 1);
@@ -140,7 +140,7 @@ I couldn''t ______ ______ the courage to say hello.
 
 -- ----- [드라마] 3번 관람석 -----
 INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (2, '3번 관람석', 2, 2, 1, 'ACTIVE', NULL);
+  (2, '3번 관람석', 2, 2, 1, 'ACTIVE', '/images/드라마_썸네일.png');
 
 INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
   (2, 1, '3번 관람석', 0, 2);
@@ -248,7 +248,7 @@ He looked ______ at seat number 3 and left without saying anything.
 
 -- ----- [스릴러] 끊어진 전화선 -----
 INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (3, '끊어진 전화선', 3, 2, 1, 'ACTIVE', NULL);
+  (3, '끊어진 전화선', 3, 2, 1, 'ACTIVE', '/images/스릴러_썸네일.png');
 
 INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
   (3, 1, '끊어진 전화선', 0, 3);
@@ -375,7 +375,7 @@ Her hands wouldn''t ______ her.
 
 -- ----- [추리물] 빨간 구두 -----
 INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (4, '빨간 구두', 4, 2, 1, 'ACTIVE', NULL);
+  (4, '빨간 구두', 4, 2, 1, 'ACTIVE', '/images/추리물_썸네일.png');
 
 INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
   (4, 1, '빨간 구두', 0, 4);
@@ -469,7 +469,7 @@ She came to ______ her final farewell.
 
 -- ----- [특이한연애썰] 남자친구가 제 꿈을 예측해요 -----
 INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (5, '남자친구가 제 꿈을 예측해요', 5, 2, 1, 'ACTIVE', NULL);
+  (5, '남자친구가 제 꿈을 예측해요', 5, 2, 1, 'ACTIVE', '/images/특이한연애썰_썸네일.png');
 
 INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
   (5, 1, '남자친구가 제 꿈을 예측해요', 0, 5);
@@ -554,7 +554,7 @@ I ________ him about it.
 
 -- ----- [연애갈등] 수학 과외 선생님과 내 여자친구 -----
 INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (6, '수학 과외 선생님과 내 여자친구', 6, 2, 1, 'ACTIVE', NULL);
+  (6, '수학 과외 선생님과 내 여자친구', 6, 2, 1, 'ACTIVE', '/images/연애갈등_썸네일.png');
 
 INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
   (6, 1, '수학 과외 선생님과 내 여자친구', 0, 6);
@@ -661,6 +661,14 @@ SELECT * FROM (
   UNION ALL SELECT 100, 100, '완벽해요! 다음 스토리도 도전해보세요'
 ) AS seed
 WHERE NOT EXISTS (SELECT 1 FROM achievement_comment LIMIT 1);
+
+-- thumbnail_url 강제 갱신 (INSERT IGNORE로 인해 기존 row가 NULL로 남아있는 경우 대비)
+UPDATE content SET thumbnail_url = '/images/짝사랑_썸네일.png'       WHERE content_id = 1;
+UPDATE content SET thumbnail_url = '/images/드라마_썸네일.png'       WHERE content_id = 2;
+UPDATE content SET thumbnail_url = '/images/스릴러_썸네일.png'       WHERE content_id = 3;
+UPDATE content SET thumbnail_url = '/images/추리물_썸네일.png'       WHERE content_id = 4;
+UPDATE content SET thumbnail_url = '/images/특이한연애썰_썸네일.png' WHERE content_id = 5;
+UPDATE content SET thumbnail_url = '/images/연애갈등_썸네일.png'     WHERE content_id = 6;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
