@@ -20,7 +20,7 @@ public class QuestionResultController {
             @RequestBody QuestionResultRequestDto request) {
 
         Long userId = (Long) authentication.getPrincipal();
-        QuestionResultResponseDto response = questionResultService.saveResult(userId, request);
+        QuestionResultResponseDto response = questionResultService.saveResults(userId, request);
         return ResponseEntity.ok(response);
     }
 }
