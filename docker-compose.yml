@@ -42,6 +42,16 @@ services:
     ports:
       - "8080:8080"
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: qring-cloudflared
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
   # ---------------------------------------------------------------
   # frontend (React Native + Expo) — 작성 예시 (실제 코드 머지 후 활성화)
   # ---------------------------------------------------------------

@@ -1,0 +1,7 @@
+tunnel: 5033c8b4-3c13-4163-9586-015d2b0fcab5
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: q-ring.app
+    service: http://backend:8080
+  - service: http_status:404
