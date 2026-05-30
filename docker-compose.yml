@@ -53,44 +53,28 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------
-  # frontend (React Native + Expo) — 작성 예시 (실제 코드 머지 후 활성화)
+  # frontend (Expo Web · nginx 정적 서빙) — 코드 머지 후 주석 해제
   # ---------------------------------------------------------------
-  # frontend 코드가 ./frontend 폴더에 들어오면 아래 service 블록의
-  # 주석을 풀고, ./frontend/Dockerfile 도 아래 예시대로 작성하면 됨.
-  # profiles 로 묶어둬서 평소엔 무시되고, 다음 명령으로만 기동:
-  #   docker compose --profile frontend up -d frontend
+  # 통합 절차/Dockerfile/nginx.conf 예시는 ./frontend/README.md 참고.
+  # 활성화 시:
+  #   1) ./frontend/ 에 프론트 소스 + Dockerfile + nginx.conf 배치
+  #   2) 아래 frontend 서비스 블록 주석 해제
+  #   3) cloudflared/config.yml 의 ingress service 를
+  #      http://backend:8080 → http://frontend:80 으로 변경
+  #   4) docker compose up -d --build
   #
   # frontend:
   #   build:
   #     context: ./frontend
   #     dockerfile: Dockerfile
+  #     args:
+  #       EXPO_PUBLIC_API_BASE_URL: /api
   #   container_name: qring-frontend
-  #   profiles: ["frontend"]
   #   ports:
-  #     - "8081:8081"     # Metro bundler
-  #     - "19000:19000"   # Expo Dev Server
-  #     - "19001:19001"   # Expo Dev Tools
-  #     - "19002:19002"   # Expo Manifest
-  #   environment:
-  #     # Expo Go 앱이 LAN으로 접속할 호스트 IP. .env 에 PC 의 사설 IP 지정.
-  #     #   REACT_NATIVE_PACKAGER_HOSTNAME=192.168.x.x
-  #     REACT_NATIVE_PACKAGER_HOSTNAME: ${REACT_NATIVE_PACKAGER_HOSTNAME:-localhost}
-  #     # 백엔드 API 주소를 프론트에서 참조할 때 사용 (.env 또는 frontend 코드에서)
-  #     EXPO_PUBLIC_API_BASE_URL: http://${REACT_NATIVE_PACKAGER_HOSTNAME:-localhost}:8080
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules    # 컨테이너 내부 node_modules 보존 (호스트 마운트 덮어쓰기 방지)
-  #   stdin_open: true
-  #   tty: true
-  #
-  # ---- ./frontend/Dockerfile 예시 ----
-  # FROM node:20-alpine
-  # WORKDIR /app
-  # COPY package.json package-lock.json* ./
-  # RUN npm install
-  # COPY . .
-  # EXPOSE 8081 19000 19001 19002
-  # CMD ["npm", "start"]
+  #     - "80:80"
+  #   depends_on:
+  #     - backend
+  #   restart: unless-stopped
   # ---------------------------------------------------------------
 
 volumes:
