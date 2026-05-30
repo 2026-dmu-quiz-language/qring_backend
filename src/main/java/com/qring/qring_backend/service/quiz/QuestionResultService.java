@@ -1,17 +1,20 @@
 package com.qring.qring_backend.service.quiz;
 
+import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.domain.quiz.QuizDetail;
 import com.qring.qring_backend.domain.quiz.QuizDetailRepository;
 import com.qring.qring_backend.domain.quiz.QuizResult;
 import com.qring.qring_backend.domain.quiz.QuizResultRepository;
 import com.qring.qring_backend.domain.quiz.QuizService;
 import com.qring.qring_backend.domain.user.User;
-import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto;
+import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto.QuizResultDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -23,43 +26,46 @@ public class QuestionResultService {
     private final UserRepository userRepository;
 
     @Transactional
-    public QuestionResultResponseDto saveResult(Long userId, QuestionResultRequestDto request) {
+    public QuestionResultResponseDto saveResults(Long userId, QuestionResultRequestDto request) {
 
-        // 퀴즈 정보 조회
-        QuizDetail quizDetail = quizDetailRepository.findById(request.getQuizId())
-                .orElseThrow(() -> new IllegalArgumentException("퀴즈를 찾을 수 없습니다."));
-
-        // 점수 계산 (정답인 경우만, 오답은 0점)
-        int score = 0;
-        if (request.isCorrect()) {
-            score = quizService.getCalculatedScore(
-                    quizDetail.getDifficulty(),
-                    request.getAttemptCount(),
-                    request.isHintUsed()
-            );
-        }
-
-        // 유저 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
 
-        // 결과 저장
-        QuizResult quizResult = QuizResult.builder()
-                .user(user)
-                .contentId(quizDetail.getContent().getContentId())
-                .scriptId(quizDetail.getScript().getScriptId())
-                .difficulty(quizDetail.getDifficulty())
-                .attemptCount(request.getAttemptCount())
-                .hintUsed(request.isHintUsed())
-                .score(score)
-                .build();
+        int totalScore = 0;
+        int correctCount = 0;
 
-        quizResultRepository.save(quizResult);
+        for (QuizResultDto result : request.getResults()) {
 
-        // 정답 횟수 조회
-        int correctCount = quizResultRepository.countCorrectByUserIdAndContentId(
-                userId, quizDetail.getContent().getContentId());
+            QuizDetail quizDetail = quizDetailRepository.findById(result.getQuizId())
+                    .orElseThrow(() -> new IllegalArgumentException("퀴즈를 찾을 수 없습니다."));
 
-        return new QuestionResultResponseDto(score, correctCount);
+            // 점수 계산 (정답인 경우만)
+            int score = 0;
+            if (result.isCorrect()) {
+                score = quizService.getCalculatedScore(
+                        quizDetail.getDifficulty(),
+                        result.getAttemptCount(),
+                        result.isHintUsed()
+                );
+                correctCount++;
+            }
+
+            totalScore += score;
+
+            // 결과 저장
+            QuizResult quizResult = QuizResult.builder()
+                    .user(user)
+                    .contentId(quizDetail.getContent().getContentId())
+                    .scriptId(quizDetail.getScript().getScriptId())
+                    .difficulty(quizDetail.getDifficulty())
+                    .attemptCount(result.getAttemptCount())
+                    .hintUsed(result.isHintUsed())
+                    .score(score)
+                    .build();
+
+            quizResultRepository.save(quizResult);
+        }
+
+        return new QuestionResultResponseDto(totalScore, correctCount);
     }
 }

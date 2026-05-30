@@ -21,7 +21,7 @@ public class QuestionResultController {
             @RequestBody QuestionResultRequestDto request) {
 
         Long userId = jwtTokenProvider.getUserIdFromToken(token);
-        QuestionResultResponseDto response = questionResultService.saveResult(userId, request);
+        QuestionResultResponseDto response = questionResultService.saveResults(userId, request);
         return ResponseEntity.ok(response);
     }
 }

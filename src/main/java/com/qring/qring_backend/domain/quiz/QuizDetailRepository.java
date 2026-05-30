@@ -13,4 +13,10 @@ public interface QuizDetailRepository extends JpaRepository<QuizDetail, Long> {
         WHERE q.content.contentId = :contentId
     """)
     List<QuizDetail> findAllByContentId(@Param("contentId") Long contentId);
+
+    @Query("""
+        SELECT COUNT(q) FROM QuizDetail q
+        WHERE q.content.contentId = :contentId
+    """)
+    Long countByContentId(@Param("contentId") Long contentId);
 }
