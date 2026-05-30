@@ -7,6 +7,6 @@ import lombok.Getter;
 @AllArgsConstructor
 public class QuestionResultResponseDto {
 
-    private int score;
+    private int totalScore;
     private int correctCount;
 }

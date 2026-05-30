@@ -19,7 +19,7 @@ public class ChatController {
             @RequestHeader("Authorization") String token,
             @RequestParam Long contentId) {
 
-        jwtTokenProvider.getUserIdFromToken(token); // 토큰 유효성 검증
+        jwtTokenProvider.getUserIdFromToken(token);
         ChatResponseDto response = chatService.getChatData(contentId);
         return ResponseEntity.ok(response);
     }
