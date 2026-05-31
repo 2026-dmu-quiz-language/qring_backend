@@ -7,14 +7,14 @@ import com.qring.qring_backend.domain.quiz.QuizResult;
 import com.qring.qring_backend.domain.quiz.QuizResultRepository;
 import com.qring.qring_backend.domain.quiz.QuizService;
 import com.qring.qring_backend.domain.user.User;
+import com.qring.qring_backend.domain.user.UserStudyLog;
+import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto.QuizResultDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +23,7 @@ public class QuestionResultService {
     private final QuizService quizService;
     private final QuizDetailRepository quizDetailRepository;
     private final QuizResultRepository quizResultRepository;
+    private final UserStudyLogRepository userStudyLogRepository;
     private final UserRepository userRepository;
 
     @Transactional
@@ -52,7 +53,7 @@ public class QuestionResultService {
 
             totalScore += score;
 
-            // 결과 저장
+            // quiz_result 저장
             QuizResult quizResult = QuizResult.builder()
                     .user(user)
                     .contentId(quizDetail.getContent().getContentId())
@@ -64,6 +65,14 @@ public class QuestionResultService {
                     .build();
 
             quizResultRepository.save(quizResult);
+
+            // user_study_log 저장
+            UserStudyLog studyLog = new UserStudyLog();
+            studyLog.setUser(user);
+            studyLog.setQuiz(quizDetail);
+            studyLog.setUserResponse(result.getLastAnswer());
+            studyLog.setIsCorrect(result.isCorrect());
+            userStudyLogRepository.save(studyLog);
         }
 
         return new QuestionResultResponseDto(totalScore, correctCount);
