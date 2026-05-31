@@ -20,7 +20,7 @@ public interface ContentRepository extends JpaRepository<Content, Long> {
             c.status
         )
         FROM Content c
-        LEFT JOIN QuizDetail q ON q.content.contentId = c.contentId
+        LEFT JOIN QuizDetail q ON q.content.contentId = c.contentId AND q.difficulty = 1
         LEFT JOIN Userprogress up ON up.content.contentId = c.contentId AND up.user.userId = :userId
         GROUP BY c.contentId, c.category.categoryName, c.thumbnailUrl, c.title, c.status
     """)
