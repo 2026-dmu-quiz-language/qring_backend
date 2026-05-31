@@ -19,6 +19,7 @@ public class ChatService {
 
     public ChatResponseDto getChatData(Long contentId) {
 
+        // 스크립트 목록 조회 (챕터 순서 → 시퀀스 순서)
         List<Script> scripts = scriptRepository.findAllByContentId(contentId);
         List<ChatResponseDto.ScriptDto> scriptDtos = scripts.stream()
                 .map(s -> new ChatResponseDto.ScriptDto(
@@ -29,6 +30,7 @@ public class ChatService {
                 ))
                 .toList();
 
+        // 퀴즈 목록 조회
         List<QuizDetail> quizzes = quizDetailRepository.findAllByContentId(contentId);
         List<ChatResponseDto.QuizDto> quizDtos = quizzes.stream()
                 .map(q -> new ChatResponseDto.QuizDto(

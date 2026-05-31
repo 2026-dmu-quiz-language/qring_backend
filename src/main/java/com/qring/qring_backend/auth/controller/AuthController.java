@@ -2,8 +2,10 @@ package com.qring.qring_backend.auth.controller;
 
 import com.qring.qring_backend.auth.dto.AuthRequest;
 import com.qring.qring_backend.auth.dto.AuthResponse;
+import com.qring.qring_backend.auth.dto.LoginResponse;
 import com.qring.qring_backend.auth.dto.SignUpResponse;
 import com.qring.qring_backend.auth.dto.UserDto;
+import com.qring.qring_backend.auth.dto.VerifyEmailResponse;
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.auth.service.AuthService;
 import com.qring.qring_backend.domain.user.User;
@@ -13,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 /** 인증/계정 관련 HTTP 엔드포인트. 모든 경로는 {@code /api/v1/auth} 하위에 매핑된다. */
@@ -33,9 +34,9 @@ public class AuthController {
         return ResponseEntity.ok(authService.signUp(request));
     }
 
-    /** 회원가입 2단계: 이메일 인증 코드 검증 후 토큰 발급. */
+    /** 회원가입 2단계: 이메일 인증 코드 검증 후 토큰 발급. 사용자 정보는 /dash·/me에서 조회. */
     @PostMapping("/verify-email")
-    public ResponseEntity<AuthResponse> verifyEmail(@Valid @RequestBody AuthRequest.VerifyEmail request) {
+    public ResponseEntity<VerifyEmailResponse> verifyEmail(@Valid @RequestBody AuthRequest.VerifyEmail request) {
         return ResponseEntity.ok(authService.verifyEmail(request));
     }
 
@@ -48,9 +49,9 @@ public class AuthController {
 
     /* ---------- 로그인 / 로그아웃 / 리프레시 ---------- */
 
-    /** 이메일·비밀번호 로그인. */
+    /** 이메일·비밀번호 로그인. 응답은 토큰 페어만, 사용자 정보는 /dash·/me에서 조회. */
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest.Login request) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody AuthRequest.Login request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
@@ -63,9 +64,9 @@ public class AuthController {
         ));
     }
 
-    /** 리프레시 토큰으로 액세스/리프레시 토큰 재발급. */
+    /** 리프레시 토큰으로 액세스/리프레시 토큰 재발급. 응답은 토큰 페어만. */
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody AuthRequest.RefreshToken request) {
+    public ResponseEntity<LoginResponse> refresh(@Valid @RequestBody AuthRequest.RefreshToken request) {
         return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
     }
 
@@ -119,37 +120,13 @@ public class AuthController {
 
     /** 학습 설정(언어/레벨) 업데이트. 소셜 가입 직후 OnboardingScreen에서 호출. */
     @PutMapping("/preferences")
-    public ResponseEntity<AuthResponse> updatePreferences(
+    public ResponseEntity<Map<String, Boolean>> updatePreferences(
         Authentication authentication,
         @Valid @RequestBody AuthRequest.UpdatePreferences request
     ) {
         Long userId = (Long) authentication.getPrincipal();
-        return ResponseEntity.ok(authService.updatePreferences(userId, request));
+        authService.updatePreferences(userId, request);
+        return ResponseEntity.ok(Map.of("updated", true));
     }
 
-    /* ---------- (개발용) 전체 회원 목록 ---------- */
-    // TODO(security): 아래 /users, /users/{userId} 엔드포인트는 현재 권한 체크가 없어
-    //   로그인한 일반 사용자도 다른 사용자를 조회/삭제할 수 있음.
-    //   운영 배포 전에 ADMIN 권한 체크를 추가하거나 엔드포인트 자체를 제거할 것.
-
-    /** (개발용) 전체 사용자 목록 조회. */
-    @GetMapping("/users")
-    public ResponseEntity<List<UserDto>> listUsers() {
-        return ResponseEntity.ok(
-            userRepository.findAll().stream().map(UserDto::from).toList()
-        );
-    }
-
-    /** (개발용) 특정 사용자 삭제. */
-    @DeleteMapping("/users/{userId}")
-    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new IllegalArgumentException("USER_NOT_FOUND");
-        }
-        userRepository.deleteById(userId);
-        return ResponseEntity.ok(Map.of(
-            "deleted", true,
-            "userId", userId
-        ));
-    }
 }

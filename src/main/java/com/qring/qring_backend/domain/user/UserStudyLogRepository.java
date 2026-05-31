@@ -18,4 +18,15 @@ public interface UserStudyLogRepository extends JpaRepository<UserStudyLog, Long
         ORDER BY DATE(created_at) DESC
         """, nativeQuery = true)
     List<LocalDate> findDistinctStudyDatesDesc(@Param("userId") Long userId);
+
+    /** 지정 기간 내 사용자의 학습일(중복 제거)을 반환. 주간 학습 현황 계산에 사용. */
+    @Query(value = """
+        SELECT DISTINCT DATE(created_at)
+        FROM user_study_log
+        WHERE user_id = :userId
+          AND DATE(created_at) BETWEEN :startDate AND :endDate
+        """, nativeQuery = true)
+    List<LocalDate> findStudyDatesBetween(@Param("userId") Long userId,
+                                          @Param("startDate") LocalDate startDate,
+                                          @Param("endDate") LocalDate endDate);
 }

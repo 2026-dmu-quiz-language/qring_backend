@@ -16,7 +16,7 @@ public class QuestionResultRequestDto {
     public static class QuizResultDto {
         private Long quizId;
         private int attemptCount;
-        private boolean isCorrect;
+        private boolean correct;
         private String lastAnswer;
         private boolean hintUsed;
     }

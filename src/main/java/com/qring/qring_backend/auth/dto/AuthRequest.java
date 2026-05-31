@@ -29,9 +29,6 @@ public class AuthRequest {
         )
         private String nickname;
 
-        @Size(max = 50)
-        private String storyNickname;
-
         // 선택: 회원가입 시 학습 설정을 함께 받음 (없으면 이후 OnboardingScreen에서 설정)
         @Pattern(regexp = "^(JA|EN|ZH)$", message = "language must be one of JA/EN/ZH")
         private String language;

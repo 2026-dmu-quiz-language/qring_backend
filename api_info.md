@@ -21,5 +21,3 @@ Base URL: http://localhost:8080/api/v1/auth
 |---|---|---|
 | GET | /me | 내 정보 조회 |
 | PUT | /preferences | 학습 설정(언어/레벨) 업데이트 — Onboarding 화면용 |
-| GET | /users | 전체 회원 목록 (개발용) |
-| DELETE | /users/{userId} | 회원 삭제 (개발용) |
