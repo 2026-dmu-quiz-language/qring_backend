@@ -19,8 +19,8 @@ public class ChatController {
             @RequestHeader("Authorization") String token,
             @RequestParam Long contentId) {
 
-        jwtTokenProvider.getUserIdFromToken(token);
-        ChatResponseDto response = chatService.getChatData(contentId);
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
+        ChatResponseDto response = chatService.getChatData(userId, contentId);
         return ResponseEntity.ok(response);
     }
 }
