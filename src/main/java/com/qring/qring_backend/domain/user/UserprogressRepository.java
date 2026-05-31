@@ -4,8 +4,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 /** Userprogress 조회: 평균 진도율, 완료(100%) 스토리 개수. */
 public interface UserprogressRepository extends JpaRepository<Userprogress, Long> {
+
+    Optional<Userprogress> findByUserUserIdAndContentContentId(Long userId, Long contentId);
 
     /** 사용자가 진행 중인 모든 콘텐츠의 평균 진도율 (없으면 null). */
     @Query("SELECT AVG(up.progressRate) FROM Userprogress up WHERE up.user.userId = :userId")

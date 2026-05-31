@@ -35,8 +35,7 @@ public class DashboardService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
 
-        Double avgRaw = userprogressRepository.findAverageProgressRate(userId);
-        int progressRate = avgRaw == null ? 0 : (int) Math.round(avgRaw);
+        int progressRate = computeWeeklyProgressRate(userId);
 
         long completedStoryCount = userprogressRepository.countCompletedStories(userId);
 
@@ -64,6 +63,23 @@ public class DashboardService {
             .levelCode(levelCode)
             .weeklyStudy(weeklyStudy)
             .build();
+    }
+
+    /** 이번 주 성취도: 월~금 학습 시 +10%, 토~일 +25%. 매주 월요일 자동 초기화. */
+    private int computeWeeklyProgressRate(Long userId) {
+        LocalDate monday = LocalDate.now().with(DayOfWeek.MONDAY);
+        Set<LocalDate> studied = new HashSet<>(
+            userStudyLogRepository.findStudyDatesBetween(userId, monday, monday.plusDays(6))
+        );
+        int rate = 0;
+        for (int i = 0; i < 7; i++) {
+            LocalDate day = monday.plusDays(i);
+            if (studied.contains(day)) {
+                DayOfWeek dow = day.getDayOfWeek();
+                rate += (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) ? 25 : 10;
+            }
+        }
+        return rate;
     }
 
     /** 이번 주 월~일 학습 여부 배열. 인덱스 0=월, 6=일. */
