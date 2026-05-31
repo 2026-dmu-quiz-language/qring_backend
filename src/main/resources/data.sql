@@ -670,6 +670,32 @@ UPDATE content SET thumbnail_url = '/images/추리물_썸네일.png'       WHERE
 UPDATE content SET thumbnail_url = '/images/특이한연애썰_썸네일.png' WHERE content_id = 5;
 UPDATE content SET thumbnail_url = '/images/연애갈등_썸네일.png'     WHERE content_id = 6;
 
+-- =============================================
+-- 5. score_table
+-- =============================================
+INSERT IGNORE INTO score_table (difficulty, attempt, hint_used, score) VALUES
+    (1, 1, 0, 20),
+    (1, 1, 1, 16),
+    (1, 2, 0, 14),
+    (1, 2, 1, 10),
+    (1, 3, 0, 8),
+    (1, 3, 1, 4),
+    (1, 4, 0, 3),
+    (2, 1, 0, 20),
+    (2, 1, 1, 17),
+    (2, 2, 0, 15),
+    (2, 2, 1, 11),
+    (2, 3, 0, 9),
+    (2, 3, 1, 5),
+    (2, 4, 0, 4),
+    (3, 1, 0, 20),
+    (3, 1, 1, 18),
+    (3, 2, 0, 16),
+    (3, 2, 1, 12),
+    (3, 3, 0, 10),
+    (3, 3, 1, 6),
+    (3, 4, 0, 5);
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- 완료!
