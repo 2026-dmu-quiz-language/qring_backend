@@ -1,0 +1,25 @@
+# 빌드 산출물 / IDE
+build/
+bin/
+.gradle/
+.idea/
+.vscode/
+*.iml
+
+# git
+.git/
+.gitignore
+
+# 도커 자체 파일
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 로컬 환경/문서
+.env
+*.md
+sql/
+
+# OS
+.DS_Store
+Thumbs.db

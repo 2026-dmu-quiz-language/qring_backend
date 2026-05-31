@@ -26,6 +26,7 @@ public class ChatService {
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
         Integer difficulty = user.getLevelCode();
 
+        // 스크립트 목록 조회 (챕터 순서 → 시퀀스 순서)
         List<Script> scripts = scriptRepository.findAllByContentId(contentId);
         List<ChatResponseDto.ScriptDto> scriptDtos = scripts.stream()
                 .map(s -> new ChatResponseDto.ScriptDto(
@@ -36,6 +37,7 @@ public class ChatService {
                 ))
                 .toList();
 
+        // 퀴즈 목록 조회 (유저 난이도 기준)
         List<QuizDetail> quizzes = quizDetailRepository.findAllByContentIdAndDifficulty(contentId, difficulty);
         List<ChatResponseDto.QuizDto> quizDtos = quizzes.stream()
                 .map(q -> new ChatResponseDto.QuizDto(

@@ -9,6 +9,10 @@ CREATE DATABASE qring_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 (루트 경로에서)
 .\gradlew bootRun
 
+   API 테스트 (Swagger UI): http://localhost:8080/swagger-ui/index.html
+   - 우측 상단 Authorize 버튼에 로그인 응답의 accessToken 값을 입력하면
+     인증 필요 엔드포인트도 호출 가능.
+
 4. 프론트 실행
 cd frontend
 npm install        # node_modules 다운로드

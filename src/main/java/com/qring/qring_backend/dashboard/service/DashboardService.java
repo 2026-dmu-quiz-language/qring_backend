@@ -12,8 +12,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /** 대시보드용 통계 집계: 평균 진도율, 완료 스토리 수, 연속 학습일, 성취 코멘트, 난이도 설명. */
 @Service
@@ -41,6 +44,8 @@ public class DashboardService {
 
         long consecutiveDays = computeConsecutiveDays(userId);
 
+        boolean[] weeklyStudy = computeWeeklyStudy(userId);
+
         Integer levelCode = user.getLevelCode();
         String levelDesc = null;
         if (levelCode != null) {
@@ -57,7 +62,21 @@ public class DashboardService {
             .completedStoryCount(completedStoryCount)
             .levelDesc(levelDesc)
             .levelCode(levelCode)
+            .weeklyStudy(weeklyStudy)
             .build();
+    }
+
+    /** 이번 주 월~일 학습 여부 배열. 인덱스 0=월, 6=일. */
+    private boolean[] computeWeeklyStudy(Long userId) {
+        LocalDate monday = LocalDate.now().with(DayOfWeek.MONDAY);
+        Set<LocalDate> studied = new HashSet<>(
+            userStudyLogRepository.findStudyDatesBetween(userId, monday, monday.plusDays(6))
+        );
+        boolean[] result = new boolean[7];
+        for (int i = 0; i < 7; i++) {
+            result[i] = studied.contains(monday.plusDays(i));
+        }
+        return result;
     }
 
     /** 가장 최근 학습일이 오늘 또는 어제일 때만 연속일 카운트. 그 이전에 끊겼으면 0. */

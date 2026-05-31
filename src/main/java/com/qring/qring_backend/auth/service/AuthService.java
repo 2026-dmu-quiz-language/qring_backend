@@ -2,11 +2,14 @@ package com.qring.qring_backend.auth.service;
 
 import com.qring.qring_backend.auth.dto.AuthRequest;
 import com.qring.qring_backend.auth.dto.AuthResponse;
+import com.qring.qring_backend.auth.dto.LoginResponse;
 import com.qring.qring_backend.auth.dto.SignUpResponse;
+import com.qring.qring_backend.auth.dto.VerifyEmailResponse;
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.auth.security.JwtTokenProvider;
 import com.qring.qring_backend.domain.user.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 
 /** 인증 도메인의 핵심 비즈니스 로직 (가입·로그인·소셜·토큰 재발급·학습 설정). */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -51,26 +55,31 @@ public class AuthService {
             .email(request.getEmail())
             .password(passwordEncoder.encode(request.getPassword()))
             .nickname(request.getNickname())
-            .storyNickname(request.getStoryNickname())
             .authProvider("LOCAL")
             .emailVerified(false)
             .language(request.getLanguage())
             .levelCode(request.getLevelCode())
             .build();
 
-        User saved = userRepository.save(user);
-        emailService.sendVerificationCode(request.getEmail());
+        userRepository.save(user);
 
-        return new SignUpResponse(
-            saved.getUserId(),
-            "PENDING_VERIFICATION",
-            "인증 코드를 이메일로 전송했습니다. 코드를 입력해 가입을 완료해 주세요."
-        );
+        boolean emailSent = false;
+        String message;
+        try {
+            emailService.sendVerificationCode(request.getEmail());
+            emailSent = true;
+            message = "인증 코드를 이메일로 전송했습니다. 코드를 입력해 가입을 완료해 주세요.";
+        } catch (Exception e) {
+            log.warn("Verification email send failed for {}: {}", request.getEmail(), e.getMessage());
+            message = "회원 정보는 저장되었지만 인증 메일 발송에 실패했습니다. 잠시 후 코드 재발송을 시도해 주세요.";
+        }
+
+        return new SignUpResponse(message, emailSent);
     }
 
-    /** Step 2: 이메일 인증 코드 검증 후 토큰 발급. */
+    /** Step 2: 이메일 인증 코드 검증 후 토큰 발급. 응답은 토큰 + success만 포함. */
     @Transactional
-    public AuthResponse verifyEmail(AuthRequest.VerifyEmail request) {
+    public VerifyEmailResponse verifyEmail(AuthRequest.VerifyEmail request) {
         EmailService.VerifyResult result =
             emailService.verifyCode(request.getEmail(), request.getCode());
         switch (result) {
@@ -83,7 +92,9 @@ public class AuthService {
             .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
         user.setEmailVerified(true);
         userRepository.save(user);
-        return buildAuthResponse(user, false);
+        String at = tokenProvider.generateAccessToken(user.getUserId());
+        String rt = tokenProvider.generateRefreshToken(user.getUserId());
+        return new VerifyEmailResponse(at, rt, true);
     }
 
     /** 미인증 사용자용 코드 재발송. */
@@ -96,8 +107,8 @@ public class AuthService {
         emailService.sendVerificationCode(request.getEmail());
     }
 
-    /** 이메일·비밀번호 검증과 이메일 인증 완료 여부 확인 후 토큰 발급. */
-    public AuthResponse login(AuthRequest.Login request) {
+    /** 이메일·비밀번호 검증과 이메일 인증 완료 여부 확인 후 토큰 페어 발급. */
+    public LoginResponse login(AuthRequest.Login request) {
         User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new IllegalArgumentException("INVALID_CREDENTIALS"));
 
@@ -111,7 +122,9 @@ public class AuthService {
         if (!Boolean.TRUE.equals(user.getEmailVerified())) {
             throw new IllegalArgumentException("EMAIL_NOT_VERIFIED");
         }
-        return buildAuthResponse(user, false);
+        String at = tokenProvider.generateAccessToken(user.getUserId());
+        String rt = tokenProvider.generateRefreshToken(user.getUserId());
+        return new LoginResponse(at, rt);
     }
 
     /* -------------------------- 소셜 로그인 -------------------------- */
@@ -155,7 +168,7 @@ public class AuthService {
     private AuthResponse socialLogin(String provider, String socialId, String email, String name) {
         var existing = userRepository.findByAuthProviderAndSocialId(provider, socialId);
         if (existing.isPresent()) {
-            return buildAuthResponse(existing.get(), false);
+            return buildAuthResponse(existing.get());
         }
 
         if (email != null) {
@@ -183,7 +196,7 @@ public class AuthService {
             .socialId(socialId)
             .emailVerified(true)
             .build());
-        return buildAuthResponse(created, true);
+        return buildAuthResponse(created);
     }
 
     /** 닉네임 후보 정규화 (허용 문자 외 제거 + 길이 보정). */
@@ -194,41 +207,34 @@ public class AuthService {
         return s;
     }
 
-    /** 리프레시 토큰 검증 후 동일 사용자에 대해 새 토큰 발급. */
-    public AuthResponse refresh(String refreshToken) {
+    /** 리프레시 토큰 검증 후 동일 사용자에 대해 새 토큰 페어 발급. */
+    public LoginResponse refresh(String refreshToken) {
         if (!tokenProvider.validateToken(refreshToken)) {
             throw new IllegalArgumentException("INVALID_REFRESH_TOKEN");
         }
         Long userId = tokenProvider.getUserIdFromToken(refreshToken);
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
-        return buildAuthResponse(user, false);
+        String at = tokenProvider.generateAccessToken(user.getUserId());
+        String rt = tokenProvider.generateRefreshToken(user.getUserId());
+        return new LoginResponse(at, rt);
     }
 
     /** 학습 설정 업데이트 (소셜 가입 후 OnboardingScreen에서 호출). */
     @Transactional
-    public AuthResponse updatePreferences(Long userId, AuthRequest.UpdatePreferences request) {
+    public void updatePreferences(Long userId, AuthRequest.UpdatePreferences request) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
         user.setLanguage(request.getLanguage());
         user.setLevelCode(request.getLevelCode());
         userRepository.save(user);
-        return buildAuthResponse(user, false);
     }
 
-    /** 사용자 정보 + 새로 발급한 토큰을 묶어 표준 인증 응답을 만든다. */
-    private AuthResponse buildAuthResponse(User user, boolean isNewUser) {
+    /** OAuth 응답 조립: 새 토큰 페어 + onboarding 필요 여부(language/levelCode null이면 true). */
+    private AuthResponse buildAuthResponse(User user) {
         String at = tokenProvider.generateAccessToken(user.getUserId());
         String rt = tokenProvider.generateRefreshToken(user.getUserId());
-        return new AuthResponse(
-            at, rt,
-            user.getUserId(),
-            user.getEmail(),
-            user.getNickname(),
-            user.getAuthProvider(),
-            isNewUser,
-            user.getLanguage(),
-            user.getLevelCode()
-        );
+        boolean isNewUser = user.getLanguage() == null || user.getLevelCode() == null;
+        return new AuthResponse(at, rt, isNewUser);
     }
 }

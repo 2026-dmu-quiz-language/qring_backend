@@ -40,3 +40,6 @@ out/
 .env
 .env.local
 *.env
+
+### Cloudflared (시크릿) ###
+cloudflared/credentials.json
