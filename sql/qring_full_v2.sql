@@ -5,7 +5,8 @@ ALTER TABLE quiz_detail
   ADD COLUMN question TEXT,
   ADD COLUMN options JSON,
   ADD COLUMN difficulty INT,
-  ADD COLUMN acceptable_answers JSON;
+  ADD COLUMN acceptable_answers JSON,
+  ADD COLUMN hint TEXT;
 
 -- =============================================
 -- [STEP 2] 아래 qring_insert.sql 실행
@@ -109,46 +110,52 @@ INSERT INTO script (script_id, script_content, sequence_num, has_options, charac
   (56, '지금도 그 애랑 만나고 있음.', 56, b'0', NULL, 1, NULL),
   (57, '아직도 가끔 쪽지로 대화해 ㅋㅋㅋ', 57, b'0', NULL, 1, NULL);
 
-INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers) VALUES
-  (1, 'annoyed', '''annoyed''는 짜증나거나 화가 날 때 쓰는 표현이야. 자기 자리 옆에 누가 앉아서 기분이 나쁜 상황이지.', 'multiple_choice', 1, 9, '다음 중 ''짜증나다, 화나다''의 영어 표현으로 알맞은 것은?', '["annoyed", "amused", "amazed", "ashamed"]', 1, '["annoyed"]'),
-  (2, 'occupy', '''occupy a seat''는 자리를 차지하다/앉다라는 뜻으로, 습관적으로 같은 자리에 앉는 상황에 자연스러운 표현이야.', 'fill_in_blank', 1, 9, 'During exam period, I would always ______ the same seat in the library.', '["occupy", "reserve", "claim", "book"]', 2, '["occupy"]'),
-  (3, 'during exam', '''during exam season''은 시험기간 동안이라는 뜻이야. throughout나 in도 같은 의미로 쓸 수 있어.', 'subjective', 1, 9, '''시험기간마다''
+INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers, hint) VALUES
+  (1, 'annoyed', '''annoyed''는 무언가에 짜증이 나거나 성가실 때 쓰는 표현이야. 내 자리 옆에 누가 앉아서 기분이 별로였던 상황이지.', 'multiple_choice', 1, 11, '다음 중 ''짜증나다, 성가시다''의 영어 표현으로 알맞은 것은?', '["annoyed", "amazed", "admired", "attended"]', 1, '["annoyed"]', 'a로 시작하는 7글자 단어'),
+  (2, 'left behind', '''leave behind''는 무언가를 그 자리에 남겨두고 떠난다는 뜻의 구동사야.', 'subjective', 1, 11, '''~을 남겨두다/놓고 가다'' = l____ b______
 
-I always sat in the same spot ______ ______ season.
-(뜻: 시험 기간 동안)', '[]', 3, '["during exam", "during examination", "throughout exam", "throughout examination", "in exam", "in examination"]'),
-  (4, 'curiosity', '''curiosity''는 뭔가 궁금해하고 알고 싶어하는 호기심을 뜻해. 쪽지 때문에 그 사람에 대해 궁금해지기 시작한 거야.', 'multiple_choice', 1, 18, '다음 중 ''호기심''을 뜻하는 영어 단어는?', '["curiosity", "courage", "concern", "confusion"]', 1, '["curiosity"]'),
-  (5, 'curiosity', '''curiosity가 piqued되다''는 호기심이 자극받다, 생기다라는 뜻의 자연스러운 영어 표현이야.', 'subjective', 1, 18, '''호기심'' = c______
+She ______ ______ a note on my desk.
+(뜻: 그녀가 내 책상에 쪽지를 남겨두고 갔다)', NULL, 2, '["left behind", "Left behind"]', '떠나다(leave) + 뒤에(behind), 뭔가를 그 자리에 두고 떠날 때 써'),
+  (3, 'awkward to start up', '''strike up a conversation''이나 ''start up a conversation''은 대화를 시작한다는 뜻이야. 상황이 어색해서 말 걸기 힘들 때 쓰는 표현이지.', 'subjective', 1, 11, '''말 걸기 애매했다''
 
-My ______ was piqued by the mysterious notes.
-(뜻: 신비한 쪽지들 때문에 호기심이 생겼다)', '[]', 2, '["curiosity", "Curiosity"]'),
-  (6, 'gotten look', '''get a proper look at''은 어떤 것을 제대로 자세히 보다라는 뜻이야. take a look at도 비슷하게 쓸 수 있어.', 'subjective', 1, 18, '''제대로 본 적이 없다는 걸 깨달았다''
+She was so focused on her book that it felt ______ to ______ a conversation.
+(뜻: 대화를 시작하다)', NULL, 3, '["awkward to start up", "awkward to strike up", "uncomfortable to start up", "uncomfortable to strike up", "weird to start", "strange to start"]', 's___ u_ (2단어, 엔진을 시동 걸 때도 쓰는 표현)'),
+  (4, 'curiosity', '''curiosity''는 호기심을 뜻해. 쪽지 내용이 궁금해서 생긴 마음이지.', 'multiple_choice', 1, 22, '다음 중 ''호기심''을 뜻하는 영어 단어는?', '["curiosity", "confusion", "confidence", "consideration"]', 1, '["curiosity"]', 'c로 시작하는 9글자, 고양이를 죽인다는 속담에 나오는 단어'),
+  (5, 'realized', '''realize''는 깨닫다, 알아차리다라는 뜻이야. 영국식으로는 ''realise''라고 쓰기도 해.', 'subjective', 1, 22, '''깨닫다'' = r______
 
-I realized that I had never ______ a proper ______ at her face.
-(뜻: ~을 제대로 보다)', '[]', 3, '["gotten look", "had look", "taken look", "got look"]'),
-  (7, 'pound', '''pound''는 심장이 두근거릴 때 쓰는 표현이야. ''My heart was pounding''처럼 사용해.', 'multiple_choice', 1, 27, '다음 중 ''심장이 빨리 뛰다, 두근거리다''를 뜻하는 영어 표현은?', '["pound", "pause", "push", "point"]', 1, '["pound"]'),
-  (8, 'flutter', '''heart flutter''는 심장이 두근거린다는 뜻으로, 설렘이나 흥분 상태를 자연스럽게 표현하는 말이야.', 'fill_in_blank', 1, 27, 'At that moment, my heart started to ______ with excitement.', '["flutter", "bounce", "shake", "tremble"]', 2, '["flutter"]'),
-  (9, 'worked up', '''work up the courage''는 용기를 내다라는 뜻이야. muster up, pluck up, gather up도 같은 의미로 쓸 수 있어.', 'subjective', 1, 27, '''용기를 내서''
+I ______ that I had never seen her face properly.
+(뜻: 그녀의 얼굴을 제대로 본 적이 없다는 걸 깨달았다)', NULL, 2, '["realized", "realised", "Realized", "Realised"]', 're로 시작, ''알아차리다/인식하다''라는 뜻 ?'),
+  (6, 'on purpose', '''on purpose''는 의도적으로, 일부러라는 뜻이야. deliberately나 intentionally도 같은 의미로 쓸 수 있어.', 'subjective', 1, 22, '''일부러 일찍 가봤다''
 
-I ______ ______ the courage and wrote ''Thank you'' in small letters below the note.
-(뜻: ~할 용기를 모으다, 용기를 내다)', '[]', 3, '["worked up", "mustered up", "gathered up", "plucked up", "summoned up"]'),
-  (10, 'empty', '''empty''는 자리나 공간이 비어있다는 뜻이야. 65번 자리에 아무도 없었던 상황이지.', 'multiple_choice', 1, 36, '다음 중 ''비어있는, 빈''을 뜻하는 영어 표현은?', '["empty", "early", "eager", "equal"]', 1, '["empty"]'),
-  (11, 'vacant', '''vacant''는 자리가 비어있다는 뜻으로, 빈 좌석을 표현할 때 자주 쓰이는 단어야.', 'fill_in_blank', 1, 36, 'When the new semester started, I went straight to the library but seat 65 was ______.', '["vacant", "broken", "moved", "changed"]', 2, '["vacant"]'),
-  (12, 'kept on', '''kept on''은 어떤 행동을 계속 반복한다는 뜻이야. continue나 carry on도 같은 의미로 쓸 수 있어.', 'subjective', 1, 36, '''계속 다녀보다''를 영어로 표현하면?
+I went to the library ______ ______ to see when she arrived.
+(뜻: 의도적으로, 특별히)', NULL, 3, '["on purpose", "deliberately", "intentionally"]', 'o_ p_______ (2단어, 목적을 가지고 할 때 쓰는 표현)'),
+  (7, 'gather courage', '''gather courage''는 용기를 모아내다, 용기내다라는 뜻이야. 쪽지에 글을 쓰기 위해 용기를 낸 상황이지.', 'multiple_choice', 1, 33, '다음 중 ''용기를 내다''의 영어 표현으로 알맞은 것은?', '["gather courage", "collect money", "receive support", "follow advice"]', 1, '["gather courage"]', 'g로 시작하는 단어와 함께 쓰이는 표현'),
+  (8, 'exchanging', '''exchange''는 서로 주고받다라는 뜻으로, 메시지나 정보를 상호 교환할 때 쓰는 자연스러운 표현이야.', 'subjective', 1, 33, '''메시지를 주고받다'' = e_______ messages
 
-I ______ ______ going to the library thinking maybe her schedule had changed.
-(뜻: 계속 ~하다, 지속하다)', '[]', 3, '["kept on", "continued", "carried on", "went on"]'),
-  (13, 'disappointed', '''disappointed''는 기대했던 일이 이루어지지 않아서 허무하고 실망스러울 때 쓰는 표현이야.', 'multiple_choice', 1, 45, '다음 중 ''허무한, 실망스러운''의 영어 표현으로 알맞은 것은?', '["disappointed", "determined", "delighted", "developed"]', 1, '["disappointed"]'),
-  (14, 'exchange', '''exchange student''는 교환학생이라는 뜻이야. 다른 나라 학교와 학생을 교환하는 프로그램을 말해.', 'fill_in_blank', 1, 45, 'I''m going abroad as an ______ student and will be back in a year.', '["exchange", "foreign", "overseas", "international"]', 2, '["exchange"]'),
-  (15, 'empty', '''empty''는 허무하고 공허한 감정을 표현할 때 쓰는 자연스러운 영어야. hollow, deflated도 비슷한 뉘앙스로 사용돼.', 'subjective', 1, 45, '''허무했다''는 감정을 영어로 표현하면?
+They started _______ notes from that day on.
+(뜻: 그날부터 쪽지를 주고받기 시작했다)', NULL, 2, '["exchanging", "Exchanging"]', 'e로 시작, ''change''와 비슷한 뜻이지만 서로 주고받는다는 의미'),
+  (9, 'exchanging', '''exchange notes''는 쪽지를 주고받는다는 뜻이야. passing, trading도 비슷한 의미로 쓸 수 있어.', 'subjective', 1, 33, '''쪽지 주고받기''
+
+We started _______ _______ notes.
+(뜻: ~을 주고받다)', NULL, 3, '["exchanging", "passing", "trading", "sharing"]', 'e_______ (시소처럼 서로 주고받는 느낌)'),
+  (10, 'disappointed', '''disappointed''는 기대했던 일이 이뤄지지 않아서 허무하고 실망스러울 때 쓰는 표현이야.', 'multiple_choice', 1, 44, '다음 중 ''허무한, 실망스러운''을 뜻하는 영어 표현은?', '["disappointed", "determined", "delighted", "developed"]', 1, '["disappointed"]', 'd로 시작하는 11글자 단어'),
+  (11, 'hollow', '''hollow''는 물리적으로 속이 비었다는 뜻뿐만 아니라 감정적으로 공허하고 허무하다는 뜻으로도 쓰여.', 'subjective', 1, 44, '''허무한, 공허한'' = h______
+
+It felt so ______ to part ways without even seeing each other properly.
+(뜻: 제대로 서로를 보지도 못하고 헤어져서 너무 허무했다)', NULL, 2, '["hollow", "Hollow"]', 'h로 시작, ''속이 빈'' 나무를 떠올려봐 ?'),
+  (12, 'empty', '''empty''는 허무하고 공허한 감정을 표현할 때 쓰여. hollow, disappointed도 비슷한 의미로 사용할 수 있어.', 'subjective', 1, 44, '''허무했다''는 감정을 영어로 표현해보세요.
 
 I felt so ______.
-(뜻: 공허하고 실망스러운 감정)', '[]', 3, '["empty", "hollow", "deflated", "let down", "disappointed"]'),
-  (16, 'courage', '''courage''는 용기, 담력을 뜻해. 무언가를 하고 싶지만 용기가 나지 않을 때 쓰는 단어야.', 'multiple_choice', 1, 57, '다음 중 ''용기, 담력''을 뜻하는 영어 단어는?', '["courage", "culture", "curious", "corner"]', 1, '["courage"]'),
-  (17, 'courage', '''have the courage to do''는 ~할 용기가 있다는 뜻의 자연스러운 영어 표현이야.', 'fill_in_blank', 1, 57, 'I wanted to say hi all year, but I didn''t have the ______ to do it.', '["courage", "strength", "power", "energy"]', 2, '["courage"]'),
-  (18, 'work up', '''work up the courage''는 용기를 내다라는 뜻이야. muster up, pluck up도 같은 의미로 쓸 수 있어.', 'subjective', 1, 57, '''용기가 안 났다''
+(뜻: 공허하고 실망스러운 감정)', NULL, 3, '["empty", "hollow", "disappointed", "deflated", "let down"]', 'e_____ (6글자, ''빈''이라는 뜻도 있는 단어)'),
+  (13, 'occasionally', '''occasionally''는 가끔, 때때로라는 뜻으로 정기적이지 않고 이따금씩 일어나는 상황을 표현해.', 'multiple_choice', 1, 57, '다음 중 ''가끔, 때때로''를 의미하는 영어 표현으로 알맞은 것은?', '["occasionally", "obviously", "officially", "originally"]', 1, '["occasionally"]', 'o로 시작하는 부사, ''once in a while''과 비슷한 뜻'),
+  (14, 'occasionally', '''occasionally''는 ''가끔, 때때로''라는 뜻으로 빈도를 나타내는 부사야.', 'subjective', 1, 57, '''가끔씩'' = o_________
 
-I couldn''t ______ ______ the courage to say hello.
-(뜻: ~할 용기를 내다)', '[]', 3, '["work up", "muster up", "build up", "gather up", "pluck up"]');
+We still ________ communicate through notes.
+(뜻: 우리는 아직도 가끔 쪽지로 소통해)', NULL, 2, '["occasionally", "Occasionally"]', '한 번씩, 때때로... o로 시작하는 부사'),
+  (15, 'exchange', '''exchange notes''는 쪽지를 주고받는다는 뜻이야. pass notes, send notes도 자연스러운 표현이고.', 'subjective', 1, 57, '''가끔 쪽지로 대화한다''
+
+We still ______ ______ notes sometimes.
+(뜻: 서로 주고받다)', NULL, 3, '["exchange", "pass", "send", "write", "share"]', 'e_______');
 
 -- ----- [드라마] 3번 관람석 -----
 INSERT INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
@@ -220,43 +227,52 @@ INSERT INTO script (script_id, script_content, sequence_num, has_options, charac
   (117, '지은이와 닮은 얼굴이었다.', 60, b'0', NULL, 2, NULL),
   (118, '3번 자리를 유심히 보더니 아무 말 없이 나갔던.', 61, b'0', NULL, 2, NULL);
 
-INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers) VALUES
-  (19, 'occasionally', '''occasionally''는 가끔씩, 때때로라는 뜻이야. 학생이 가끔 머리를 쥐어뜯는 상황을 표현할 때 쓸 수 있어.', 'multiple_choice', 2, 67, '다음 중 ''가끔, 때때로''를 뜻하는 영어 표현은?', '["occasionally", "obviously", "officially", "originally"]', 1, '["occasionally"]'),
-  (20, 'scribbled', '''scribble''은 끄적거리다, 갈겨쓰다라는 뜻으로 연필로 대충 쓰는 모습을 자연스럽게 표현해.', 'fill_in_blank', 2, 67, 'He ______ down some notes with his pencil while working on math problems.', '["scribbled", "wrote", "marked", "drew"]', 2, '["scribbled"]'),
-  (21, 'pull', '''pull one''s hair''는 스트레스나 좌절감으로 머리카락을 잡아당기는 행동을 표현해. tug나 grab도 같은 의미로 쓸 수 있어.', 'subjective', 2, 67, '''머리를 쥐어뜯다'' (좌절하거나 고민할 때 하는 행동)
+INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers, hint) VALUES
+  (16, 'occasionally', '''occasionally''는 가끔씩, 때때로라는 뜻으로 정기적이지 않고 이따금씩 일어나는 상황을 표현해.', 'multiple_choice', 2, 69, '다음 중 ''가끔, 때때로''를 뜻하는 영어 표현은?', '["occasionally", "obviously", "officially", "originally"]', 1, '["occasionally"]', 'o로 시작하는 12글자 표현'),
+  (17, 'scribbling', '''scribble''은 급히 또는 대충 끄적거리며 쓰는 것을 의미해. 학생이 숙제하며 연필로 끄적거리는 상황에 딱 맞는 표현이야.', 'subjective', 2, 69, '''끄적거리다'' = s______
 
-Sometimes he would ______ his hair in frustration.
-(뜻: 머리카락을 잡아당기다)', '[]', 3, '["pull", "tug", "grab", "clutch", "pull at", "tug at"]'),
-  (22, 'sniffling', '''sniffling''은 울 때 코를 훌쩍거리는 소리를 말해. 조용히 우는 상황에 딱 맞는 표현이야.', 'multiple_choice', 2, 77, '다음 중 ''조용히 코를 훌쩍거리며 우는 소리''를 뜻하는 영어 표현은?', '["sniffling", "shouting", "smiling", "sleeping"]', 1, '["sniffling"]'),
-  (23, 'sniffling', '''sniffling''은 코를 훌쩍거리는 소리를 내며 조용히 우는 것을 표현할 때 써.', 'fill_in_blank', 2, 77, 'She was quietly ______ while looking at her textbook.', '["sniffling", "whimpering", "sobbing", "weeping"]', 2, '["sniffling"]'),
-  (24, 'nod', '''nod''는 고개를 끄덕이는 인사를 뜻해. ''bow''나 ''dip''도 고개를 숙이는 인사로 쓸 수 있어.', 'subjective', 2, 77, '''고개를 살짝 숙이며 인사하다''
+He was ______ notes in the margin.
+(뜻: 그는 여백에 끄적거리고 있었다)', NULL, 2, '["scribbling", "Scribbling", "scrawling", "Scrawling"]', 's로 시작, ''긁다''라는 뜻도 있어 ?'),
+  (18, 'pulling', '''pulling his hair out''은 스트레스나 좌절감에 머리를 쥐어뜯는다는 관용적 표현이야. tearing이나 tugging도 비슷한 의미로 쓸 수 있어.', 'subjective', 2, 69, '수학 문제가 어려워서 ''머리를 쥐어뜯었다''
 
-He would give a slight ______ of his head when coming in and leaving.
-(뜻: 고개를 끄덕이는 인사)', '[]', 3, '["nod", "bow", "dip"]'),
-  (25, 'blankly', '''blankly''는 멍하니 정신없이 바라보는 상태를 말해. 학생이 창밖을 멍하니 보고 있는 상황이지.', 'multiple_choice', 2, 87, '다음 중 ''멍하니, 정신없이''를 뜻하는 영어 표현은?', '["blankly", "briefly", "blindly", "bravely"]', 1, '["blankly"]'),
-  (26, 'staring', '''stare''는 멍하니 또는 뚫어지게 바라본다는 의미로, ''stare out the window''는 창밖을 멍하니 바라본다는 뜻이야.', 'fill_in_blank', 2, 87, 'He was just ______ out the window blankly.', '["staring", "looking", "watching", "gazing"]', 2, '["staring"]'),
-  (27, 'staring blankly', '''staring blankly''는 정신이 나간 것처럼 멍하니 바라본다는 뜻이야. gazing blankly나 vacantly도 같은 의미로 쓸 수 있어.', 'subjective', 2, 87, '''멍하니 바라보다''
+He was ______ his hair out over the difficult math problems.
+(뜻: 스트레스를 받아 머리를 뜯다)', NULL, 3, '["pulling", "tearing", "tugging"]', 'p_____ (털이나 머리카락을 뽑는다는 동사)'),
+  (19, 'empty', '''empty''는 텅 비어있다는 뜻이야. 학생이 안 와서 자리가 완전히 비어있는 상황이지.', 'multiple_choice', 2, 81, '다음 중 ''완전히 비어 있는''을 뜻하는 영어 표현은?', '["empty", "early", "equal", "eager"]', 1, '["empty"]', 'e로 시작하는 5글자 단어'),
+  (20, 'empty', '''empty''는 아무것도 없이 완전히 비어있는 상태를 나타내는 기본적인 형용사야.', 'subjective', 2, 81, '''텅 빈'' = e______
 
-He was just ______ ______ out the window.
-(뜻: 정신없이 또는 빈 표정으로 바라보다)', '[]', 3, '["staring blankly", "gazing blankly", "looking blankly", "staring vacantly", "gazing vacantly"]'),
-  (28, 'suddenly', '''suddenly''는 갑자기 예상하지 못한 일이 일어날 때 쓰는 표현이야.', 'multiple_choice', 2, 97, '다음 중 ''갑자기, 예상하지 못하게''를 뜻하는 영어 표현은?', '["suddenly", "silently", "seriously", "secretly"]', 1, '["suddenly"]'),
-  (29, 'collapsed', '''collapse''는 갑자기 쓰러지다, 건강상 문제로 넘어지다는 뜻이야. 의료 응급상황에서 자주 쓰이는 표현이지.', 'fill_in_blank', 2, 97, 'He suddenly ______ and had to be rushed to the hospital.', '["collapsed", "stumbled", "slipped", "dropped"]', 2, '["collapsed"]'),
-  (30, 'what to say', '''what to say''는 어떤 말을 해야 할지 모를 때 쓰는 자연스러운 표현이야. 위로가 필요한 상황에서 자주 쓰여.', 'subjective', 2, 97, '''뭐라고 말해야 할지 모르겠다''
+The seat was completely ______.
+(뜻: 그 자리는 완전히 비어있었다)', NULL, 2, '["empty", "Empty"]', 'e로 시작, ''빈 집''을 영어로 하면 _____ house'),
+  (21, 'glancing', '''glance''는 빠르고 짧게 힐끗 보는 걸 뜻해. 계속 창가 쪽을 신경 쓰며 보는 상황에 딱 맞아.', 'subjective', 2, 81, '''자꾸 창가를 쳐다봤다''
 
-I didn''t know ______ ______ ______.
-(상황: 위로의 말을 어떻게 해야 할지 모를 때)', '[]', 3, '["what to say", "how to respond", "what to tell", "how to comfort", "what words", "what response"]'),
-  (31, 'give up', '''give up''은 포기하다라는 뜻이야. 아버지가 딸에게 수학이 어려워도 포기하지 말라고 하는 상황이지.', 'multiple_choice', 2, 107, '다음 중 ''포기하다''의 영어 표현으로 알맞은 것은?', '["give up", "give out", "give in", "give away"]', 1, '["give up"]'),
-  (32, 'cheer', '''cheer someone on''은 누군가를 응원하다라는 뜻의 구동사야. 아버지가 딸을 격려하는 상황에 딱 맞아.', 'fill_in_blank', 2, 107, 'Don''t give up even if math is difficult. I''ll always ______ you on.', '["cheer", "push", "keep", "move"]', 2, '["cheer"]'),
-  (33, 'give up', '''give up on''은 ~을 포기하다라는 뜻이야. quit이나 abandon도 같은 의미로 쓸 수 있어.', 'subjective', 2, 107, '''포기하지 마''
+Yeon-woo kept ______ toward the window.
+(뜻: 힐끗힐끗 보다, 슬쩍 보다)', NULL, 3, '["glancing", "looking", "gazing", "staring", "peeking"]', 'g_____ (6글자, 빠르고 짧게 보는 동작)'),
+  (22, 'swollen', '''swollen''은 부은 상태를 나타내는 말이야. 울어서 눈이 부었을 때 쓰지.', 'multiple_choice', 2, 93, '다음 중 ''부은, 붓다''의 영어 표현으로 알맞은 것은?', '["swollen", "sleepy", "smooth", "serious"]', 1, '["swollen"]', 's로 시작하는 단어, 벌에 쏘이면 이렇게 됨'),
+  (23, 'swollen', '''swollen''은 부어오른 상태를 나타내는 형용사야. 울거나 다쳤을 때 자주 쓰이지.', 'subjective', 2, 93, '''부어오른'' = s______
 
-Don''t ______ ______ on math even if it''s difficult.
-(뜻: ~을 포기하다)', '[]', 3, '["give up", "quit", "abandon"]'),
-  (34, 'realize', '''realize''는 뭔가를 깨닫거나 알아차릴 때 쓰는 표현이야. 연우가 아버지의 진짜 의도를 깨달은 상황이지.', 'multiple_choice', 2, 118, '다음 중 ''깨닫다, 알아차리다''의 영어 표현으로 알맞은 것은?', '["realize", "receive", "recover", "respond"]', 1, '["realize"]'),
-  (35, 'intently', '''유심히 보다''는 ''look intently''로 표현해. 집중해서 자세히 본다는 뜻이야.', 'fill_in_blank', 2, 118, 'He looked at seat number 3 ______ and left without saying a word.', '["intently", "briefly", "casually", "nervously"]', 2, '["intently"]'),
-  (36, 'intently', '''look intently''는 집중해서 유심히 보는 걸 의미해. closely, carefully, thoughtfully도 같은 상황에서 쓸 수 있어.', 'subjective', 2, 118, '''유심히 보다''
+Her eyes were ______ from crying.
+(뜻: 그녀의 눈은 울어서 부어 있었다)', NULL, 2, '["swollen", "Swollen"]', 's로 시작, 벌에 쏘였을 때도 이렇게 돼 ?'),
+  (24, 'collapsed down', '''collapse''나 ''pass out''은 갑작스럽게 의식을 잃고 쓰러지는 걸 표현할 때 쓰는 자연스러운 영어야.', 'subjective', 2, 93, '''갑자기 쓰러지다''
 
-He looked ______ at seat number 3 and left without saying anything.
-(뜻: 관심을 가지고 자세히 보다)', '[]', 3, '["intently", "closely", "carefully", "thoughtfully", "attentively"]');
+He suddenly ______ ______.
+(뜻: 의식을 잃고 넘어지다)', NULL, 3, '["collapsed down", "passed out", "fell down", "fainted away", "collapsed", "blacked out"]', 'c_______ d___ (의식과 관련된 표현, 기절하다)'),
+  (25, 'give up', '''give up''은 포기하다라는 뜻이야. 아버지가 딸에게 수학이 어려워도 포기하지 말라고 격려하는 상황이지.', 'multiple_choice', 2, 105, '다음 중 ''포기하다''의 영어 표현으로 알맞은 것은?', '["give up", "get up", "grow up", "go up"]', 1, '["give up"]', 'g로 시작하는 구동사 (give + up)'),
+  (26, 'tucked', '''tuck''은 무언가를 살살 끼워 넣거나 집어넣는다는 뜻이야. ''tucked between''은 사이에 끼워져 있다는 표현이지.', 'subjective', 2, 105, '''끼워 넣다'' = t______
+
+A letter was ______ between the pages.
+(뜻: 편지가 페이지 사이에 끼워져 있었다)', NULL, 2, '["tucked", "Tucked"]', 't로 시작, ''집어넣다/꽂다''라는 뜻'),
+  (27, 'give up', '''give up''은 포기하다라는 뜻이야. quit이나 surrender도 같은 의미로 쓸 수 있어.', 'subjective', 2, 105, '''포기하지 마''
+
+Don''t ______ ______.
+(뜻: ~을 그만두다, 포기하다)', NULL, 3, '["give up", "quit", "surrender"]', 'g___ u_ (2단어, 담배를 끊을 때도 쓰는 표현)'),
+  (28, 'carefully', '''carefully''는 주의 깊게, 유심히 관찰하거나 행동할 때 쓰는 부사야. 아버지가 딸의 자리를 신중하게 살펴본 상황이지.', 'multiple_choice', 2, 118, '다음 중 ''유심히, 주의 깊게''를 뜻하는 영어 부사는?', '["carefully", "certainly", "currently", "completely"]', 1, '["carefully"]', 'c로 시작하는 9글자 부사'),
+  (29, 'inspected', '''inspect''는 세심하게 관찰하다/살펴보다라는 뜻이야. 아버지가 딸의 자리를 조용히 확인하는 감동적인 장면을 표현할 때 쓸 수 있어.', 'subjective', 2, 118, '''유심히 관찰하다'' = i______
+
+He ______ the seat #3 carefully and left without saying a word.
+(뜻: 그는 3번 자리를 유심히 살펴보고는 아무 말 없이 떠났다)', NULL, 2, '["inspected", "examined", "observed", "studied"]', '눈으로 자세히 들여다본다는 뜻, ''in-''로 시작해'),
+  (30, 'gazing intently', '''gaze intently''는 관심을 가지고 유심히 바라본다는 뜻이야. stare intently, look intently도 같은 의미로 쓸 수 있어.', 'subjective', 2, 118, '''유심히 보다''
+
+He was _______ _______ at seat number 3, then left without saying a word.
+(뜻: 관심 있게 자세히 보다)', NULL, 3, '["gazing intently", "staring intently", "looking intently", "gazing carefully", "staring carefully", "looking carefully", "gazing closely", "staring closely", "looking closely"]', 'g___ at (2단어, 응시하다/뚫어져라 보다)');
 
 -- ----- [스릴러] 끊어진 전화선 -----
 INSERT INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
@@ -356,34 +372,52 @@ INSERT INTO script (script_id, script_content, sequence_num, has_options, charac
   (206, '새벽 2시 47분.', 88, b'0', NULL, 3, NULL),
   (207, '전화벨이 울린다.', 89, b'0', NULL, 3, NULL);
 
-INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers) VALUES
-  (37, 'strange', '''strange''는 뭔가 이상하고 기묘할 때 쓰는 표현이야. 평소와 다른 이상한 전화가 온 상황이지.', 'multiple_choice', 3, 132, '다음 중 ''이상한, 기묘한''의 영어 표현으로 알맞은 것은?', '["strange", "strong", "straight", "strict"]', 1, '["strange"]'),
-  (38, 'prank', '''prank call''은 장난 전화라는 뜻의 고정 표현이야. fake call이나 joke call은 잘 안 써.', 'fill_in_blank', 3, 132, 'Most calls were ______ calls from drunk people or wrong numbers.', '["prank", "fake", "joke", "trick"]', 2, '["prank"]'),
-  (39, 'at exactly', '''at exactly''는 정확히 그 시간에라는 뜻이야. at precisely, at sharp도 같은 의미로 쓸 수 있어.', 'subjective', 3, 132, '''정확히 같은 시각에''
+INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers, hint) VALUES
+  (31, 'nervous', '''nervous''는 긴장하거나 불안할 때 쓰는 표현이야. 손에 땀이 날 정도로 긴장한 상황이지.', 'multiple_choice', 3, 135, '다음 중 ''긴장한, 초조한''을 뜻하는 영어 단어는?', '["nervous", "natural", "nothing", "normal"]', 1, '["nervous"]', 'n으로 시작하는 7글자, ''신경''과 관련된 단어'),
+  (32, 'night shift', '''night shift''는 야간 근무, 밤 교대를 뜻하는 표현이야.', 'subjective', 3, 135, '''야간 근무'' = n____ s____
 
-Every night ______ ______ the same time.
-(뜻: 정확히, 꼭 맞아떨어지는)', '[]', 3, '["at exactly", "at precisely", "at sharp", "exactly at", "precisely at"]'),
-  (40, 'nervous', '''nervous''는 긴장하거나 불안할 때 쓰는 표현이야. 손에 땀이 날 정도로 긴장한 상황을 나타내지.', 'multiple_choice', 3, 146, '다음 중 ''긴장한, 불안한''을 뜻하는 영어 단어는?', '["nervous", "normal", "natural", "narrow"]', 1, '["nervous"]'),
-  (41, 'trembling', '''trembling''은 떨림을 나타내는 가장 자연스러운 표현이야. ''shaking''도 비슷하지만 ''trembling''이 두려움이나 긴장감을 더 잘 표현해.', 'fill_in_blank', 3, 146, 'Her hands were ______ as she picked up the phone.', '["trembling", "shaking", "vibrating", "moving"]', 2, '["trembling"]'),
-  (42, 'mixed in', '''mixed in with''는 다른 소리와 함께 섞여있다는 의미야. blended in, mingled in도 비슷한 뜻으로 쓸 수 있어.', 'subjective', 3, 146, '''소리가 섞여 있다''
+She''s been working the ______ ______ for three months.
+(뜻: 밤 근무를 맡고 있다)', NULL, 2, '["night shift", "Night shift", "night-shift", "nightshift"]', '밤(night)과 교대근무를 뜻하는 s로 시작하는 단어'),
+  (33, 'palms', '''palms were getting sweaty''는 긴장해서 손에 땀이 날 때 쓰는 자연스러운 표현이야. hands도 맞지만 palms가 더 정확해.', 'subjective', 3, 135, '''손에 땀이 났다''
 
-There were other sounds ______ ______ with the breathing.
-(뜻: ~와 함께 섞이다)', '[]', 3, '["mixed in", "blended in", "mingled in", "intertwined", "combined"]'),
-  (43, 'trembling', '''trembling''은 무서워서 또는 불안해서 목소리나 몸이 떨리는 걸 표현할 때 써.', 'multiple_choice', 3, 160, '다음 중 ''떨리는, 진동하는''을 뜻하는 영어 표현은?', '["trembling", "traveling", "troubling", "training"]', 1, '["trembling"]'),
-  (44, 'chills', '''chills run down one''s spine''은 무서워서 소름이 돋는다는 뜻의 표현이야.', 'fill_in_blank', 3, 160, 'The mysterious voice made her ______ run down her spine.', '["chills", "shivers", "goosebumps", "trembles"]', 2, '["chills"]'),
-  (45, 'A chill ran down her spine.', '''a chill ran down one''s spine''은 무서움이나 충격으로 등골이 서늘해지는 걸 표현하는 관용구야.', 'contextual', 3, 160, '이야기 맥락에서 ''등에 소름이 돋았다''를 영어로 가장 자연스럽게 표현한 것은?', '["A chill ran down her spine.", "Her back was getting cold.", "She felt a breeze on her back.", "Her spine was hurting badly."]', 3, '["A chill ran down her spine."]'),
-  (46, 'confused', '''confused''는 상황이 이해가 안 되거나 당황스러울 때 쓰는 표현이야.', 'multiple_choice', 3, 174, '다음 중 ''당황한, 혼란스러운''을 뜻하는 영어 표현은?', '["confused", "comfortable", "confident", "curious"]', 1, '["confused"]'),
-  (47, 'echoing', '''echo''는 소리가 계속 맴돌고 울린다는 뜻으로, 머릿속에서 계속 들리는 상황을 자연스럽게 표현해.', 'fill_in_blank', 3, 174, 'Her voice kept ______ in my head all night.', '["echoing", "speaking", "calling", "talking"]', 2, '["echoing"]'),
-  (48, 'Her voice kept echoing in my mind.', '''echo in my mind''는 목소리나 말이 머릿속에서 계속 맴도는 걸 표현하는 자연스러운 영어야.', 'contextual', 3, 174, '이야기 맥락에서 ''목소리가 계속 맴돌았다''를 영어로 가장 자연스럽게 표현한 것은?', '["Her voice kept echoing in my mind.", "Her voice kept spinning around.", "Her voice kept turning in circles.", "Her voice kept walking around."]', 3, '["Her voice kept echoing in my mind."]'),
-  (49, 'disobey', '''disobey''는 말을 듣지 않다, 따르지 않다는 뜻이야. 손이 자기 의지대로 움직이지 않는 상황을 표현할 때 쓸 수 있어.', 'multiple_choice', 3, 188, '다음 중 ''말을 듣지 않다, 통제되지 않다''의 영어 표현으로 알맞은 것은?', '["obey", "disobey", "display", "destroy"]', 1, '["disobey"]'),
-  (50, 'obey', '''obey''는 손이 말을 듣지 않는다는 뜻으로, 몸이 의도대로 움직이지 않을 때 쓰는 표현이야.', 'fill_in_blank', 3, 188, 'She tried to hang up, but her hands wouldn''t ______ her.', '["obey", "follow", "listen", "hear"]', 2, '["obey"]'),
-  (51, 'obey', '''obey''는 명령이나 의지에 따라 움직이다라는 뜻이야. 몸이 마음대로 안 될 때 ''wouldn''t obey me''라고 표현해.', 'subjective', 3, 188, '''손이 말을 듣지 않았다''
+Her ______ were getting sweaty.
+(긴장하거나 불안할 때 손이 축축해지는 상황)', NULL, 3, '["palms", "hands"]', 'p___ (4글자, 손바닥을 뜻하는 단어)'),
+  (34, 'tremble', '''tremble''은 무서워서나 긴장해서 몸이나 목소리가 떨리는 걸 표현할 때 써.', 'multiple_choice', 3, 152, '다음 중 ''떨다, 진동하다''의 영어 표현으로 알맞은 것은?', '["tremble", "trouble", "terrible", "trigger"]', 1, '["tremble"]', 't로 시작하는 7글자 단어'),
+  (35, 'goosebumps', '''get goosebumps''는 소름이 돋다, 오싹하다는 뜻의 표현이야. 무서울 때나 감동할 때 쓸 수 있어.', 'subjective', 3, 152, '''소름이 돋다'' = get g______
 
-Her hands wouldn''t ______ her.
-(뜻: ~의 말을 듣다, 통제하다)', '[]', 3, '["obey", "listen to", "respond to", "cooperate with"]'),
-  (52, 'breathe heavily', '''breathe heavily''는 숨이 가빠지거나 거칠게 숨을 쉬는 걸 말해. 무서운 상황에서 심장이 빨리 뛰고 숨이 가빠질 때 쓰는 표현이야.', 'multiple_choice', 3, 207, '다음 중 ''숨이 가빠지다, 숨이 차다''를 영어로 표현할 때 알맞은 것은?', '["breathe heavily", "breathe clearly", "breathe slowly", "breathe quietly"]', 1, '["breathe heavily"]'),
-  (53, 'pound', '''heart pounds''는 심장이 세게/빠르게 뛰다는 뜻으로, 두려움이나 긴장상황에서 자주 쓰이는 표현이야.', 'fill_in_blank', 3, 207, 'Her heart began to ______ rapidly as she started breathing heavily.', '["pound", "strike", "knock", "hit"]', 2, '["pound"]'),
-  (54, 'Her heart began to race and her breathing became shallow.', '''heart began to race''는 심장이 빠르게 뛰기 시작했다는 뜻이고, ''breathing became shallow''는 숨이 가빠졌다는 의미야. 공포나 긴장 상황에서 자주 쓰이는 표현이야.', 'contextual', 3, 207, '민혜가 공포를 느끼며 심장이 빠르게 뛰고 숨이 가빠지는 상황을 영어로 가장 적절하게 표현한 것은?', '["Her heart began to race and her breathing became shallow.", "Her heart was warming up and she felt relaxed.", "Her heart stopped beating and she held her breath.", "Her heart was touched and she sighed deeply."]', 3, '["Her heart began to race and her breathing became shallow."]');
+She got ______ when she heard the trembling voice.
+(뜻: 떨리는 목소리를 듣고 소름이 돋았다)', NULL, 2, '["goosebumps", "goose bumps", "Goosebumps"]', '거위 살이 돋는다고도 하지 ?'),
+  (36, 'ran up', '''goosebumps ran up''은 소름이 등골을 타고 올라간다는 뜻이야. crept up이나 crawled up도 같은 의미로 쓸 수 있어.', 'subjective', 3, 152, '''등에 소름이 돋았다''
+
+Goosebumps ______ ______ her back.
+(뜻: ~에 소름이 돋다)', NULL, 3, '["ran up", "crept up", "crawled up", "went up"]', 'r___ u_ (2단어, 달리기할 때도 쓰는 표현)'),
+  (37, 'confused', '''confused''는 갑작스러운 상황에 당황하고 혼란스러운 상태를 뜻해.', 'multiple_choice', 3, 169, '다음 중 ''당황한, 혼란스러운''의 영어 표현으로 알맞은 것은?', '["confused", "confident", "creative", "curious"]', 1, '["confused"]', 'c로 시작하는 8글자 단어'),
+  (38, 'panicked', '''panic''은 갑작스런 상황에 당황하거나 공포에 빠지다라는 뜻이야.', 'subjective', 3, 169, '''당황하다'' = p______
+
+She ______ when she heard the voice.
+(뜻: 그녀는 목소리를 듣고 당황했다)', NULL, 2, '["panicked", "Panicked"]', 'p로 시작, 갑작스런 상황에 놀라서 어쩔 줄 모르는 상태 ?'),
+  (39, 'flustered', '''flustered''는 예상치 못한 상황에 당황해서 어쩔 줄 모르는 상태를 표현해. bewildered, perplexed도 비슷한 의미야.', 'subjective', 3, 169, '''당황했다''
+
+Minhye was ______.
+(뜻: 예상하지 못한 상황에 놀라서 어쩔 줄 모르는 상태)', NULL, 3, '["flustered", "bewildered", "perplexed", "confused", "rattled"]', 'f_______d (8글자, 당황스러운 상황을 뜻하는 형용사)'),
+  (40, 'empty', '''empty''는 아무것도 없이 텅 빈 상태를 말해. 사무실에 아무도 없는 상황이지.', 'multiple_choice', 3, 186, '다음 중 ''텅 빈, 비어있는''을 뜻하는 영어 단어는?', '["empty", "early", "equal", "exact"]', 1, '["empty"]', 'e로 시작하는 5글자 단어'),
+  (41, 'stuck', '''be stuck to''는 ~에 달라붙어 있다는 뜻이야. 여기서는 전화기가 귀에서 떨어지지 않는 상황을 표현해.', 'subjective', 3, 186, '''~에 붙어 있다/달라붙다'' = s____
+
+The phone was ______ to her ear.
+(뜻: 전화기가 그녀 귀에 붙어 있었다)', NULL, 2, '["stuck", "sticking"]', '끈적끈적한 테이프처럼 달라붙는 그 단어'),
+  (42, 'obey', '''obey''는 명령이나 의지에 따르다라는 뜻이야. 몸이 마음대로 안 될 때 자주 쓰는 표현이야.', 'subjective', 3, 186, '''손이 말을 듣지 않았다''
+
+My hands wouldn''t ______ me.
+(뜻: 내 뜻대로 움직이지 않다)', NULL, 3, '["obey", "listen to", "respond to", "follow"]', 'o___ (동사, 명령에 따르다)'),
+  (43, 'ring', '''ring''은 전화벨이 울리거나 종이 울린다는 뜻이야. 새로운 희생자에게 걸려오는 무서운 전화벨 소리지.', 'multiple_choice', 3, 207, '다음 중 ''전화벨이 울리다''를 영어로 표현할 때 알맞은 것은?', '["ring", "roll", "rise", "rush"]', 1, '["ring"]', 'r로 시작하는 4글자 동사'),
+  (44, 'ringing', '''ring''은 전화벨이 울리다라는 뜻으로 가장 자연스럽게 쓰이는 표현이야.', 'subjective', 3, 207, '''벨이 울리다'' = The phone is r______
+
+At 2:47 AM, the phone started ______.
+(뜻: 새벽 2시 47분, 전화벨이 울리기 시작했다)', NULL, 2, '["ringing", "Ringing"]', 'r로 시작, 종이나 벨이 내는 소리를 표현할 때 써 ?'),
+  (45, 'is ringing', '''is ringing''이 가장 기본적인 표현이고, keeps/starts/begins ringing도 상황에 맞게 쓸 수 있어.', 'subjective', 3, 207, '이야기 마지막에서 ''전화벨이 울린다''는 상황
+
+The phone ______ ______.
+(현재진행형으로 표현)', NULL, 3, '["is ringing", "keeps ringing", "starts ringing", "begins ringing"]', 'r___ (4글자) - 벨이나 알람이 계속 울릴 때 쓰는 동사');
 
 -- ----- [추리물] 빨간 구두 -----
 INSERT INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
@@ -450,34 +484,52 @@ INSERT INTO script (script_id, script_content, sequence_num, has_options, charac
   (262, '정문이 열리고 닫히는 소리가 들렸다.', 55, b'0', NULL, 4, NULL),
   (263, '미란은 3학년 4반으로 돌아가서 칠판을 지웠다.', 56, b'0', NULL, 4, NULL);
 
-INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers) VALUES
-  (55, 'look around', '''look around''는 주변을 둘러보거나 살펴본다는 뜻이야. 미란이 구두를 발견하고 주위를 확인하는 상황이지.', 'multiple_choice', 4, 216, '다음 중 ''주변을 살펴보다, 둘러보다''의 영어 표현으로 알맞은 것은?', '["look around", "look after", "look forward", "look through"]', 1, '["look around"]'),
-  (56, 'spotless', '''spotless''는 완전히 깨끗한 상태를 나타내는 표현이야. 청소 후 깨끗한 상태를 묘사할 때 자주 쓰여.', 'fill_in_blank', 4, 216, 'The hallway was ______ as she had left it after cleaning the night before.', '["spotless", "messy", "crowded", "noisy"]', 2, '["spotless"]'),
-  (57, 'exactly as', '''exactly as''는 ''그대로, 정확히 같은 상태로''라는 뜻이야. ''just as''나 ''the way''도 같은 의미로 쓸 수 있어.', 'subjective', 4, 216, '''그대로였다'' (변화 없이 원래 상태)
+INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers, hint) VALUES
+  (46, 'look around', '''look around''는 주변을 둘러보거나 살펴본다는 뜻이야. 미란이 이상한 상황에서 주위를 확인하는 거지.', 'multiple_choice', 4, 218, '다음 중 ''주변을 둘러보다, 살펴보다''를 뜻하는 영어 표현은?', '["look around", "look after", "look forward", "look up"]', 1, '["look around"]', 'l로 시작하는 단어, ''보다''의 다른 표현'),
+  (47, 'around', '''look around''는 주변을 둘러보다, 살펴보다라는 뜻의 구동사야.', 'subjective', 4, 218, '''주변을 살펴보다'' = look a______
 
-The hallway was ______ ______ ______ it had been after last night''s cleaning.
-(뜻: ~했던 그대로, 정확히 같은 상태로)', '[]', 3, '["exactly as", "just as", "precisely as", "the way", "exactly how"]'),
-  (58, 'absent', '''absent''는 학교나 회사에 나오지 않아서 없다는 뜻이야. 결석이 많은 학생을 표현할 때 쓰지.', 'multiple_choice', 4, 225, '다음 중 ''결석하다, 없다''를 뜻하는 영어 표현은?', '["absent", "present", "active", "angry"]', 1, '["absent"]'),
-  (59, 'awake', '''밤새 깨어있었다''는 표현에서 ''stay awake all night'' 또는 ''be awake all night''이 가장 자연스러운 영어 표현이야.', 'fill_in_blank', 4, 225, 'The security guard said he had been ______ all night and nobody came in.', '["awake", "alert", "conscious", "vigilant"]', 2, '["awake"]'),
-  (60, 'I was up all night keeping watch.', '경비원이 근무 중에 밤새 깨어서 지키고 있었다는 맥락에서는 ''keeping watch''가 포함된 표현이 가장 자연스러워.', 'contextual', 4, 225, '경비아저씨가 ''밤새 깨어있었다''고 말하는 상황에서 가장 자연스러운 영어 표현은?', '["I was awake all night.", "I stayed up all night.", "I was up all night keeping watch.", "I didn''t sleep at all last night."]', 3, '["I was up all night keeping watch."]'),
-  (61, 'strange', '''strange''는 뭔가 이상하거나 특이할 때 쓰는 단어야. 보안 기록에서 평소와 다른 이상한 점을 발견한 상황이지.', 'multiple_choice', 4, 234, '다음 중 ''이상한, 특이한''을 뜻하는 영어 단어는?', '["strange", "strong", "straight", "strict"]', 1, '["strange"]'),
-  (62, 'on', '''on the premises''는 ''건물 내에, 구내에''라는 뜻의 자연스러운 표현이야.', 'fill_in_blank', 4, 234, 'There was no record of anyone leaving. That meant someone was still ______ the school premises.', '["on", "in", "at", "within"]', 2, '["on"]'),
-  (63, 'It meant someone was still inside the school.', '''still''은 여전히, 아직도라는 뜻으로 누군가 계속 학교에 있다는 상황을 나타내.', 'contextual', 4, 234, '이 상황에서 ''누군가 아직 학교 안에 있다는 뜻이었다''를 영어로 가장 자연스럽게 표현한 것은?', '["It meant someone was still inside the school.", "It meant someone was always in the school.", "It meant someone was once in the school.", "It meant someone was never in the school."]', 3, '["It meant someone was still inside the school."]'),
-  (64, 'someone', '''someone''은 정체를 모르는 사람을 가리킬 때 쓰는 표현이야. 농구대 밑에 정체불명의 사람이 앉아있는 상황이지.', 'multiple_choice', 4, 243, '다음 중 ''누군가, 어떤 사람''을 뜻하는 영어 표현은?', '["someone", "something", "somewhere", "somehow"]', 1, '["someone"]'),
-  (65, 'formal', '''formal attire''는 정장 차림이라는 뜻이야. 교복 대신 격식 있는 옷을 입고 있다는 상황이지.', 'fill_in_blank', 4, 243, 'She was wearing ______ attire instead of a school uniform.', '["formal", "casual", "sports", "traditional"]', 2, '["formal"]'),
-  (66, 'graduate', '''graduate''는 졸업생을 뜻해. 여성 졸업생은 ''alumna'', 복수나 성별 구분 없이는 ''alumni''라고도 해.', 'subjective', 4, 243, '''졸업생이에요''
+She looked ______ to see if anyone was there.
+(뜻: 그녀는 누군가 있는지 주변을 살펴봤다)', NULL, 2, '["around", "Around"]', 'a로 시작하는 ''둘러, 주위'' 의미하는 단어'),
+  (48, 'untouched', '''untouched''는 아무도 손대지 않아서 원래 그대로인 상태를 나타내. unchanged, intact, undisturbed도 비슷한 의미로 쓸 수 있어.', 'subjective', 4, 218, '''그대로였다'' (변화 없이 원래 상태)
 
-I''m a ______ of this school.
-(뜻: 졸업한 사람)', '[]', 3, '["graduate", "alumna", "alumni"]'),
-  (67, 'realize', '''realize''는 무언가를 갑자기 깨닫거나 알아차릴 때 쓰는 표현이야. 미란이 진실을 깨달은 상황이지.', 'multiple_choice', 4, 252, '다음 중 ''깨닫다, 알아차리다''의 영어 표현으로 알맞은 것은?', '["realize", "receive", "remember", "recognize"]', 1, '["realize"]'),
-  (68, 'obituary', '''obituary''는 부고란, 즉 사망 소식을 알리는 신문 섹션을 뜻해. ''obituary section''이 부고란이야.', 'fill_in_blank', 4, 252, 'She pulled out a newspaper from her bag. The ______ section was open.', '["obituary", "editorial", "classified", "sports"]', 2, '["obituary"]'),
-  (69, 'The obituary section was spread open.', '''obituary section''은 신문의 부고란을 뜻하고, ''spread open''은 펼쳐져 있는 상태를 자연스럽게 표현해.', 'contextual', 4, 252, '이야기 맥락에서 ''부고란이 펼쳐져 있었다''를 영어로 가장 자연스럽게 표현한 것은?', '["The obituary section was spread open.", "The death notice was expanding.", "The funeral paper was displayed.", "The memorial column was extended."]', 3, '["The obituary section was spread open."]'),
-  (70, 'finally', '''finally''는 마침내, 그제야라는 뜻이야. 미란이 상황을 이해하게 된 순간을 표현하는 거지.', 'multiple_choice', 4, 263, '다음 중 ''그제야, 마침내''를 뜻하는 영어 표현은?', '["finally", "firstly", "formerly", "frequently"]', 1, '["finally"]'),
-  (71, 'stuck', '''stuck with me''는 습관이나 기억이 여전히 남아있다는 뜻의 자연스러운 영어 표현이야.', 'fill_in_blank', 4, 263, 'The habit is still ______ with me after all these years.', '["stuck", "staying", "keeping", "holding"]', 2, '["stuck"]'),
-  (72, 'bid', '''bid farewell''은 작별 인사를 한다는 격식있는 표현이야. say farewell, give farewell도 쓸 수 있어.', 'subjective', 4, 263, '''마지막 인사를 하다''
+The hallway was ______ as it had been after last night''s cleaning.
+(뜻: 변화하지 않은, 손대지 않은)', NULL, 3, '["untouched", "unchanged", "intact", "undisturbed"]', 'un____ed (과거분사 형태, touch + ed)'),
+  (49, 'still', '''still''은 어떤 상황이 계속되고 있을 때 ''아직, 여전히''라는 뜻으로 써.', 'multiple_choice', 4, 229, '다음 중 ''아직, 여전히''를 뜻하는 영어 단어는?', '["still", "start", "study", "speak"]', 1, '["still"]', 's로 시작하는 5글자 단어'),
+  (50, 'record', '''record''는 기록이라는 뜻으로, 보안 시스템의 출입 기록을 말할 때 자주 써.', 'subjective', 4, 229, '''기록'' = r______
 
-She came to ______ her final farewell.
-(뜻: 작별 인사를 하다)', '[]', 3, '["bid", "say", "give", "make"]');
+There was no ______ of anyone leaving.
+(뜻: 아무도 나간 기록이 없었다)', NULL, 2, '["record", "Record"]', 'r로 시작, ''녹음하다''는 동사로도 쓰이는 그 단어 ?'),
+  (51, 'still inside', '''still inside''는 누군가가 아직도 그 장소 안에 있다는 걸 표현할 때 쓰는 자연스러운 표현이야.', 'subjective', 4, 229, '''아직 학교 안에 있다는 뜻이었다''
+
+It meant someone was ______ ______ the school.
+(뜻: 여전히 ~안에 있다)', NULL, 3, '["still inside", "still in", "still within", "still at"]', 's___ i_____ (2단어, 아직도 안에)'),
+  (52, 'quiet', '''quiet''은 소리가 없이 고요하고 조용한 상태를 말해. 아무도 없는 체육관의 고요한 분위기를 표현한 거야.', 'multiple_choice', 4, 240, '다음 중 ''고요한, 조용한''의 영어 표현으로 알맞은 것은?', '["quiet", "quick", "quite", "queen"]', 1, '["quiet"]', 'q로 시작하는 5글자 단어'),
+  (53, 'entrance', '''entrance''는 건물이나 장소의 입구를 뜻하는 기본 단어야.', 'subjective', 4, 240, '''입구'' = e_______
+
+The shoe was lying at the _______ of the gym.
+(뜻: 신발이 체육관 입구에 떨어져 있었다)', NULL, 2, '["entrance", "Entrance"]', 'exit의 반대말, e로 시작하는 8글자'),
+  (54, 'silent', '''silent''는 완전히 조용한 상태를 표현해. quiet, still, hushed도 비슷한 의미로 쓸 수 있어.', 'subjective', 4, 240, '''고요했다''
+
+The gymnasium was completely ______.
+(뜻: 조용한, 아무 소리가 없는)', NULL, 3, '["silent", "quiet", "still", "hushed"]', 's____ (동물 조용히 하라고 할 때도 쓰는 말)'),
+  (55, 'realize', '''realize''는 갑자기 뭔가를 깨닫거나 이해하게 될 때 쓰는 표현이야. 미란이 구두를 벗은 이유를 알아챈 상황이지.', 'multiple_choice', 4, 251, '다음 중 ''깨닫다, 알아차리다''의 영어 표현으로 알맞은 것은?', '["realize", "receive", "require", "replace"]', 1, '["realize"]', 'r로 시작하는 7글자 단어'),
+  (56, 'obituary', '''obituary section''은 신문의 부고란을 뜻하는 표현이야. 돌아가신 분들의 소식을 전하는 지면이지.', 'subjective', 4, 251, '''부고란'' = o_______ section
+
+She opened the newspaper to the ______ section.
+(뜻: 그녀는 신문의 부고란을 펼쳤다)', NULL, 2, '["obituary", "Obituary"]', 'o로 시작, ''bite''나 ''chew''의 반대말이기도 해 ?'),
+  (57, 'obituary', '''obituary''는 신문의 부고란이나 부고 기사를 뜻해. 사망한 사람의 생애를 기리는 글이기도 하지.', 'subjective', 4, 251, '신문의 ''부고란''을 영어로 뭐라고 할까?
+
+She took out a newspaper from her bag. The ______ section was open.
+(뜻: 사망 소식을 알리는 신문 란)', NULL, 3, '["obituary", "obituaries", "death notice", "death notices"]', 'o_______ (8글자, ''죽음''을 뜻하는 라틴어에서 온 말)'),
+  (58, 'erase', '''erase''는 칠판이나 글씨를 지우다라는 뜻이야. 미란이 칠판을 지운 상황이지.', 'multiple_choice', 4, 263, '다음 중 ''지우다, 없애다''의 영어 표현으로 알맞은 것은?', '["erase", "empty", "enter", "enjoy"]', 1, '["erase"]', 'e로 시작하는 5글자 단어'),
+  (59, 'erased', '''erase the board''는 칠판을 지우다라는 뜻이야. 이야기의 마지막 장면에서 미란이 모든 상황을 정리하며 칠판을 지우는 행동을 나타내는 표현이지.', 'subjective', 4, 263, '''칠판을 지우다'' = e_____ the board
+
+After the lesson, the teacher ______ the board.
+(뜻: 수업 후 선생님이 칠판을 지웠다)', NULL, 2, '["erased", "erase"]', '지우개는 eraser, 그럼 ''지우다''는 동사는? e로 시작해'),
+  (60, 'erased', '''erase''는 칠판이나 화이트보드의 글씨를 지울 때 쓰는 가장 자연스러운 표현이야. clean, wipe, clear도 비슷한 의미로 쓸 수 있어.', 'subjective', 4, 263, '''칠판을 지웠다''
+
+Miran went back to classroom 3-4 and ______ the blackboard.
+(뜻: 칠판/화이트보드의 글씨를 지우다)', NULL, 3, '["erased", "cleaned", "wiped", "cleared"]', 'e___ (4글자, 컴퓨터에서 파일 삭제할 때도 쓰는 단어)');
 
 -- ----- [특이한연애썰] 남자친구가 제 꿈을 예측해요 -----
 INSERT INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
@@ -535,34 +587,52 @@ INSERT INTO script (script_id, script_content, sequence_num, has_options, charac
   (309, '제가 스트레스받을 때 미리 알고 챙겨주거든요.', 46, b'0', NULL, 5, NULL),
   (310, '어떻게 해야 할까요...?', 47, b'0', NULL, 5, NULL);
 
-INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers) VALUES
-  (73, 'mysterious', '''mysterious''는 신비롭고 이해하기 어려운 성격이나 상황을 나타낼 때 쓰는 말이야.', 'multiple_choice', 5, 270, '다음 중 ''신비로운, 불가사의한''의 영어 표현으로 알맞은 것은?', '["mysterious", "marvelous", "magnificent", "mischievous"]', 1, '["mysterious"]'),
-  (74, 'minoring', '''minor in''은 복수전공하다라는 뜻이야. 주전공(major)과 함께 부전공으로 공부하는 걸 말해.', 'fill_in_blank', 5, 270, 'He''s an art student who is ______ in psychology as well.', '["minoring", "majoring", "specializing", "concentrating"]', 2, '["minoring"]'),
-  (75, 'He has a mysterious personality.', '''mysterious''는 신비롭고 이해하기 어려운 성격을 표현할 때 쓰는 가장 자연스러운 표현이야.', 'contextual', 5, 270, '이야기 맥락에서 ''신비로운 성격''을 영어로 가장 자연스럽게 표현한 것은?', '["He has a mysterious personality.", "He has a suspicious personality.", "He has a curious personality.", "He has a serious personality."]', 3, '["He has a mysterious personality."]'),
-  (76, 'accidental', '''accidental''은 우연히 일어나는 일을 뜻해. 꿈 예측이 맞아도 그냥 우연이라고 생각한 상황이지.', 'multiple_choice', 5, 277, '다음 중 ''우연한, 우연의''를 뜻하는 영어 단어는?', '["accidental", "artificial", "additional", "automatic"]', 1, '["accidental"]'),
-  (77, 'coincidence', '''coincidence''는 우연의 일치를 의미하고, ''let it slide''는 넘어가다라는 뜻의 표현이야.', 'fill_in_blank', 5, 277, 'I thought it was just a ______ and let it slide.', '["coincidence", "accident", "mistake", "surprise"]', 2, '["coincidence"]'),
-  (78, 'I brushed it off as a coincidence.', '''brush off''는 대수롭지 않게 여기고 넘어간다는 뜻이야. 우연이라고 생각하며 별로 신경 쓰지 않았다는 의미를 잘 표현해.', 'contextual', 5, 277, '이야기 맥락에서 ''우연이겠지 하고 넘어갔다''를 영어로 가장 자연스럽게 표현한 것은?', '["I brushed it off as a coincidence.", "I passed by it as a coincidence.", "I moved over it as a coincidence.", "I crossed it as a coincidence."]', 3, '["I brushed it off as a coincidence."]'),
-  (79, 'accuracy', '''accuracy''는 정확도나 정확함의 정도를 나타내는 단어야. 꿈 예측이 80% 맞는다는 상황에 딱 맞지.', 'multiple_choice', 5, 284, '다음 중 ''정확함의 정도, 정확도''를 뜻하는 영어 단어는?', '["accuracy", "activity", "ability", "anxiety"]', 1, '["accuracy"]'),
-  (80, 'accuracy', '''accuracy rate''는 정확도를 나타내는 표현이야. 예측이나 측정의 정확한 정도를 말할 때 써.', 'fill_in_blank', 5, 284, 'His predictions have an ______ rate of about 80%.', '["accuracy", "efficiency", "frequency", "intensity"]', 2, '["accuracy"]'),
-  (81, 'accuracy', '''accuracy rate''는 정확도를 나타내는 표현이야. success rate도 비슷한 의미로 쓸 수 있어.', 'subjective', 5, 284, '''정확도가 80% 정도다''
+INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers, hint) VALUES
+  (61, 'mysterious', '''mysterious''는 신비롭고 이해하기 어려운 성격이나 상황을 나타낼 때 쓰는 말이야.', 'multiple_choice', 5, 272, '다음 중 ''신비로운, 수수께끼 같은''을 뜻하는 영어 단어는?', '["mysterious", "magnificent", "mechanical", "meaningful"]', 1, '["mysterious"]', 'm으로 시작하는 10글자 단어'),
+  (62, 'coincidence', '''coincidence''는 우연의 일치를 뜻하는 단어야. 예측 불가능한 일이 일어났을 때 자주 쓰는 표현이지.', 'subjective', 5, 272, '''우연'' = c________
 
-His predictions have an ______ rate of about 80%.
-(뜻: 정확성, 맞는 비율)', '[]', 3, '["accuracy", "accuracy rate", "success", "success rate"]'),
-  (82, 'predict', '''predict''는 미래에 일어날 일을 미리 예측한다는 뜻이야. 남자친구가 꿈을 예측한다고 한 상황이지.', 'multiple_choice', 5, 291, '다음 중 ''예측하다, 예상하다''의 영어 표현으로 알맞은 것은?', '["predict", "prevent", "pretend", "prepare"]', 1, '["predict"]'),
-  (83, 'correlation', '''correlation''은 두 현상 간의 상관관계를 나타내는 학술적인 표현이야. 심리학에서 무의식과 꿈의 연관성을 설명할 때 자주 쓰여.', 'fill_in_blank', 5, 291, 'He studied the ______ between the unconscious mind and dreams in psychology class.', '["connection", "correlation", "relationship", "association"]', 2, '["correlation"]'),
-  (84, 'The connection between the unconscious and dreams', '''무의식이랑 꿈의 연관성''은 ''the connection between the unconscious and dreams''로 표현해. 심리학에서 자주 쓰이는 표현이야.', 'contextual', 5, 291, '이야기에서 남자친구가 설명하는 ''무의식이랑 꿈의 연관성''을 영어로 가장 적절하게 표현한 것은?', '["The connection between the unconscious and dreams", "The conflict between consciousness and nightmares", "The difference between awareness and sleep", "The relationship between memory and imagination"]', 3, '["The connection between the unconscious and dreams"]'),
-  (85, 'shocking', '''shocking''은 충격적이고 놀라운 일을 발견했을 때 쓰는 표현이야.', 'multiple_choice', 5, 298, '다음 중 ''충격적인, 놀라운''을 뜻하는 영어 표현은?', '["shocking", "sharing", "shining", "shouting"]', 1, '["shocking"]'),
-  (86, 'densely', '''densely packed''는 빽빽하게 채워져 있다는 뜻으로, ''빼곡히''의 영어 표현이야.', 'fill_in_blank', 5, 298, 'The notebook was ______ packed with three months'' worth of data.', '["densely", "loosely", "barely", "randomly"]', 2, '["densely"]'),
-  (87, 'densely packed', '''densely packed''은 빼곡히, 빽빽하게 기록되어 있다는 뜻이야. tightly packed, closely packed도 같은 의미로 쓸 수 있어.', 'subjective', 5, 298, '''빼곡히 적혀있다''는 표현을 영어로 하면?
+It must have been just a ________.
+(뜻: 그냥 우연이었을 거야)', NULL, 2, '["coincidence", "Coincidence"]', '동전을 던질 때 쓰는 단어와 같아 ?'),
+  (63, 'shrugged off', '''shrug off''는 대수롭지 않게 여기고 넘어간다는 뜻이야. brush off, pass off도 비슷한 의미로 쓸 수 있어.', 'subjective', 5, 272, '''우연이겠지 하고 넘어갔다''
 
-Three months'' worth of data was ______ ______ written in the notebook.
-(뜻: 빽빽하게, 조밀하게)', '[]', 3, '["densely packed", "tightly packed", "closely packed", "meticulously recorded", "thoroughly documented", "extensively written"]'),
-  (88, 'control', '''control''은 누군가나 무언가를 조종하고 통제한다는 뜻이야. 남자친구가 꿈을 조종했던 상황이지.', 'multiple_choice', 5, 310, '다음 중 ''조종하다, 통제하다''의 영어 표현으로 알맞은 것은?', '["control", "contact", "contain", "compare"]', 1, '["control"]'),
-  (89, 'confronted', '''confront''는 누군가에게 따지거나 문제를 제기할 때 쓰는 표현이야. 여기서는 남자친구의 행동에 대해 따져 물을 때 가장 적절한 동사야.', 'fill_in_blank', 5, 310, 'When I ______ him about it, he just said "Sorry, but your reaction was so cute."', '["confronted", "approached", "questioned", "contacted"]', 2, '["confronted"]'),
-  (90, 'confronted', '''confront''는 문제에 대해 직접적으로 맞서서 따질 때 쓰는 표현이야. challenge나 call out도 비슷한 의미로 사용할 수 있어.', 'subjective', 5, 310, '''남자친구한테 따졌다''
+I just ______ it ______ as a coincidence.
+(뜻: ~로 여기고 넘어가다)', NULL, 3, '["shrugged off", "brushed off", "passed off", "wrote off"]', 's___ o__ (2단어, 해고할 때도 쓰는 표현)'),
+  (64, 'coincidence', '''coincidence''는 우연의 일치를 뜻해. 남자친구가 꿈을 정확히 맞춰서 우연인지 의심하는 상황이지.', 'multiple_choice', 5, 281, '다음 중 ''우연, 우연의 일치''를 뜻하는 영어 단어는?', '["coincidence", "consequence", "convenience", "conference"]', 1, '["coincidence"]', 'c로 시작하는 11글자 단어'),
+  (65, 'coincidence', '''coincidence''는 우연의 일치나 우연한 사건을 뜻하는 단어야.', 'subjective', 5, 281, '''우연'' = c_________
 
-I ________ him about it.
-(뜻: 문제를 제기하며 따지다, 맞서다)', '[]', 3, '["confronted", "challenged", "called out"]');
+Is this just a ________?
+(뜻: 이게 그냥 우연일까?)', NULL, 2, '["coincidence", "Coincidence"]', '동전을 던질 때도 쓰는 단어, c로 시작해'),
+  (66, 'tumbled down', '''tumble down the stairs''는 계단에서 구르며 떨어지는 걸 표현해. roll down이나 fell down도 비슷한 의미로 쓸 수 있어.', 'subjective', 5, 281, '''계단을 굴러떨어지다''
+
+I ______ ______ the stairs in my dream.
+(뜻: 계단에서 굴러 떨어지다)', NULL, 3, '["tumbled down", "rolled down", "fell down", "tumbled down"]', 't___ d___ (구르면서 떨어질 때 쓰는 표현)'),
+  (67, 'gradually', '''gradually''는 시간이 지나면서 점점, 서서히 변화하는 걸 표현할 때 써.', 'multiple_choice', 5, 290, '다음 중 ''점점, 서서히''를 뜻하는 영어 표현은?', '["gradually", "generally", "gracefully", "gratefully"]', 1, '["gradually", "Gradually"]', 'g로 시작하는 부사, ''등급''과 같은 어원'),
+  (68, 'unconscious', '''unconscious''는 심리학에서 무의식을 뜻하는 단어야. ''subconscious''도 비슷한 의미로 쓰여.', 'subjective', 5, 290, '''무의식'' = u__________
+
+Freud studied the human __________ and its influence on behavior.
+(뜻: 프로이드는 인간의 무의식과 행동에 미치는 영향을 연구했다)', NULL, 2, '["unconscious", "Unconscious", "subconscious", "Subconscious"]', 'un으로 시작, ''의식하지 못하는'' 마음의 영역 ?'),
+  (69, 'connection', '''connection''은 두 가지 사이의 연관성이나 관계를 나타내는 가장 자연스러운 표현이야. correlation, relationship 등도 비슷한 의미로 쓸 수 있어.', 'subjective', 5, 290, '''무의식이랑 꿈의 연관성''
+
+The ______ between the unconscious mind and dreams
+(뜻: 두 가지 사이의 관련성, 연결)', NULL, 3, '["connection", "correlation", "relationship", "link", "association"]', 'c_______ (9글자, connect의 명사형)'),
+  (70, 'shocking', '''shocking''은 충격적이고 놀라운 일을 발견했을 때 쓰는 표현이야.', 'multiple_choice', 5, 299, '다음 중 ''충격적인, 깜짝 놀라게 하는''을 뜻하는 영어 단어는?', '["shocking", "shaking", "sharing", "shouting"]', 1, '["shocking"]', 's로 시작하는 8글자, ''쇼크''와 비슷한 단어'),
+  (71, 'manipulate', '''manipulate''는 조작하다, 교묘히 다루다라는 뜻으로 심리적 조작에도 많이 쓰이는 단어야.', 'subjective', 5, 299, '''조작하다, 다루다'' = m________
+
+He was trying to _______ her dreams.
+(뜻: 그는 그녀의 꿈을 조작하려고 하고 있었다)', NULL, 2, '["manipulate", "Manipulate"]', 'm으로 시작, ''손으로 다루다''에서 나온 단어 ?'),
+  (72, 'experimenting with', '''experiment with/on''은 누군가를 대상으로 실험하다라는 뜻이야. test with/on도 비슷한 의미로 쓸 수 있어.', 'subjective', 5, 299, '비밀리에 누군가를 실험 대상으로 삼아 연구한다
+
+He was secretly ______ ______ her dreams.
+(뜻: ~을 대상으로 실험하다)', NULL, 3, '["experimenting with", "experimenting on", "testing with", "testing on"]', 'e____ w___ (2단어, 과학자들이 하는 행동)'),
+  (73, 'confused', '''confused''는 어떻게 해야 할지 몰라서 혼란스러운 상태를 표현할 때 쓰는 단어야.', 'multiple_choice', 5, 310, '다음 중 ''혼란스러워하다, 어찌할 바를 모르다''의 영어 표현으로 알맞은 것은?', '["confused", "complete", "continue", "consider"]', 1, '["confused"]', 'c로 시작하는 8글자 단어'),
+  (74, 'do', '''what to do''는 ''무엇을 해야 하는지, 어떻게 해야 할지''를 나타내는 기본적이면서도 중요한 표현이야.', 'subjective', 5, 310, '''무엇을 해야 하는지'' = what to ___
+
+I don''t know what to ___ about this situation.
+(뜻: 이 상황에 대해 어떻게 해야 할지 모르겠다)', NULL, 2, '["do", "Do"]', 'd로 시작, ''행동하다''라는 뜻 ?'),
+  (75, 'should do', '''What should I do?''는 어떻게 해야 할지 모를 때 조언을 구하는 가장 자연스러운 표현이야.', 'subjective', 5, 310, '고민이 있을 때 ''어떻게 해야 할까요?''라고 조언을 구할 때
+
+What ______ I ______?
+(뜻: 어떻게 해야 할까요?)', NULL, 3, '["should do", "should I do", "am I supposed to do", "ought to do"]', 's_____ d_ (조언 구할 때 쓰는 정중한 표현)');
 
 -- ----- [연애갈등] 수학 과외 선생님과 내 여자친구 -----
 INSERT INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
@@ -623,40 +693,52 @@ INSERT INTO script (script_id, script_content, sequence_num, has_options, charac
   (359, '확실한 건 아무것도 없는데 괜히 의심하는 건가 싶기도 하고.', 49, b'0', NULL, 6, NULL),
   (360, '근데 뭔가 이상한 건 분명함.', 50, b'0', NULL, 6, NULL);
 
-INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers) VALUES
-  (91, 'annoyed', '''annoyed''는 짜증나고 성가할 때 느끼는 감정을 표현해. 공부 얘기에 짜증내던 상황이지.', 'multiple_choice', 6, 318, '다음 중 ''짜증내다, 성가해하다''를 뜻하는 영어 표현은?', '["annoyed", "amused", "amazed", "ashamed"]', 1, '["annoyed"]'),
-  (92, 'provided', '''provide someone with something''은 누군가에게 무언가를 제공해주다라는 뜻이야. 과외 선생님을 붙여준다는 상황에 가장 자연스러운 표현이지.', 'fill_in_blank', 6, 318, 'She wasn''t good at studying, so her parents ______ her with a tutor.', '["provided", "equipped", "supplied", "connected"]', 2, '["provided"]'),
-  (93, 'light up', '''light up''은 사람이 기분 좋아져서 밝아지는 모습을 표현할 때 쓰는 자연스러운 표현이야. brighten up이나 cheer up도 비슷한 의미로 쓸 수 있어.', 'subjective', 6, 318, '''밝아진 느낌''을 영어로 표현하기
+INSERT INTO quiz_detail (quiz_id, correct_answer, explanation, quiz_type, content_id, script_id, question, options, difficulty, acceptable_answers, hint) VALUES
+  (76, 'brighter', '''brighter''는 더 밝아진, 더 활기찬 상태를 말해. 여자친구가 과외 후 달라진 모습을 표현한 거야.', 'multiple_choice', 6, 320, '다음 중 ''밝아진, 더 활기찬''을 뜻하는 영어 표현으로 알맞은 것은?', '["brighter", "bothered", "busiest", "bragged"]', 1, '["brighter"]', 'b로 시작하는 7글자 단어, 전구가 켜진 것처럼!'),
+  (77, 'interest', '''develop an interest in''은 어떤 것에 흥미나 관심을 갖게 되다는 뜻의 표현이야.', 'subjective', 6, 320, '''흥미를 갖다'' = develop an i_______ in
 
-She seemed to ______ ______ lately.
-(뜻: 기분이 좋아지다, 밝아지다)', '[]', 3, '["light up", "brighten up", "cheer up", "perk up"]'),
-  (94, 'awkward', '''awkward''는 상황이나 분위기가 어색하고 불편할 때 쓰는 표현이야. 친구가 뭔가 어색하게 반응한 상황이지.', 'multiple_choice', 6, 326, '다음 중 ''어색한, 불편한''의 영어 표현으로 알맞은 것은?', '["awkward", "awesome", "ancient", "accurate"]', 1, '["awkward"]'),
-  (95, 'let', '''let it slide''는 뭔가 이상하지만 그냥 넘어가다, 문제 삼지 않고 지나치다라는 뜻의 표현이야.', 'fill_in_blank', 6, 326, 'It seemed strange, but I decided to ______ it slide since studying hard is a good thing.', '["let", "make", "put", "get"]', 2, '["let"]'),
-  (96, 'let slide', '''let it slide''는 뭔가 이상하거나 문제가 있어도 그냥 넘어가버린다는 뜻이야. let it go, brush it off도 비슷한 의미로 쓸 수 있어.', 'subjective', 6, 326, '''그냥 넘어갔다'' (의심스럽지만 문제 삼지 않고 지나쳤다)
+She seems to have developed an _______ in studying.
+(뜻: 그녀는 공부에 흥미가 생긴 것 같다)', NULL, 2, '["interest", "Interest"]', '관심이나 호기심을 뜻하는 i로 시작하는 명사'),
+  (78, 'irate', '''get irate''는 짜증나거나 화가 나는 상태를 표현해. irritated, annoyed, frustrated도 같은 맥락에서 쓸 수 있어.', 'subjective', 6, 320, '''공부 얘기만 하면 짜증을 냈다''
 
-It was weird, but I just ______ it ______.
-(뜻: ~을 그냥 넘어가다, 문제 삼지 않다)', '[]', 3, '["let slide", "let go", "brushed off", "shrugged off", "overlooked"]'),
-  (97, 'bother', '''bother''는 뭔가가 신경쓰이고 걱정될 때 쓰는 표현이야. 과외 선생님 때문에 마음이 불편해진 상황이지.', 'multiple_choice', 6, 334, '다음 중 ''신경쓰이다, 걱정되다''를 뜻하는 영어 표현은?', '["bother", "brother", "butter", "better"]', 1, '["bother"]'),
-  (98, 'nag', '''nag at someone''은 계속 신경 쓰이고 마음에 걸린다는 뜻의 표현이야.', 'fill_in_blank', 6, 334, 'From that day on, it started to ______ at me.', '["bother", "annoy", "nag", "worry"]', 2, '["nag"]'),
-  (99, 'bother', '''bother''는 뭔가 계속 신경 쓰이고 마음에 걸릴 때 쓰는 표현이야. bug나 nag at도 비슷한 의미로 쓸 수 있어.', 'subjective', 6, 334, '''신경이 쓰이기 시작했다''
+She used to get ______ whenever we talked about studying.
+(뜻: 짜증나다, 화나다)', NULL, 3, '["irate", "irritated", "annoyed", "frustrated", "upset", "angry"]', 'i___ (4글자, irritated와 비슷한 감정)'),
+  (79, 'awkwardly', '''awkwardly''는 어색하거나 불편한 방식으로 행동할 때 쓰는 부사야. 친구가 뭔가 숨기는 듯 어색하게 웃는 상황이지.', 'multiple_choice', 6, 330, '다음 중 ''어색하게, 불편하게''라는 뜻의 영어 표현은?', '["awkwardly", "apparently", "absolutely", "actually"]', 1, '["awkwardly"]', 'a로 시작하는 부사, ''어색한'' 형용사에 -ly를 붙인 것'),
+  (80, 'change the subject', '''change the subject''는 화제를 바꾸다라는 뜻의 기본적인 영어 표현이야. 불편한 주제를 피할 때 자주 쓰지.', 'subjective', 6, 330, '''화제를 바꾸다/돌리다'' = c_______ the s______
 
-From that day on, it started to ______ me.
-(뜻: 신경 쓰이게 하다, 괴롭히다)', '[]', 3, '["bother", "bug", "nag at", "eat at", "trouble", "worry"]'),
-  (100, 'delayed', '''delayed''는 예정된 시간보다 늦어지거나 지연되는 걸 말해. 과외가 늦어진다고 할 때 쓰는 표현이야.', 'multiple_choice', 6, 342, '다음 중 ''늦어지다, 지연되다''의 영어 표현으로 알맞은 것은?', '["delayed", "detailed", "decided", "deleted"]', 1, '["delayed"]'),
-  (101, 'ran', '''run over''는 예정된 시간을 초과하다는 뜻의 숙어야. ''The meeting ran over''처럼 자주 쓰이지.', 'fill_in_blank', 6, 342, 'The tutoring session was supposed to last 2 hours, but it ______ over 3 hours.', '["ran", "went", "took", "lasted"]', 2, '["ran"]'),
-  (102, 'make out', '''make out''은 멀리서 뭔가를 정확히 구별해서 보다라는 뜻이야. 거리 때문에 선명하게 보기 어려운 상황에서 자주 써.', 'subjective', 6, 342, '''정확히는 안 보인다''를 영어로 표현할 때
+She tried to ______ the ______ when I asked about it.
+(뜻: 내가 그것에 대해 물어보자 그녀는 화제를 돌리려 했다)', NULL, 2, '["change the subject", "Change the subject", "changed the subject"]', '바꾸다는 ''c'', 주제는 ''s''로 시작해. 대화 방향을 바꿀 때 쓰는 표현!'),
+  (81, 'changed the subject', '''change the subject''는 화제를 바꾸다는 뜻이야. switch나 shift도 같은 의미로 쓸 수 있어.', 'subjective', 6, 330, '''화제를 돌리다''
 
-I couldn''t ______ ______ clearly from that distance.
-(뜻: 명확하게/정확하게 보다)', '[]', 3, '["make out", "see them", "tell exactly", "observe them"]'),
-  (103, 'excited', '''excited''는 기분이 좋아서 들떠 있는 상태를 말해. 여자친구 목소리가 평소와 달리 들떠 있었던 거지.', 'multiple_choice', 6, 350, '다음 중 ''들뜬, 흥분한''의 영어 표현으로 알맞은 것은?', '["excited", "exhausted", "expected", "expired"]', 1, '["excited"]'),
-  (104, 'check in on', '''check in on someone''은 누군가의 안부를 묻거나 상태를 확인한다는 뜻의 구동사야.', 'fill_in_blank', 6, 350, 'A few days later, I called her mom to ______ how she was doing.', '["check in on", "look after", "keep up with", "follow up on"]', 2, '["check in on"]'),
-  (105, 'contact information', '''contact information''은 연락처 정보를 뜻해. contact info, contact details도 같은 의미로 쓸 수 있어.', 'subjective', 6, 350, '''연락처를 달라''는 표현
+She _______ the _______ to something else.
+(뜻: 대화 주제를 바꾸다)', NULL, 3, '["changed the subject", "switched the subject", "shifted the subject", "changed subject", "switched subject", "shifted subject"]', 'c_____ the s_____ (바꾸다 + 주제)'),
+  (82, 'excuse', '''excuse''는 핑계나 변명을 뜻해. 피곤해서 잤다는 건 늦은 답장에 대한 핑계였던 거지.', 'multiple_choice', 6, 340, '다음 중 ''핑계, 변명''을 뜻하는 영어 단어는?', '["excuse", "escape", "expect", "extend"]', 1, '["excuse", "Excuse"]', 'e로 시작하는 6글자 단어'),
+  (83, 'delayed', '''be delayed''는 예정된 시간보다 늦어지거나 지연되다는 뜻이야.', 'subjective', 6, 340, '''지연되다, 늦어지다'' = d______
 
-Could you give me his ______ ______? I want to get tutoring too.
-(뜻: 연락 정보)', '[]', 3, '["contact information", "contact info", "contact details", "phone number", "contact number"]'),
-  (106, 'confused', '''confused''는 당황하거나 혼란스러운 상태를 나타내는 표현이야. 과외 선생님이 갑자기 남자친구라고 하니까 당황한 거지.', 'multiple_choice', 6, 360, '다음 중 ''당황한, 혼란스러운''의 영어 표현으로 알맞은 것은?', '["confused", "confident", "careful", "comfortable"]', 1, '["confused"]'),
-  (107, 'taken aback', '''taken aback''은 당황하거나 놀란 상태를 나타내는 표현이야. 과외 선생님이 남자친구라고 하니까 당황한 상황에 딱 맞아.', 'fill_in_blank', 6, 360, 'His voice suddenly changed when I mentioned who I was. He sounded ______ and flustered.', '["taken aback", "excited", "confident", "pleased"]', 2, '["taken aback"]'),
-  (108, 'His voice suddenly changed and he sounded flustered.', '''flustered''는 당황하고 어쩔 줄 몰라 하는 상태를 표현할 때 쓰는 자연스러운 영어 표현이야.', 'contextual', 6, 360, '이야기 맥락에서 ''목소리가 확 달라지고 당황하는 느낌''을 영어로 가장 자연스럽게 표현한 것은?', '["His voice suddenly changed and he sounded flustered.", "His voice became louder and more confident.", "His voice got softer and more romantic.", "His voice remained calm and professional."]', 3, '["His voice suddenly changed and he sounded flustered."]');
+The meeting will be ______ due to technical issues.
+(뜻: 회의가 기술적 문제로 지연될 예정이다)', NULL, 2, '["delayed", "Delayed"]', 'd로 시작, ''미루다''라는 뜻도 있어 ?'),
+  (84, 'over three', '''over three hours''는 3시간을 넘어서/초과해서라는 뜻이야. more than, past, beyond도 비슷한 의미로 쓸 수 있어.', 'subjective', 6, 340, '''3시간이 넘어도 안 나와''
+
+Even after ______ ______ three hours, she didn''t come out.
+(뜻: ~이 넘다/지나다)', NULL, 3, '["over three", "more than", "past three", "beyond three"]', 'o___ (전치사 + 형용사, 끝나다의 over)'),
+  (85, 'excited', '''excited''는 기분이 들뜨고 흥분된 상태를 말해. 여자친구 목소리가 평소와 달리 들떠있던 상황이지.', 'multiple_choice', 6, 350, '다음 중 ''들뜬, 흥분한''의 영어 표현으로 알맞은 것은?', '["excited", "exhausted", "expected", "extended"]', 1, '["excited"]', 'e로 시작하는 7글자 단어'),
+  (86, 'ask', '''ask after someone''은 누군가의 안부를 묻다라는 뜻의 구동사야.', 'subjective', 6, 350, '''안부를 묻다'' = ask after someone
+
+I called to ______ after your daughter.
+(뜻: 따님 안부를 묻기 위해 전화했어요)', NULL, 2, '["ask", "Ask"]', 'a로 시작하는 단어, ''질문하다''의 기본형'),
+  (87, 'check up', '''check up on someone''은 누군가의 안부나 상황을 확인한다는 뜻이야. follow up, catch up도 비슷한 상황에서 쓸 수 있어.', 'subjective', 6, 350, '''안부 인사차 전화하다''
+
+I called her mom to ______ ______ on her.
+(뜻: 안부를 묻다, 근황을 확인하다)', NULL, 3, '["check up", "follow up", "catch up"]', 'c___ u_ (건강이나 상태를 확인할 때 쓰는 표현)'),
+  (88, 'obvious', '''obvious''는 뭔가 분명하고 명백하다는 뜻이야. 확실하지는 않지만 뭔가 이상한 게 분명하다는 상황이지.', 'multiple_choice', 6, 360, '다음 중 ''분명한, 확실한''을 뜻하는 영어 표현은?', '["obvious", "optional", "opposite", "ordinary"]', 1, '["obvious"]', 'o로 시작하는 7글자 단어'),
+  (89, 'definitely', '''definitely''는 ''분명히, 확실히''라는 뜻으로 확신을 나타낼 때 쓰는 부사야.', 'subjective', 6, 360, '''분명한, 확실한'' = d______
+
+Something is ______ wrong here.
+(뜻: 여기 뭔가 확실히 잘못됐어)', NULL, 2, '["definitely", "Definitely"]', 'd로 시작, ''명확하게''라는 부사로도 쓰여 ?'),
+  (90, 'definitely something', '''definitely something''은 ''분명히 뭔가''라는 의미로, 확신을 표현할 때 쓰는 자연스러운 영어 표현이야.', 'subjective', 6, 360, '''뭔가 이상한 게 분명하다''
+
+But there''s ______ ______ something strange going on.
+(뜻: 분명히, 확실히)', NULL, 3, '["definitely something", "clearly something", "certainly something", "obviously something"]', 'd___ _____ (첫 번째 단어는 확실함, 두 번째는 no의 반대)');
 
 SET FOREIGN_KEY_CHECKS = 1;
 
