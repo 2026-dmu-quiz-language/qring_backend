@@ -22,7 +22,7 @@ public class ChatService {
     private final ScriptRepository scriptRepository;
     private final QuizDetailRepository quizDetailRepository;
     private final UserRepository userRepository;
-    private final ObjectMapper objectMapper;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public ChatResponseDto getChatData(Long userId, Long contentId) {
 
