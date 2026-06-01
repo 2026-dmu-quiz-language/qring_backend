@@ -16,12 +16,8 @@ INSERT IGNORE INTO difficulty_level (level_code, level_name, level_desc) VALUES
 -- 2. content_category
 -- =============================================
 INSERT IGNORE INTO content_category (category_id, category_name, display_order) VALUES
-  (1, '짝사랑', 1),
-  (2, '드라마', 2),
-  (3, '스릴러', 3),
-  (4, '추리물', 4),
-  (5, '특이한연애썰', 5),
-  (6, '연애갈등', 6);
+  (1, '로맨스', 1),
+  (2, '스토리', 2);
 
 -- =============================================
 -- 3. content, chapter, script, quiz_detail

@@ -1,5 +1,8 @@
 package com.qring.qring_backend.service.quiz;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.domain.content.Content;
 import com.qring.qring_backend.domain.quiz.QuizDetail;
@@ -15,9 +18,8 @@ import com.qring.qring_backend.domain.user.UserprogressRepository;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto.QuizResultDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultResponseDto;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
