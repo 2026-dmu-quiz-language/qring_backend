@@ -1,6 +1,12 @@
 package com.qring.qring_backend.auth.dto;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /** 인증 관련 요청 DTO 모음 — 회원가입·로그인·이메일 인증·소셜 로그인·토큰 갱신 등. */

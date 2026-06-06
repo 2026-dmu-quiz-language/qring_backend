@@ -72,15 +72,12 @@ qring_backend/
    │        │
    │        ├─ content/                          — 학습 콘텐츠 구조 (스토리·챕터·카테고리)
    │        │  ├─ Content.java                   — 학습 콘텐츠(스토리) (카테고리·난이도·썸네일·총 챕터 수)
-   │        │  ├─ Chapter.java                   — 콘텐츠 챕터 (번호·제목·진입 필요 포인트)
    │        │  └─ ContentCategory.java           — 콘텐츠 카테고리 (표시 순서)
    │        │
    │        ├─ difficulty/                       — 난이도 등급 정의
    │        │  ├─ DifficultyLevel.java           — 난이도 등급 (코드·표시명·설명)
    │        │  └─ DifficultyLevelRepository.java — DifficultyLevel CRUD
    │        │
-   │        ├─ goal/                             — 일일 학습 목표 기록
-   │        │  └─ DailyGoalRecord.java           — 일일 목표 달성 기록 (사용자·챕터·날짜·달성 여부)
    │        │
    │        ├─ quiz/                             — 퀴즈 및 채점 (점수 산정 테이블·성취 코멘트 포함)
    │        │  ├─ QuizDetail.java                — 스크립트 연동 퀴즈 (유형·정답·해설)
@@ -103,21 +100,21 @@ qring_backend/
 
 ## 폴더 역할 요약
 
-| 폴더 | 역할 |
-|------|------|
-| `config/` | 애플리케이션 전역 설정 (Swagger 등 인프라성 빈) |
-| `auth/` | 인증·계정 도메인. 로컬/소셜 가입, 로그인, JWT 발급 전부 담당 |
-| `auth/controller/` | HTTP 엔드포인트 진입점 |
-| `auth/service/` | 인증 비즈니스 로직 (이메일 인증, OAuth 검증 등 보조 서비스 포함) |
-| `auth/security/` | Spring Security 설정 + JWT 토큰 인프라 |
-| `auth/repository/` | JPA 리포지토리 (User 조회) |
-| `auth/dto/` | 인증 관련 요청/응답 DTO |
-| `auth/config/` | auth 한정 설정 — 공통 예외 처리 |
-| `dashboard/` | 학습 진행 통계 집계 및 응답 |
-| `domain/` | 핵심 DB 모델 계층. 엔티티와 그에 직결된 리포지토리만 둠 |
-| `domain/user/` | 사용자 정보·자산·진도·학습 로그 |
-| `domain/content/` | 학습 콘텐츠(스토리)·챕터·카테고리 구조 |
-| `domain/difficulty/` | 난이도 등급 마스터 |
-| `domain/goal/` | 일일 학습 목표 달성 이력 |
-| `domain/quiz/` | 퀴즈 정의·풀이 결과·점수 산정 테이블·성취 코멘트 |
-| `domain/script/` | 스토리 스크립트 한 줄과 선택지 |
+| 폴더                 | 역할                                                             |
+| -------------------- | ---------------------------------------------------------------- |
+| `config/`            | 애플리케이션 전역 설정 (Swagger 등 인프라성 빈)                  |
+| `auth/`              | 인증·계정 도메인. 로컬/소셜 가입, 로그인, JWT 발급 전부 담당     |
+| `auth/controller/`   | HTTP 엔드포인트 진입점                                           |
+| `auth/service/`      | 인증 비즈니스 로직 (이메일 인증, OAuth 검증 등 보조 서비스 포함) |
+| `auth/security/`     | Spring Security 설정 + JWT 토큰 인프라                           |
+| `auth/repository/`   | JPA 리포지토리 (User 조회)                                       |
+| `auth/dto/`          | 인증 관련 요청/응답 DTO                                          |
+| `auth/config/`       | auth 한정 설정 — 공통 예외 처리                                  |
+| `dashboard/`         | 학습 진행 통계 집계 및 응답                                      |
+| `domain/`            | 핵심 DB 모델 계층. 엔티티와 그에 직결된 리포지토리만 둠          |
+| `domain/user/`       | 사용자 정보·자산·진도·학습 로그                                  |
+| `domain/content/`    | 학습 콘텐츠(스토리)·챕터·카테고리 구조                           |
+| `domain/difficulty/` | 난이도 등급 마스터                                               |
+| `domain/goal/`       | 일일 학습 목표 달성 이력                                         |
+| `domain/quiz/`       | 퀴즈 정의·풀이 결과·점수 산정 테이블·성취 코멘트                 |
+| `domain/script/`     | 스토리 스크립트 한 줄과 선택지                                   |
