@@ -128,5 +128,4 @@ public class AuthController {
         authService.updatePreferences(userId, request);
         return ResponseEntity.ok(Map.of("updated", true));
     }
-
 }

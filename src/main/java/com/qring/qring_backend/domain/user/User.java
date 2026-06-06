@@ -1,14 +1,19 @@
 package com.qring.qring_backend.domain.user;
 
-import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import java.time.LocalDateTime;
 
-/** 사용자 엔티티 — 로컬/소셜 가입 공용. authProvider=LOCAL이면 password 사용. */
 @Entity
 @Table(name = "users")
 @Getter @Setter
@@ -30,13 +35,6 @@ public class User {
     @Column(unique = true, length = 50)
     private String nickname;
 
-    @Column(name = "story_nickname", length = 50)
-    private String storyNickname;
-
-    @Column(name = "create_at")
-    @Builder.Default
-    private LocalDateTime createAt = LocalDateTime.now();
-
     @Column(name = "email_verified", nullable = false)
     @Builder.Default
     private Boolean emailVerified = false;
@@ -53,4 +51,12 @@ public class User {
 
     @Column(name = "level_code")
     private Integer levelCode;
+
+    @Column(name = "continuous_streak_days")
+    @Builder.Default
+    private Integer continuousStreakDays = 0;
+
+    @Column(name = "create_at")
+    @Builder.Default
+    private LocalDateTime createAt = LocalDateTime.now();
 }

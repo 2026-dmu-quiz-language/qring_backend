@@ -1,5 +1,14 @@
 package com.qring.qring_backend.dashboard.service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.dashboard.dto.DashboardResponse;
 import com.qring.qring_backend.domain.difficulty.DifficultyLevel;
@@ -8,15 +17,8 @@ import com.qring.qring_backend.domain.quiz.AchievementCommentRepository;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.domain.user.UserprogressRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
 /** 대시보드용 통계 집계: 평균 진도율, 완료 스토리 수, 연속 학습일, 성취 코멘트, 난이도 설명. */
 @Service

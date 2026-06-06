@@ -84,9 +84,9 @@ public class AuthService {
             emailService.verifyCode(request.getEmail(), request.getCode());
         switch (result) {
             case NOT_FOUND -> throw new IllegalArgumentException("CODE_NOT_FOUND_OR_EXPIRED");
-            case EXPIRED  -> throw new IllegalArgumentException("CODE_EXPIRED");
-            case MISMATCH -> throw new IllegalArgumentException("CODE_MISMATCH");
-            case OK       -> {}
+            case EXPIRED   -> throw new IllegalArgumentException("CODE_EXPIRED");
+            case MISMATCH  -> throw new IllegalArgumentException("CODE_MISMATCH");
+            case OK        -> {}
         }
         User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
@@ -133,12 +133,7 @@ public class AuthService {
     @Transactional
     public AuthResponse googleLogin(AuthRequest.SocialLogin request) {
         Map<String, Object> u = oAuthService.verifyGoogleToken(request.getToken());
-        return socialLogin(
-            "GOOGLE",
-            (String) u.get("sub"),
-            (String) u.get("email"),
-            (String) u.get("name")
-        );
+        return socialLogin("GOOGLE", (String) u.get("sub"), (String) u.get("email"), (String) u.get("name"));
     }
 
     /** Kakao 인가 코드 → 사용자 프로필 → 내부 사용자로 매핑/생성. */
@@ -165,7 +160,7 @@ public class AuthService {
      * 소셜 사용자 매핑 공통 로직: (provider, socialId) 매칭 → 이메일 충돌 검사 → 신규 생성.
      * 호출자(googleLogin/kakaoLogin/lineLogin)의 트랜잭션 안에서 동작한다.
      */
-    private AuthResponse socialLogin(String provider, String socialId, String email, String name) {
+    private AuthResponse socialLogin(String provider, String socialId, String email, String nickname) {
         var existing = userRepository.findByAuthProviderAndSocialId(provider, socialId);
         if (existing.isPresent()) {
             return buildAuthResponse(existing.get());
@@ -174,37 +169,22 @@ public class AuthService {
         if (email != null) {
             var byEmail = userRepository.findByEmail(email);
             if (byEmail.isPresent()) {
-                String other = byEmail.get().getAuthProvider();
-                throw new IllegalArgumentException(
-                    "EMAIL_ALREADY_USED_BY_" + other);
+                throw new IllegalArgumentException("EMAIL_ALREADY_USED_BY_" + byEmail.get().getAuthProvider());
             }
         }
 
-        String base = (name != null && !name.isBlank()) ? sanitizeNickname(name) : "user";
-        String candidate = base;
-        int suffix = 1;
-        while (userRepository.existsByNickname(candidate)) {
-            candidate = base + suffix++;
-        }
         String resolvedEmail = email != null
             ? email
             : socialId + "@" + provider.toLowerCase() + ".qring.local";
+
         User created = userRepository.save(User.builder()
             .email(resolvedEmail)
-            .nickname(candidate)
+            .nickname(nickname)
             .authProvider(provider)
             .socialId(socialId)
             .emailVerified(true)
             .build());
         return buildAuthResponse(created);
-    }
-
-    /** 닉네임 후보 정규화 (허용 문자 외 제거 + 길이 보정). */
-    private String sanitizeNickname(String raw) {
-        String s = raw.replaceAll("[^a-zA-Z0-9가-힣_]", "");
-        if (s.length() < 2) s = "user" + s;
-        if (s.length() > 16) s = s.substring(0, 16);
-        return s;
     }
 
     /** 리프레시 토큰 검증 후 동일 사용자에 대해 새 토큰 페어 발급. */
