@@ -13,10 +13,9 @@ public class UserDto {
     private Long userId;
     private String email;
     private String nickname;
-    private String storyNickname;
     private boolean emailVerified;
     private String authProvider;
-    private LocalDateTime createdAt;
+    private LocalDateTime createAt;
     private String language;
     private Integer levelCode;
 
@@ -26,7 +25,6 @@ public class UserDto {
             user.getUserId(),
             user.getEmail(),
             user.getNickname(),
-            user.getStoryNickname(),
             Boolean.TRUE.equals(user.getEmailVerified()),
             user.getAuthProvider(),
             user.getCreateAt(),

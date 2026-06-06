@@ -10,9 +10,8 @@ public interface ScriptRepository extends JpaRepository<Script, Long> {
 
     @Query("""
         SELECT s FROM Script s
-        JOIN s.chapter c
-        WHERE c.content.contentId = :contentId
-        ORDER BY c.chapterNum ASC, s.sequenceNum ASC
+        WHERE s.content.contentId = :contentId
+        ORDER BY s.sequenceNum ASC
     """)
     List<Script> findAllByContentId(@Param("contentId") Long contentId);
 }

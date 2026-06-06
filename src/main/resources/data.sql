@@ -20,7 +20,7 @@ INSERT IGNORE INTO content_category (category_id, category_name, display_order) 
   (2, '스토리', 2);
 
 -- =============================================
--- 3. content, chapter, script, quiz_detail
+-- 3. content,  script, quiz_detail
 -- =============================================
 -- ALTER TABLE quiz_detail ADD COLUMN IF NOT EXISTS question TEXT;
 -- ALTER TABLE quiz_detail ADD COLUMN IF NOT EXISTS options JSON;
@@ -28,13 +28,12 @@ INSERT IGNORE INTO content_category (category_id, category_name, display_order) 
 -- ALTER TABLE quiz_detail ADD COLUMN IF NOT EXISTS acceptable_answers JSON;
 
 -- ----- [짝사랑] 도서관 좌석번호 64번 -----
-INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (1, '도서관 좌석번호 64번', 1, 2, 1, 'ACTIVE', '/images/짝사랑_썸네일.png');
+INSERT IGNORE INTO content (content_id, title, category_id, status, thumbnail_url) VALUES
+  (1, '도서관 좌석번호 64번', 1,  'ACTIVE', '/images/짝사랑_썸네일.png');
 
-INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
-  (1, 1, '도서관 좌석번호 64번', 0, 1);
 
-INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, chapter_id, option_id) VALUES
+
+INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, content_id, option_id) VALUES
   (1, '나 대학교 다닐 때 시험기간마다 도서관 3층 64번 자리에만 앉았음.', 1, b'0', NULL, 1, NULL),
   (2, '창가 자리라서 햇빛도 잘 들고 에어컨 바람도 안 와서 딱 좋았거든.', 2, b'0', NULL, 1, NULL),
   (3, '근데 어느 날부터 그 자리에 항상 먼저 와있는 애가 있는 거임.', 3, b'0', NULL, 1, NULL),
@@ -135,13 +134,12 @@ I couldn''t ______ ______ the courage to say hello.
 (뜻: ~할 용기를 내다)', '[]', 3, '["work up", "muster up", "build up", "gather up", "pluck up"]');
 
 -- ----- [드라마] 3번 관람석 -----
-INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (2, '3번 관람석', 2, 2, 1, 'ACTIVE', '/images/드라마_썸네일.png');
+INSERT IGNORE INTO content (content_id, title, category_id,  status, thumbnail_url) VALUES
+  (2, '3번 관람석', 2, 'ACTIVE', '/images/드라마_썸네일.png');
 
-INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
-  (2, 1, '3번 관람석', 0, 2);
 
-INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, chapter_id, option_id) VALUES
+
+INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, content_id, option_id) VALUES
   (58, '연우는 동네 서점에서 일했다.', 1, b'0', NULL, 2, NULL),
   (59, '작은 서점이라 손님이 많지 않았다.', 2, b'0', NULL, 2, NULL),
   (60, '그런데 한 명만 매일 왔다.', 3, b'0', NULL, 2, NULL),
@@ -243,13 +241,12 @@ He looked ______ at seat number 3 and left without saying anything.
 (뜻: 관심을 가지고 자세히 보다)', '[]', 3, '["intently", "closely", "carefully", "thoughtfully", "attentively"]');
 
 -- ----- [스릴러] 끊어진 전화선 -----
-INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (3, '끊어진 전화선', 3, 2, 1, 'ACTIVE', '/images/스릴러_썸네일.png');
+INSERT IGNORE INTO content (content_id, title, category_id, status, thumbnail_url) VALUES
+  (3, '끊어진 전화선', 3, 'ACTIVE', '/images/스릴러_썸네일.png');
 
-INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
-  (3, 1, '끊어진 전화선', 0, 3);
 
-INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, chapter_id, option_id) VALUES
+
+INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, content_id, option_id) VALUES
   (119, '민혜는 콜센터에서 일한다.', 1, b'0', NULL, 3, NULL),
   (120, '야간 근무를 맡은 지 3개월째.', 2, b'0', NULL, 3, NULL),
   (121, '새벽 시간대라 전화가 거의 안 온다.', 3, b'0', NULL, 3, NULL),
@@ -370,13 +367,12 @@ Her hands wouldn''t ______ her.
   (54, 'Her heart began to race and her breathing became shallow.', '''heart began to race''는 심장이 빠르게 뛰기 시작했다는 뜻이고, ''breathing became shallow''는 숨이 가빠졌다는 의미야. 공포나 긴장 상황에서 자주 쓰이는 표현이야.', 'contextual', 3, 207, '민혜가 공포를 느끼며 심장이 빠르게 뛰고 숨이 가빠지는 상황을 영어로 가장 적절하게 표현한 것은?', '["Her heart began to race and her breathing became shallow.", "Her heart was warming up and she felt relaxed.", "Her heart stopped beating and she held her breath.", "Her heart was touched and she sighed deeply."]', 3, '["Her heart began to race and her breathing became shallow."]');
 
 -- ----- [추리물] 빨간 구두 -----
-INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (4, '빨간 구두', 4, 2, 1, 'ACTIVE', '/images/추리물_썸네일.png');
+INSERT IGNORE INTO content (content_id, title, category_id, status, thumbnail_url) VALUES
+  (4, '빨간 구두', 4,'ACTIVE', '/images/추리물_썸네일.png');
 
-INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
-  (4, 1, '빨간 구두', 0, 4);
 
-INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, chapter_id, option_id) VALUES
+
+INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, content_id, option_id) VALUES
   (208, '학교 청소부 박미란은 새벽 6시에 출근했다.', 1, b'0', NULL, 4, NULL),
   (209, '1층 복도를 걸어가다가 발견했다.', 2, b'0', NULL, 4, NULL),
   (210, '빨간 구두 한 짝.', 3, b'0', NULL, 4, NULL),
@@ -464,13 +460,12 @@ She came to ______ her final farewell.
 (뜻: 작별 인사를 하다)', '[]', 3, '["bid", "say", "give", "make"]');
 
 -- ----- [특이한연애썰] 남자친구가 제 꿈을 예측해요 -----
-INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (5, '남자친구가 제 꿈을 예측해요', 5, 2, 1, 'ACTIVE', '/images/특이한연애썰_썸네일.png');
+INSERT IGNORE INTO content (content_id, title, category_id, status, thumbnail_url) VALUES
+  (5, '남자친구가 제 꿈을 예측해요', 5, 'ACTIVE', '/images/특이한연애썰_썸네일.png');
 
-INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
-  (5, 1, '남자친구가 제 꿈을 예측해요', 0, 5);
 
-INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, chapter_id, option_id) VALUES
+
+INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, content_id, option_id) VALUES
   (264, '저는 23살 여자고요, 남자친구랑 사귄 지 6개월 됐어요.', 1, b'0', NULL, 5, NULL),
   (265, '남자친구가 제 꿈을 미리 알아요.', 2, b'0', NULL, 5, NULL),
   (266, '처음 설명할게요. 남자친구는 예술대학에서 심리학을 복수전공하는 애예요.', 3, b'0', NULL, 5, NULL),
@@ -549,13 +544,12 @@ I ________ him about it.
 (뜻: 문제를 제기하며 따지다, 맞서다)', '[]', 3, '["confronted", "challenged", "called out"]');
 
 -- ----- [연애갈등] 수학 과외 선생님과 내 여자친구 -----
-INSERT IGNORE INTO content (content_id, title, category_id, level_code, total_chapters, status, thumbnail_url) VALUES
-  (6, '수학 과외 선생님과 내 여자친구', 6, 2, 1, 'ACTIVE', '/images/연애갈등_썸네일.png');
+INSERT IGNORE INTO content (content_id, title, category_id, status, thumbnail_url) VALUES
+  (6, '수학 과외 선생님과 내 여자친구', 6, 'ACTIVE', '/images/연애갈등_썸네일.png');
 
-INSERT IGNORE INTO chapter (chapter_id, chapter_num, chapter_title, required_points, content_id) VALUES
-  (6, 1, '수학 과외 선생님과 내 여자친구', 0, 6);
 
-INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, chapter_id, option_id) VALUES
+
+INSERT IGNORE INTO script (script_id, script_content, sequence_num, has_options, character_name, content_id, option_id) VALUES
   (311, '고3 여자친구랑 8개월 사귀고 있음.', 1, b'0', NULL, 6, NULL),
   (312, '내가 대학교 1학년이고 걔가 고등학교 3학년인데 동네 선후배 사이였음.', 2, b'0', NULL, 6, NULL),
   (313, '원래 공부 잘하는 애가 아니라서 부모님이 과외 선생님을 붙여줬다더라.', 3, b'0', NULL, 6, NULL),
