@@ -15,14 +15,17 @@ public interface ContentRepository extends JpaRepository<Content, Long> {
             c.thumbnailUrl,
             c.title,
             c.contentId,
-            COUNT(DISTINCT q.quizId),
+            COUNT(DISTINCT qc.quizContentId),
             CASE WHEN COUNT(up.progressId) > 0 THEN true ELSE false END,
             c.status
         )
         FROM Content c
         LEFT JOIN QuizDetail q ON q.content.contentId = c.contentId AND q.difficulty = 1
+        LEFT JOIN QuizContent qc ON qc.quizDetail.quizId = q.quizId AND qc.langCode = :language
         LEFT JOIN Userprogress up ON up.content.contentId = c.contentId AND up.user.userId = :userId
         GROUP BY c.contentId, c.category.categoryName, c.thumbnailUrl, c.title, c.status
     """)
-    List<ContentListResponseDto> findContentListByUserId(@Param("userId") Long userId);
+    List<ContentListResponseDto> findContentListByUserId(
+            @Param("userId") Long userId,
+            @Param("language") String language);
 }

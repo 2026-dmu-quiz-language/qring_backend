@@ -38,25 +38,6 @@ public class QuizDetail {
     @Column(name = "quiz_type", length = 200)
     private String quizType;
 
-    @Column(name = "question", columnDefinition = "TEXT")
-    private String question;
-
-    @Column(name = "options", columnDefinition = "JSON")
-    private String options;
-
-    @Column(name = "correct_answer", columnDefinition = "TEXT")
-    private String correctAnswer;
-
-    @Column(columnDefinition = "TEXT")
-    private String explanation;
-
     @Column(name = "difficulty")
     private Integer difficulty;
-
-    @Column(name = "acceptable_answers", columnDefinition = "JSON")
-    private String acceptableAnswers;
-
-    // TODO: hint 컬럼 DB에 추가 후 아래 주석 해제
-    @Column(name = "hint", columnDefinition = "TEXT")
-    private String hint;
 }
