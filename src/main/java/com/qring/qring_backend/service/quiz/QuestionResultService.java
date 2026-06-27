@@ -40,6 +40,8 @@ public class QuestionResultService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
 
+        String language = user.getLanguage();
+
         int totalScore = 0;
         int correctCount = 0;
         Content content = null;
@@ -81,6 +83,7 @@ public class QuestionResultService {
                     .attemptCount(result.getAttemptCount())
                     .hintUsed(result.isHintUsed())
                     .score(score)
+                    .langCode(language)
                     .build());
 
             // user_study_log 저장
@@ -89,6 +92,7 @@ public class QuestionResultService {
             studyLog.setQuiz(quizDetail);
             studyLog.setUserResponse(result.getLastAnswer());
             studyLog.setIsCorrect(result.isCorrect());
+            studyLog.setLangCode(language);
             userStudyLogRepository.save(studyLog);
         }
 

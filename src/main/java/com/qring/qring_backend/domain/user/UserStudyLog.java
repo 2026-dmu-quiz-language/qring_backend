@@ -32,6 +32,9 @@ public class UserStudyLog {
     @Column(name = "is_correct")
     private Boolean isCorrect;
 
+    @Column(name = "lang_code", length = 5)
+    private String langCode;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 }

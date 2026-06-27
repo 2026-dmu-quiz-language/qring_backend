@@ -54,12 +54,15 @@ public class QuizResult {
     @Column(nullable = false)
     private int score;
 
+    @Column(name = "lang_code", length = 5)
+    private String langCode;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    public QuizResult(User user, Long contentId, Long scriptId, int difficulty, int attemptCount, boolean hintUsed, int score) {
+    public QuizResult(User user, Long contentId, Long scriptId, int difficulty, int attemptCount, boolean hintUsed, int score, String langCode) {
         this.user = user;
         this.contentId = contentId;
         this.scriptId = scriptId;
@@ -67,5 +70,6 @@ public class QuizResult {
         this.attemptCount = attemptCount;
         this.hintUsed = hintUsed;
         this.score = score;
+        this.langCode = langCode;
     }
 }
