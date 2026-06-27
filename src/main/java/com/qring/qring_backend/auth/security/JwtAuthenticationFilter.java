@@ -24,9 +24,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
+        // Authorization 헤더에서 "Bearer " 접두사를 떼고 토큰만 추출
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
+            // 서명/만료 검증에 통과하면 토큰에서 userId를 꺼내 인증 정보로 등록
             if (tokenProvider.validateToken(token)) {
                 Long userId = tokenProvider.getUserIdFromToken(token);
                 UsernamePasswordAuthenticationToken auth =
@@ -34,6 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }
+        // 다음 필터로 요청 전달 (토큰이 없거나 무효면 인증 없이 통과 후 뒤에서 차단)
         chain.doFilter(request, response);
     }
 }

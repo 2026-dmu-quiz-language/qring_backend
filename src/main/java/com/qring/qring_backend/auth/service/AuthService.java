@@ -35,10 +35,12 @@ public class AuthService {
      */
     @Transactional
     public SignUpResponse signUp(AuthRequest.SignUp request) {
+        // 일회용(임시) 이메일은 가입 차단
         if (disposableEmailService.isDisposable(request.getEmail())) {
             throw new IllegalArgumentException("DISPOSABLE_EMAIL_NOT_ALLOWED");
         }
 
+        // 같은 이메일이 있으면: 인증 완료 계정은 거부, 미인증 계정은 삭제 후 재가입 허용
         userRepository.findByEmail(request.getEmail()).ifPresent(existing -> {
             if (Boolean.TRUE.equals(existing.getEmailVerified())) {
                 throw new IllegalArgumentException("EMAIL_ALREADY_EXISTS");
@@ -47,10 +49,12 @@ public class AuthService {
             userRepository.flush();
         });
 
+        // 닉네임 중복 검사
         if (userRepository.existsByNickname(request.getNickname())) {
             throw new IllegalArgumentException("NICKNAME_ALREADY_EXISTS");
         }
 
+        // 비밀번호는 암호화(BCrypt)해서 미인증 상태로 저장
         User user = User.builder()
             .email(request.getEmail())
             .password(passwordEncoder.encode(request.getPassword()))
@@ -63,6 +67,7 @@ public class AuthService {
 
         userRepository.save(user);
 
+        // 인증 코드 이메일 발송 (실패해도 가입 정보는 유지하고 재발송 안내)
         boolean emailSent = false;
         String message;
         try {
@@ -109,19 +114,24 @@ public class AuthService {
 
     /** 이메일·비밀번호 검증과 이메일 인증 완료 여부 확인 후 토큰 페어 발급. */
     public LoginResponse login(AuthRequest.Login request) {
+        // 이메일로 사용자 조회 (없으면 자격 증명 오류로 통일)
         User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new IllegalArgumentException("INVALID_CREDENTIALS"));
 
+        // 소셜 가입 계정은 비밀번호 로그인 불가
         if (!"LOCAL".equals(user.getAuthProvider())) {
             throw new IllegalArgumentException("SOCIAL_LOGIN_ACCOUNT");
         }
+        // 비밀번호 일치 검증 (암호화된 값과 비교)
         if (user.getPassword() == null ||
             !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("INVALID_CREDENTIALS");
         }
+        // 이메일 인증을 마친 계정만 로그인 허용
         if (!Boolean.TRUE.equals(user.getEmailVerified())) {
             throw new IllegalArgumentException("EMAIL_NOT_VERIFIED");
         }
+        // 검증 통과 시 액세스/리프레시 토큰 발급
         String at = tokenProvider.generateAccessToken(user.getUserId());
         String rt = tokenProvider.generateRefreshToken(user.getUserId());
         return new LoginResponse(at, rt);

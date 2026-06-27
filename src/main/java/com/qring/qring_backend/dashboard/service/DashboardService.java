@@ -69,10 +69,12 @@ public class DashboardService {
 
     /** 이번 주 성취도: 월~금 학습 시 +10%, 토~일 +25%. 매주 월요일 자동 초기화. */
     private int computeWeeklyProgressRate(Long userId) {
+        // 이번 주 월요일 기준으로 한 주(월~일) 학습한 날짜들을 조회
         LocalDate monday = LocalDate.now().with(DayOfWeek.MONDAY);
         Set<LocalDate> studied = new HashSet<>(
             userStudyLogRepository.findStudyDatesBetween(userId, monday, monday.plusDays(6))
         );
+        // 학습한 날만 가중치 합산: 주말은 +25%, 평일은 +10%
         int rate = 0;
         for (int i = 0; i < 7; i++) {
             LocalDate day = monday.plusDays(i);
@@ -99,13 +101,16 @@ public class DashboardService {
 
     /** 가장 최근 학습일이 오늘 또는 어제일 때만 연속일 카운트. 그 이전에 끊겼으면 0. */
     private long computeConsecutiveDays(Long userId) {
+        // 학습한 날짜를 최신순으로 조회 (학습 기록이 없으면 0일)
         List<LocalDate> dates = userStudyLogRepository.findDistinctStudyDatesDesc(userId);
         if (dates.isEmpty()) return 0;
 
+        // 가장 최근 학습일이 오늘도 어제도 아니면 연속 기록이 이미 끊긴 것
         LocalDate today = LocalDate.now();
         LocalDate latest = dates.get(0);
         if (!latest.equals(today) && !latest.equals(today.minusDays(1))) return 0;
 
+        // 하루씩 이어지는 동안만 카운트, 하루라도 비면 중단
         long count = 1;
         for (int i = 1; i < dates.size(); i++) {
             if (dates.get(i).equals(dates.get(i - 1).minusDays(1))) {
