@@ -578,276 +578,6 @@ VALUES (
         NULL
     );
 
-INSERT IGNORE INTO
-    quiz_detail (
-        quiz_id,
-        quiz_type,
-        content_id,
-        script_id,
-        difficulty
-    )
-VALUES (1, 'multiple_choice', 1, 9, 1),
-    (2, 'fill_in_blank', 1, 9, 2),
-    (3, 'subjective', 1, 9, 3),
-    (
-        4,
-        'multiple_choice',
-        1,
-        18,
-        1
-    ),
-    (5, 'subjective', 1, 18, 2),
-    (6, 'subjective', 1, 18, 3),
-    (
-        7,
-        'multiple_choice',
-        1,
-        27,
-        1
-    ),
-    (8, 'fill_in_blank', 1, 27, 2),
-    (9, 'subjective', 1, 27, 3),
-    (
-        10,
-        'multiple_choice',
-        1,
-        36,
-        1
-    ),
-    (11, 'fill_in_blank', 1, 36, 2),
-    (12, 'subjective', 1, 36, 3),
-    (
-        13,
-        'multiple_choice',
-        1,
-        45,
-        1
-    ),
-    (14, 'fill_in_blank', 1, 45, 2),
-    (15, 'subjective', 1, 45, 3),
-    (
-        16,
-        'multiple_choice',
-        1,
-        57,
-        1
-    ),
-    (17, 'fill_in_blank', 1, 57, 2),
-    (18, 'subjective', 1, 57, 3);
-
-INSERT IGNORE INTO
-    quiz_content (
-        quiz_id,
-        lang_code,
-        question,
-        options,
-        correct_answer,
-        explanation,
-        hint,
-        acceptable_answers
-    )
-VALUES (
-        1,
-        'EN',
-        '다음 중 ''짜증나다, 화나다''의 영어 표현으로 알맞은 것은?',
-        '["annoyed", "amused", "amazed", "ashamed"]',
-        'annoyed',
-        '''annoyed''는 짜증나거나 화가 날 때 쓰는 표현이야. 자기 자리 옆에 누가 앉아서 기분이 나쁜 상황이지.',
-        'annoy(짜증나게 하다)에 -ed, 모기 앵앵거릴 때 느끼는 그 감정 ?',
-        '["annoyed"]'
-    ),
-    (
-        2,
-        'EN',
-        'During exam period, I would always ______ the same seat in the library.',
-        '["occupy", "reserve", "claim", "book"]',
-        'occupy',
-        '''occupy a seat''는 자리를 차지하다/앉다라는 뜻으로, 습관적으로 같은 자리에 앉는 상황에 자연스러운 표현이야.',
-        's로 시작하는 5글자, ''미끄러지다''는 뜻도 있어 ??',
-        '["occupy"]'
-    ),
-    (
-        3,
-        'EN',
-        '''시험기간마다''
-
-I always sat in the same spot ______ ______ season.
-(뜻: 시험 기간 동안)',
-        '[]',
-        'during exam',
-        '''during exam season''은 시험기간 동안이라는 뜻이야. throughout나 in도 같은 의미로 쓸 수 있어.',
-        'a_____ (어색하고 불편한 상황을 표현, 7글자)',
-        '["during exam", "during examination", "throughout exam", "throughout examination", "in exam", "in examination"]'
-    ),
-    (
-        4,
-        'EN',
-        '다음 중 ''호기심''을 뜻하는 영어 단어는?',
-        '["curiosity", "courage", "concern", "confusion"]',
-        'curiosity',
-        '''curiosity''는 뭔가 궁금해하고 알고 싶어하는 호기심을 뜻해. 쪽지 때문에 그 사람에 대해 궁금해지기 시작한 거야.',
-        'Curiosity killed the cat(호기심이 고양이를 죽였다) ? 그 단어!',
-        '["curiosity"]'
-    ),
-    (
-        5,
-        'EN',
-        '''호기심'' = c______
-
-My ______ was piqued by the mysterious notes.
-(뜻: 신비한 쪽지들 때문에 호기심이 생겼다)',
-        '[]',
-        'curiosity',
-        '''curiosity가 piqued되다''는 호기심이 자극받다, 생기다라는 뜻의 자연스러운 영어 표현이야.',
-        'c로 시작하는 9글자 단어, 고양이를 죽인다는 유명한 속담의 주인공 ?',
-        '["curiosity", "Curiosity"]'
-    ),
-    (
-        6,
-        'EN',
-        '''제대로 본 적이 없다는 걸 깨달았다''
-
-I realized that I had never ______ a proper ______ at her face.
-(뜻: ~을 제대로 보다)',
-        '[]',
-        'gotten look',
-        '''get a proper look at''은 어떤 것을 제대로 자세히 보다라는 뜻이야. take a look at도 비슷하게 쓸 수 있어.',
-        'on p_______ (2단어, ''목적''이란 뜻의 단어)',
-        '["gotten look", "had look", "taken look", "got look"]'
-    ),
-    (
-        7,
-        'EN',
-        '다음 중 ''심장이 빨리 뛰다, 두근거리다''를 뜻하는 영어 표현은?',
-        '["pound", "pause", "push", "point"]',
-        'pound',
-        '''pound''는 심장이 두근거릴 때 쓰는 표현이야. ''My heart was pounding''처럼 사용해.',
-        'encourage(격려하다)에서 en을 빼 보면 ?',
-        '["pound"]'
-    ),
-    (
-        8,
-        'EN',
-        'At that moment, my heart started to ______ with excitement.',
-        '["flutter", "bounce", "shake", "tremble"]',
-        'flutter',
-        '''heart flutter''는 심장이 두근거린다는 뜻으로, 설렘이나 흥분 상태를 자연스럽게 표현하는 말이야.',
-        'e로 시작, ''서로 바꾸다''라는 뜻이야',
-        '["flutter"]'
-    ),
-    (
-        9,
-        'EN',
-        '''용기를 내서''
-
-I ______ ______ the courage and wrote ''Thank you'' in small letters below the note.
-(뜻: ~할 용기를 모으다, 용기를 내다)',
-        '[]',
-        'worked up',
-        '''work up the courage''는 용기를 내다라는 뜻이야. muster up, pluck up, gather up도 같은 의미로 쓸 수 있어.',
-        'e_______ (8글자, ''교환하다''라는 뜻)',
-        '["worked up", "mustered up", "gathered up", "plucked up", "summoned up"]'
-    ),
-    (
-        10,
-        'EN',
-        '다음 중 ''비어있는, 빈''을 뜻하는 영어 표현은?',
-        '["empty", "early", "eager", "equal"]',
-        'empty',
-        '''empty''는 자리나 공간이 비어있다는 뜻이야. 65번 자리에 아무도 없었던 상황이지.',
-        '''빈''이라는 뜻도 있어!',
-        '["empty"]'
-    ),
-    (
-        11,
-        'EN',
-        'When the new semester started, I went straight to the library but seat 65 was ______.',
-        '["vacant", "broken", "moved", "changed"]',
-        'vacant',
-        '''vacant''는 자리가 비어있다는 뜻으로, 빈 좌석을 표현할 때 자주 쓰이는 단어야.',
-        'e로 시작, ''비다''라는 뜻의 형용사에서 나온 감정 표현',
-        '["vacant"]'
-    ),
-    (
-        12,
-        'EN',
-        '''계속 다녀보다''를 영어로 표현하면?
-
-I ______ ______ going to the library thinking maybe her schedule had changed.
-(뜻: 계속 ~하다, 지속하다)',
-        '[]',
-        'kept on',
-        '''kept on''은 어떤 행동을 계속 반복한다는 뜻이야. continue나 carry on도 같은 의미로 쓸 수 있어.',
-        'h____ (6글자, ''쑥 들어간'' 뜻의 형용사)',
-        '["kept on", "continued", "carried on", "went on"]'
-    ),
-    (
-        13,
-        'EN',
-        '다음 중 ''허무한, 실망스러운''의 영어 표현으로 알맞은 것은?',
-        '["disappointed", "determined", "delighted", "developed"]',
-        'disappointed',
-        '''disappointed''는 기대했던 일이 이루어지지 않아서 허무하고 실망스러울 때 쓰는 표현이야.',
-        'occasion(특별한 날)의 부사형 ? 항상은 아니고 가끔만 일어난다는 뉘앙스',
-        '["disappointed"]'
-    ),
-    (
-        14,
-        'EN',
-        'I''m going abroad as an ______ student and will be back in a year.',
-        '["exchange", "foreign", "overseas", "international"]',
-        'exchange',
-        '''exchange student''는 교환학생이라는 뜻이야. 다른 나라 학교와 학생을 교환하는 프로그램을 말해.',
-        'o로 시작하는 부사, ''특별한 occasion''할 때 그 단어의 부사 버전 ?',
-        '["exchange"]'
-    ),
-    (
-        15,
-        'EN',
-        '''허무했다''는 감정을 영어로 표현하면?
-
-I felt so ______.
-(뜻: 공허하고 실망스러운 감정)',
-        '[]',
-        'empty',
-        '''empty''는 허무하고 공허한 감정을 표현할 때 쓰는 자연스러운 영어야. hollow, deflated도 비슷한 뉘앙스로 사용돼.',
-        'n__ a__ t___ (이제와 그때, 시간 표현)',
-        '["empty", "hollow", "deflated", "let down", "disappointed"]'
-    ),
-    (
-        16,
-        'EN',
-        '다음 중 ''용기, 담력''을 뜻하는 영어 단어는?',
-        '["courage", "culture", "curious", "corner"]',
-        'courage',
-        '''courage''는 용기, 담력을 뜻해. 무언가를 하고 싶지만 용기가 나지 않을 때 쓰는 단어야.',
-        'once in a while과 같은 뜻, ''occasion(기회)''에서 나온 단어',
-        '["courage"]'
-    ),
-    (
-        17,
-        'EN',
-        'I wanted to say hi all year, but I didn''t have the ______ to do it.',
-        '["courage", "strength", "power", "energy"]',
-        'courage',
-        '''have the courage to do''는 ~할 용기가 있다는 뜻의 자연스러운 영어 표현이야.',
-        's로 시작하는 동사, 긁는다는 뜻도 있어 ??',
-        '["courage"]'
-    ),
-    (
-        18,
-        'EN',
-        '''용기가 안 났다''
-
-I couldn''t ______ ______ the courage to say hello.
-(뜻: ~할 용기를 내다)',
-        '[]',
-        'work up',
-        '''work up the courage''는 용기를 내다라는 뜻이야. muster up, pluck up도 같은 의미로 쓸 수 있어.',
-        '줄다리기 = tug of war, ''잡아당기다'' + at ?',
-        '["work up", "muster up", "build up", "gather up", "pluck up"]'
-    );
-
 -- ----- [드라마] 3번 관람석 -----
 INSERT IGNORE INTO
     content (
@@ -1423,291 +1153,6 @@ VALUES (
         NULL,
         2,
         NULL
-    );
-
-INSERT IGNORE INTO
-    quiz_detail (
-        quiz_id,
-        quiz_type,
-        content_id,
-        script_id,
-        difficulty
-    )
-VALUES (
-        19,
-        'multiple_choice',
-        2,
-        67,
-        1
-    ),
-    (20, 'fill_in_blank', 2, 67, 2),
-    (21, 'subjective', 2, 67, 3),
-    (
-        22,
-        'multiple_choice',
-        2,
-        77,
-        1
-    ),
-    (23, 'fill_in_blank', 2, 77, 2),
-    (24, 'subjective', 2, 77, 3),
-    (
-        25,
-        'multiple_choice',
-        2,
-        87,
-        1
-    ),
-    (26, 'fill_in_blank', 2, 87, 2),
-    (27, 'subjective', 2, 87, 3),
-    (
-        28,
-        'multiple_choice',
-        2,
-        97,
-        1
-    ),
-    (29, 'fill_in_blank', 2, 97, 2),
-    (30, 'subjective', 2, 97, 3),
-    (
-        31,
-        'multiple_choice',
-        2,
-        107,
-        1
-    ),
-    (
-        32,
-        'fill_in_blank',
-        2,
-        107,
-        2
-    ),
-    (33, 'subjective', 2, 107, 3),
-    (
-        34,
-        'multiple_choice',
-        2,
-        118,
-        1
-    ),
-    (
-        35,
-        'fill_in_blank',
-        2,
-        118,
-        2
-    ),
-    (36, 'subjective', 2, 118, 3);
-
-INSERT IGNORE INTO
-    quiz_content (
-        quiz_id,
-        lang_code,
-        question,
-        options,
-        correct_answer,
-        explanation,
-        hint,
-        acceptable_answers
-    )
-VALUES (
-        19,
-        'EN',
-        '다음 중 ''가끔, 때때로''를 뜻하는 영어 표현은?',
-        '["occasionally", "obviously", "officially", "originally"]',
-        'occasionally',
-        '''occasionally''는 가끔씩, 때때로라는 뜻이야. 학생이 가끔 머리를 쥐어뜯는 상황을 표현할 때 쓸 수 있어.',
-        'e로 시작하는 5글자, 반대말은 full',
-        '["occasionally"]'
-    ),
-    (
-        20,
-        'EN',
-        'He ______ down some notes with his pencil while working on math problems.',
-        '["scribbled", "wrote", "marked", "drew"]',
-        'scribbled',
-        '''scribble''은 끄적거리다, 갈겨쓰다라는 뜻으로 연필로 대충 쓰는 모습을 자연스럽게 표현해.',
-        '코감기 걸렸을 때 내는 소리 ?',
-        '["scribbled"]'
-    ),
-    (
-        21,
-        'EN',
-        '''머리를 쥐어뜯다'' (좌절하거나 고민할 때 하는 행동)
-
-Sometimes he would ______ his hair in frustration.
-(뜻: 머리카락을 잡아당기다)',
-        '[]',
-        'pull',
-        '''pull one''s hair''는 스트레스나 좌절감으로 머리카락을 잡아당기는 행동을 표현해. tug나 grab도 같은 의미로 쓸 수 있어.',
-        '''at a glance(한눈에)'' 할 때 그 단어 + over ?',
-        '["pull", "tug", "grab", "clutch", "pull at", "tug at"]'
-    ),
-    (
-        22,
-        'EN',
-        '다음 중 ''조용히 코를 훌쩍거리며 우는 소리''를 뜻하는 영어 표현은?',
-        '["sniffling", "shouting", "smiling", "sleeping"]',
-        'sniffling',
-        '''sniffling''은 울 때 코를 훌쩍거리는 소리를 말해. 조용히 우는 상황에 딱 맞는 표현이야.',
-        '풍선처럼 부풀어 오른 상태, swell',
-        '["sniffling"]'
-    ),
-    (
-        23,
-        'EN',
-        'She was quietly ______ while looking at her textbook.',
-        '["sniffling", "whimpering", "sobbing", "weeping"]',
-        'sniffling',
-        '''sniffling''은 코를 훌쩍거리는 소리를 내며 조용히 우는 것을 표현할 때 써.',
-        's로 시작하는 7글자 단어, 벌에 쏘이면?',
-        '["sniffling"]'
-    ),
-    (
-        24,
-        'EN',
-        '''고개를 살짝 숙이며 인사하다''
-
-He would give a slight ______ of his head when coming in and leaving.
-(뜻: 고개를 끄덕이는 인사)',
-        '[]',
-        'nod',
-        '''nod''는 고개를 끄덕이는 인사를 뜻해. ''bow''나 ''dip''도 고개를 숙이는 인사로 쓸 수 있어.',
-        'c_______ d___ (의식을 잃다 + 아래로)',
-        '["nod", "bow", "dip"]'
-    ),
-    (
-        25,
-        'EN',
-        '다음 중 ''멍하니, 정신없이''를 뜻하는 영어 표현은?',
-        '["blankly", "briefly", "blindly", "bravely"]',
-        'blankly',
-        '''blankly''는 멍하니 정신없이 바라보는 상태를 말해. 학생이 창밖을 멍하니 보고 있는 상황이지.',
-        '항복할 때 손을 위로 올리는 모습을 떠올려봐',
-        '["blankly"]'
-    ),
-    (
-        26,
-        'EN',
-        'He was just ______ out the window blankly.',
-        '["staring", "looking", "watching", "gazing"]',
-        'staring',
-        '''stare''는 멍하니 또는 뚫어지게 바라본다는 의미로, ''stare out the window''는 창밖을 멍하니 바라본다는 뜻이야.',
-        't로 시작, ''집어넣다''라는 뜻. 셔츠를 바지에 넣을 때도 써',
-        '["staring"]'
-    ),
-    (
-        27,
-        'EN',
-        '''멍하니 바라보다''
-
-He was just ______ ______ out the window.
-(뜻: 정신없이 또는 빈 표정으로 바라보다)',
-        '[]',
-        'staring blankly',
-        '''staring blankly''는 정신이 나간 것처럼 멍하니 바라본다는 뜻이야. gazing blankly나 vacantly도 같은 의미로 쓸 수 있어.',
-        't_____ (6글자, 갇혀있다는 뜻)',
-        '["staring blankly", "gazing blankly", "looking blankly", "staring vacantly", "gazing vacantly"]'
-    ),
-    (
-        28,
-        'EN',
-        '다음 중 ''갑자기, 예상하지 못하게''를 뜻하는 영어 표현은?',
-        '["suddenly", "silently", "seriously", "secretly"]',
-        'suddenly',
-        '''suddenly''는 갑자기 예상하지 못한 일이 일어날 때 쓰는 표현이야.',
-        '''닫다''라는 단어와 연관된 부사',
-        '["suddenly"]'
-    ),
-    (
-        29,
-        'EN',
-        'He suddenly ______ and had to be rushed to the hospital.',
-        '["collapsed", "stumbled", "slipped", "dropped"]',
-        'collapsed',
-        '''collapse''는 갑자기 쓰러지다, 건강상 문제로 넘어지다는 뜻이야. 의료 응급상황에서 자주 쓰이는 표현이지.',
-        'c로 시작하는 ''주의깊게''라는 부사',
-        '["collapsed"]'
-    ),
-    (
-        30,
-        'EN',
-        '''뭐라고 말해야 할지 모르겠다''
-
-I didn''t know ______ ______ ______.
-(상황: 위로의 말을 어떻게 해야 할지 모를 때)',
-        '[]',
-        'what to say',
-        '''what to say''는 어떤 말을 해야 할지 모를 때 쓰는 자연스러운 표현이야. 위로가 필요한 상황에서 자주 쓰여.',
-        'i___ly (부사, intense의 부사형)',
-        '["what to say", "how to respond", "what to tell", "how to comfort", "what words", "what response"]'
-    ),
-    (
-        31,
-        'EN',
-        '다음 중 ''포기하다''의 영어 표현으로 알맞은 것은?',
-        '["give up", "give out", "give in", "give away"]',
-        'give up',
-        '''give up''은 포기하다라는 뜻이야. 아버지가 딸에게 수학이 어려워도 포기하지 말라고 하는 상황이지.',
-        'nerve(신경) + ous, 신경이 곤두설 때의 느낌',
-        '["give up"]'
-    ),
-    (
-        32,
-        'EN',
-        'Don''t give up even if math is difficult. I''ll always ______ you on.',
-        '["cheer", "push", "keep", "move"]',
-        'cheer',
-        '''cheer someone on''은 누군가를 응원하다라는 뜻의 구동사야. 아버지가 딸을 격려하는 상황에 딱 맞아.',
-        'p로 시작, ''허위의/가짜의''라는 뜻도 있어 ?',
-        '["cheer"]'
-    ),
-    (
-        33,
-        'EN',
-        '''포기하지 마''
-
-Don''t ______ ______ on math even if it''s difficult.
-(뜻: ~을 포기하다)',
-        '[]',
-        'give up',
-        '''give up on''은 ~을 포기하다라는 뜻이야. quit이나 abandon도 같은 의미로 쓸 수 있어.',
-        'p___ (5글자, 손바닥을 뜻하는 단어)',
-        '["give up", "quit", "abandon"]'
-    ),
-    (
-        34,
-        'EN',
-        '다음 중 ''깨닫다, 알아차리다''의 영어 표현으로 알맞은 것은?',
-        '["realize", "receive", "recover", "respond"]',
-        'realize',
-        '''realize''는 뭔가를 깨닫거나 알아차릴 때 쓰는 표현이야. 연우가 아버지의 진짜 의도를 깨달은 상황이지.',
-        '지진이 일어날 때도 사용해',
-        '["realize"]'
-    ),
-    (
-        35,
-        'EN',
-        'He looked at seat number 3 ______ and left without saying a word.',
-        '["intently", "briefly", "casually", "nervously"]',
-        'intently',
-        '''유심히 보다''는 ''look intently''로 표현해. 집중해서 자세히 본다는 뜻이야.',
-        '거위의 피부처럼 오돌토돌해진다고 해서 붙은 이름 ?',
-        '["intently"]'
-    ),
-    (
-        36,
-        'EN',
-        '''유심히 보다''
-
-He looked ______ at seat number 3 and left without saying anything.
-(뜻: 관심을 가지고 자세히 보다)',
-        '[]',
-        'intently',
-        '''look intently''는 집중해서 유심히 보는 걸 의미해. closely, carefully, thoughtfully도 같은 상황에서 쓸 수 있어.',
-        'r___ u_ (2단어, 달리다 + 위)',
-        '["intently", "closely", "carefully", "thoughtfully", "attentively"]'
     );
 
 -- ----- [스릴러] 끊어진 전화선 -----
@@ -2539,306 +1984,6 @@ VALUES (
         NULL
     );
 
-INSERT IGNORE INTO
-    quiz_detail (
-        quiz_id,
-        quiz_type,
-        content_id,
-        script_id,
-        difficulty
-    )
-VALUES (
-        37,
-        'multiple_choice',
-        3,
-        132,
-        1
-    ),
-    (
-        38,
-        'fill_in_blank',
-        3,
-        132,
-        2
-    ),
-    (39, 'subjective', 3, 132, 3),
-    (
-        40,
-        'multiple_choice',
-        3,
-        146,
-        1
-    ),
-    (
-        41,
-        'fill_in_blank',
-        3,
-        146,
-        2
-    ),
-    (42, 'subjective', 3, 146, 3),
-    (
-        43,
-        'multiple_choice',
-        3,
-        160,
-        1
-    ),
-    (
-        44,
-        'fill_in_blank',
-        3,
-        160,
-        2
-    ),
-    (45, 'contextual', 3, 160, 3),
-    (
-        46,
-        'multiple_choice',
-        3,
-        174,
-        1
-    ),
-    (
-        47,
-        'fill_in_blank',
-        3,
-        174,
-        2
-    ),
-    (48, 'contextual', 3, 174, 3),
-    (
-        49,
-        'multiple_choice',
-        3,
-        188,
-        1
-    ),
-    (
-        50,
-        'fill_in_blank',
-        3,
-        188,
-        2
-    ),
-    (51, 'subjective', 3, 188, 3),
-    (
-        52,
-        'multiple_choice',
-        3,
-        207,
-        1
-    ),
-    (
-        53,
-        'fill_in_blank',
-        3,
-        207,
-        2
-    ),
-    (54, 'contextual', 3, 207, 3);
-
-INSERT IGNORE INTO
-    quiz_content (
-        quiz_id,
-        lang_code,
-        question,
-        options,
-        correct_answer,
-        explanation,
-        hint,
-        acceptable_answers
-    )
-VALUES (
-        37,
-        'EN',
-        '다음 중 ''이상한, 기묘한''의 영어 표현으로 알맞은 것은?',
-        '["strange", "strong", "straight", "strict"]',
-        'strange',
-        '''strange''는 뭔가 이상하고 기묘할 때 쓰는 표현이야. 평소와 다른 이상한 전화가 온 상황이지.',
-        '''쇼크 받았다''할 때 그 shock의 과거분사 ?',
-        '["strange"]'
-    ),
-    (
-        38,
-        'EN',
-        'Most calls were ______ calls from drunk people or wrong numbers.',
-        '["prank", "fake", "joke", "trick"]',
-        'prank',
-        '''prank call''은 장난 전화라는 뜻의 고정 표현이야. fake call이나 joke call은 잘 안 써.',
-        'p로 시작, ''공황''이라는 단어와 친척 관계 ?',
-        '["prank"]'
-    ),
-    (
-        39,
-        'EN',
-        '''정확히 같은 시각에''
-
-Every night ______ ______ the same time.
-(뜻: 정확히, 꼭 맞아떨어지는)',
-        '[]',
-        'at exactly',
-        '''at exactly''는 정확히 그 시간에라는 뜻이야. at precisely, at sharp도 같은 의미로 쓸 수 있어.',
-        'f로 시작하는 7글자, flutter(파닥파닥)처럼 마음이 흔들려서 어쩔 줄 모르는 상태 ?',
-        '["at exactly", "at precisely", "at sharp", "exactly at", "precisely at"]'
-    ),
-    (
-        40,
-        'EN',
-        '다음 중 ''긴장한, 불안한''을 뜻하는 영어 단어는?',
-        '["nervous", "normal", "natural", "narrow"]',
-        'nervous',
-        '''nervous''는 긴장하거나 불안할 때 쓰는 표현이야. 손에 땀이 날 정도로 긴장한 상황을 나타내지.',
-        '''MT''랑 발음이 같아',
-        '["nervous"]'
-    ),
-    (
-        41,
-        'EN',
-        'Her hands were ______ as she picked up the phone.',
-        '["trembling", "shaking", "vibrating", "moving"]',
-        'trembling',
-        '''trembling''은 떨림을 나타내는 가장 자연스러운 표현이야. ''shaking''도 비슷하지만 ''trembling''이 두려움이나 긴장감을 더 잘 표현해.',
-        '겨울왕국 영어 제목의 과거형! ?',
-        '["trembling"]'
-    ),
-    (
-        42,
-        'EN',
-        '''소리가 섞여 있다''
-
-There were other sounds ______ ______ with the breathing.
-(뜻: ~와 함께 섞이다)',
-        '[]',
-        'mixed in',
-        '''mixed in with''는 다른 소리와 함께 섞여있다는 의미야. blended in, mingled in도 비슷한 뜻으로 쓸 수 있어.',
-        'w___''t o___ (거부하다, 복종하지 않다)',
-        '["mixed in", "blended in", "mingled in", "intertwined", "combined"]'
-    ),
-    (
-        43,
-        'EN',
-        '다음 중 ''떨리는, 진동하는''을 뜻하는 영어 표현은?',
-        '["trembling", "traveling", "troubling", "training"]',
-        'trembling',
-        '''trembling''은 무서워서 또는 불안해서 목소리나 몸이 떨리는 걸 표현할 때 써.',
-        '''반지, 고리''랑 같은 단어야',
-        '["trembling"]'
-    ),
-    (
-        44,
-        'EN',
-        'The mysterious voice made her ______ run down her spine.',
-        '["chills", "shivers", "goosebumps", "trembles"]',
-        'chills',
-        '''chills run down one''s spine''은 무서워서 소름이 돋는다는 뜻의 표현이야.',
-        'r으로 시작, 전화가 울릴 때 쓰는 동사',
-        '["chills"]'
-    ),
-    (
-        45,
-        'EN',
-        '이야기 맥락에서 ''등에 소름이 돋았다''를 영어로 가장 자연스럽게 표현한 것은?',
-        '["A chill ran down her spine.", "Her back was getting cold.", "She felt a breeze on her back.", "Her spine was hurting badly."]',
-        'A chill ran down her spine.',
-        '''a chill ran down one''s spine''은 무서움이나 충격으로 등골이 서늘해지는 걸 표현하는 관용구야.',
-        'r___ (4글자) - 종이나 벨이 소리낼 때 쓰는 동사',
-        '["A chill ran down her spine."]'
-    ),
-    (
-        46,
-        'EN',
-        '다음 중 ''당황한, 혼란스러운''을 뜻하는 영어 표현은?',
-        '["confused", "comfortable", "confident", "curious"]',
-        'confused',
-        '''confused''는 상황이 이해가 안 되거나 당황스러울 때 쓰는 표현이야.',
-        'l로 시작하는 동사, ''보다''의 의미',
-        '["confused"]'
-    ),
-    (
-        47,
-        'EN',
-        'Her voice kept ______ in my head all night.',
-        '["echoing", "speaking", "calling", "talking"]',
-        'echoing',
-        '''echo''는 소리가 계속 맴돌고 울린다는 뜻으로, 머릿속에서 계속 들리는 상황을 자연스럽게 표현해.',
-        'd로 시작, 해가 뜨기 직전의 그 시간대 ?',
-        '["echoing"]'
-    ),
-    (
-        48,
-        'EN',
-        '이야기 맥락에서 ''목소리가 계속 맴돌았다''를 영어로 가장 자연스럽게 표현한 것은?',
-        '["Her voice kept echoing in my mind.", "Her voice kept spinning around.", "Her voice kept turning in circles.", "Her voice kept walking around."]',
-        'Her voice kept echoing in my mind.',
-        '''echo in my mind''는 목소리나 말이 머릿속에서 계속 맴도는 걸 표현하는 자연스러운 영어야.',
-        'l___ a_____ (2단어, 돌아보면서 확인한다는 뜻)',
-        '["Her voice kept echoing in my mind."]'
-    ),
-    (
-        49,
-        'EN',
-        '다음 중 ''말을 듣지 않다, 통제되지 않다''의 영어 표현으로 알맞은 것은?',
-        '["obey", "disobey", "display", "destroy"]',
-        'disobey',
-        '''disobey''는 말을 듣지 않다, 따르지 않다는 뜻이야. 손이 자기 의지대로 움직이지 않는 상황을 표현할 때 쓸 수 있어.',
-        'e로 시작하는 5글자 단어',
-        '["disobey"]'
-    ),
-    (
-        50,
-        'EN',
-        'She tried to hang up, but her hands wouldn''t ______ her.',
-        '["obey", "follow", "listen", "hear"]',
-        'obey',
-        '''obey''는 손이 말을 듣지 않는다는 뜻으로, 몸이 의도대로 움직이지 않을 때 쓰는 표현이야.',
-        'r로 시작하는 6글자, 음악 앨범을 만들 때도 쓰는 단어 ?',
-        '["obey"]'
-    ),
-    (
-        51,
-        'EN',
-        '''손이 말을 듣지 않았다''
-
-Her hands wouldn''t ______ her.
-(뜻: ~의 말을 듣다, 통제하다)',
-        '[]',
-        'obey',
-        '''obey''는 명령이나 의지에 따라 움직이다라는 뜻이야. 몸이 마음대로 안 될 때 ''wouldn''t obey me''라고 표현해.',
-        'm_____ (6글자, 평균을 나타내는 수학 용어와 같은 단어)',
-        '["obey", "listen to", "respond to", "cooperate with"]'
-    ),
-    (
-        52,
-        'EN',
-        '다음 중 ''숨이 가빠지다, 숨이 차다''를 영어로 표현할 때 알맞은 것은?',
-        '["breathe heavily", "breathe clearly", "breathe slowly", "breathe quietly"]',
-        'breathe heavily',
-        '''breathe heavily''는 숨이 가빠지거나 거칠게 숨을 쉬는 걸 말해. 무서운 상황에서 심장이 빨리 뛰고 숨이 가빠질 때 쓰는 표현이야.',
-        'q로 시작하는 5글자 단어',
-        '["breathe heavily"]'
-    ),
-    (
-        53,
-        'EN',
-        'Her heart began to ______ rapidly as she started breathing heavily.',
-        '["pound", "strike", "knock", "hit"]',
-        'pound',
-        '''heart pounds''는 심장이 세게/빠르게 뛰다는 뜻으로, 두려움이나 긴장상황에서 자주 쓰이는 표현이야.',
-        'e로 시작, ''exit''의 반대말! 들어가는 곳 ?',
-        '["pound"]'
-    ),
-    (
-        54,
-        'EN',
-        '민혜가 공포를 느끼며 심장이 빠르게 뛰고 숨이 가빠지는 상황을 영어로 가장 적절하게 표현한 것은?',
-        '["Her heart began to race and her breathing became shallow.", "Her heart was warming up and she felt relaxed.", "Her heart stopped beating and she held her breath.", "Her heart was touched and she sighed deeply."]',
-        'Her heart began to race and her breathing became shallow.',
-        '''heart began to race''는 심장이 빠르게 뛰기 시작했다는 뜻이고, ''breathing became shallow''는 숨이 가빠졌다는 의미야. 공포나 긴장 상황에서 자주 쓰이는 표현이야.',
-        'l_____ (과거분사, 누워있다는 뜻도 있음)',
-        '["Her heart began to race and her breathing became shallow."]'
-    );
-
 -- ----- [추리물] 빨간 구두 -----
 INSERT IGNORE INTO
     content (
@@ -3371,306 +2516,6 @@ VALUES (
         NULL
     );
 
-INSERT IGNORE INTO
-    quiz_detail (
-        quiz_id,
-        quiz_type,
-        content_id,
-        script_id,
-        difficulty
-    )
-VALUES (
-        55,
-        'multiple_choice',
-        4,
-        216,
-        1
-    ),
-    (
-        56,
-        'fill_in_blank',
-        4,
-        216,
-        2
-    ),
-    (57, 'subjective', 4, 216, 3),
-    (
-        58,
-        'multiple_choice',
-        4,
-        225,
-        1
-    ),
-    (
-        59,
-        'fill_in_blank',
-        4,
-        225,
-        2
-    ),
-    (60, 'contextual', 4, 225, 3),
-    (
-        61,
-        'multiple_choice',
-        4,
-        234,
-        1
-    ),
-    (
-        62,
-        'fill_in_blank',
-        4,
-        234,
-        2
-    ),
-    (63, 'contextual', 4, 234, 3),
-    (
-        64,
-        'multiple_choice',
-        4,
-        243,
-        1
-    ),
-    (
-        65,
-        'fill_in_blank',
-        4,
-        243,
-        2
-    ),
-    (66, 'subjective', 4, 243, 3),
-    (
-        67,
-        'multiple_choice',
-        4,
-        252,
-        1
-    ),
-    (
-        68,
-        'fill_in_blank',
-        4,
-        252,
-        2
-    ),
-    (69, 'contextual', 4, 252, 3),
-    (
-        70,
-        'multiple_choice',
-        4,
-        263,
-        1
-    ),
-    (
-        71,
-        'fill_in_blank',
-        4,
-        263,
-        2
-    ),
-    (72, 'subjective', 4, 263, 3);
-
-INSERT IGNORE INTO
-    quiz_content (
-        quiz_id,
-        lang_code,
-        question,
-        options,
-        correct_answer,
-        explanation,
-        hint,
-        acceptable_answers
-    )
-VALUES (
-        55,
-        'EN',
-        '다음 중 ''주변을 살펴보다, 둘러보다''의 영어 표현으로 알맞은 것은?',
-        '["look around", "look after", "look forward", "look through"]',
-        'look around',
-        '''look around''는 주변을 둘러보거나 살펴본다는 뜻이야. 미란이 구두를 발견하고 주위를 확인하는 상황이지.',
-        'r로 시작하는 7글자 단어',
-        '["look around"]'
-    ),
-    (
-        56,
-        'EN',
-        'The hallway was ______ as she had left it after cleaning the night before.',
-        '["spotless", "messy", "crowded", "noisy"]',
-        'spotless',
-        '''spotless''는 완전히 깨끗한 상태를 나타내는 표현이야. 청소 후 깨끗한 상태를 묘사할 때 자주 쓰여.',
-        '죽음을 알리는 신문 섹션, ''ob''로 시작해',
-        '["spotless"]'
-    ),
-    (
-        57,
-        'EN',
-        '''그대로였다'' (변화 없이 원래 상태)
-
-The hallway was ______ ______ ______ it had been after last night''s cleaning.
-(뜻: ~했던 그대로, 정확히 같은 상태로)',
-        '[]',
-        'exactly as',
-        '''exactly as''는 ''그대로, 정확히 같은 상태로''라는 뜻이야. ''just as''나 ''the way''도 같은 의미로 쓸 수 있어.',
-        'o_______ (사망자를 기리는 글, 기억하다는 뜻의 동사와 관련)',
-        '["exactly as", "just as", "precisely as", "the way", "exactly how"]'
-    ),
-    (
-        58,
-        'EN',
-        '다음 중 ''결석하다, 없다''를 뜻하는 영어 표현은?',
-        '["absent", "present", "active", "angry"]',
-        'absent',
-        '''absent''는 학교나 회사에 나오지 않아서 없다는 뜻이야. 결석이 많은 학생을 표현할 때 쓰지.',
-        'e로 시작하는 5글자 단어',
-        '["absent"]'
-    ),
-    (
-        59,
-        'EN',
-        'The security guard said he had been ______ all night and nobody came in.',
-        '["awake", "alert", "conscious", "vigilant"]',
-        'awake',
-        '''밤새 깨어있었다''는 표현에서 ''stay awake all night'' 또는 ''be awake all night''이 가장 자연스러운 영어 표현이야.',
-        'e로 시작, ''삭제하다/완전히 없애다''라는 뜻 ?',
-        '["awake"]'
-    ),
-    (
-        60,
-        'EN',
-        '경비아저씨가 ''밤새 깨어있었다''고 말하는 상황에서 가장 자연스러운 영어 표현은?',
-        '["I was awake all night.", "I stayed up all night.", "I was up all night keeping watch.", "I didn''t sleep at all last night."]',
-        'I was up all night keeping watch.',
-        '경비원이 근무 중에 밤새 깨어서 지키고 있었다는 맥락에서는 ''keeping watch''가 포함된 표현이 가장 자연스러워.',
-        'w___ o__ (2단어, 운동이나 연습할 때도 쓰는 표현)',
-        '["I was up all night keeping watch."]'
-    ),
-    (
-        61,
-        'EN',
-        '다음 중 ''이상한, 특이한''을 뜻하는 영어 단어는?',
-        '["strange", "strong", "straight", "strict"]',
-        'strange',
-        '''strange''는 뭔가 이상하거나 특이할 때 쓰는 단어야. 보안 기록에서 평소와 다른 이상한 점을 발견한 상황이지.',
-        'mystery(미스터리)의 형용사형',
-        '["strange"]'
-    ),
-    (
-        62,
-        'EN',
-        'There was no record of anyone leaving. That meant someone was still ______ the school premises.',
-        '["on", "in", "at", "within"]',
-        'on',
-        '''on the premises''는 ''건물 내에, 구내에''라는 뜻의 자연스러운 표현이야.',
-        '동전을 던질 때 쓰는 그 단어와 같아 ?',
-        '["on"]'
-    ),
-    (
-        63,
-        'EN',
-        '이 상황에서 ''누군가 아직 학교 안에 있다는 뜻이었다''를 영어로 가장 자연스럽게 표현한 것은?',
-        '["It meant someone was still inside the school.", "It meant someone was always in the school.", "It meant someone was once in the school.", "It meant someone was never in the school."]',
-        'It meant someone was still inside the school.',
-        '''still''은 여전히, 아직도라는 뜻으로 누군가 계속 학교에 있다는 상황을 나타내.',
-        'd_____ m_____ (첫 번째 단어는 ''두 배''라는 뜻)',
-        '["It meant someone was still inside the school."]'
-    ),
-    (
-        64,
-        'EN',
-        '다음 중 ''누군가, 어떤 사람''을 뜻하는 영어 표현은?',
-        '["someone", "something", "somewhere", "somehow"]',
-        'someone',
-        '''someone''은 정체를 모르는 사람을 가리킬 때 쓰는 표현이야. 농구대 밑에 정체불명의 사람이 앉아있는 상황이지.',
-        'coin(동전)이 들어있는 단어 ? 동전 던지기처럼 우연히 겹치는 일 ?',
-        '["someone"]'
-    ),
-    (
-        65,
-        'EN',
-        'She was wearing ______ attire instead of a school uniform.',
-        '["formal", "casual", "sports", "traditional"]',
-        'formal',
-        '''formal attire''는 정장 차림이라는 뜻이야. 교복 대신 격식 있는 옷을 입고 있다는 상황이지.',
-        't으로 시작, 종양도 이 단어를 써서 표현해',
-        '["formal"]'
-    ),
-    (
-        66,
-        'EN',
-        '''졸업생이에요''
-
-I''m a ______ of this school.
-(뜻: 졸업한 사람)',
-        '[]',
-        'graduate',
-        '''graduate''는 졸업생을 뜻해. 여성 졸업생은 ''alumna'', 복수나 성별 구분 없이는 ''alumni''라고도 해.',
-        't_____ d___ (넘어져서 아래로 굴러간다는 뜻)',
-        '["graduate", "alumna", "alumni"]'
-    ),
-    (
-        67,
-        'EN',
-        '다음 중 ''깨닫다, 알아차리다''의 영어 표현으로 알맞은 것은?',
-        '["realize", "receive", "remember", "recognize"]',
-        'realize',
-        '''realize''는 무언가를 갑자기 깨닫거나 알아차릴 때 쓰는 표현이야. 미란이 진실을 깨달은 상황이지.',
-        'grade(등급)와 같은 어원 ? 한 단계씩 천천히 ?',
-        '["realize"]'
-    ),
-    (
-        68,
-        'EN',
-        'She pulled out a newspaper from her bag. The ______ section was open.',
-        '["obituary", "editorial", "classified", "sports"]',
-        'obituary',
-        '''obituary''는 부고란, 즉 사망 소식을 알리는 신문 섹션을 뜻해. ''obituary section''이 부고란이야.',
-        'conscious의 반대, 프로이드가 연구한 의식 아래 숨겨진 마음의 영역 ?',
-        '["obituary"]'
-    ),
-    (
-        69,
-        'EN',
-        '이야기 맥락에서 ''부고란이 펼쳐져 있었다''를 영어로 가장 자연스럽게 표현한 것은?',
-        '["The obituary section was spread open.", "The death notice was expanding.", "The funeral paper was displayed.", "The memorial column was extended."]',
-        'The obituary section was spread open.',
-        '''obituary section''은 신문의 부고란을 뜻하고, ''spread open''은 펼쳐져 있는 상태를 자연스럽게 표현해.',
-        'c_______ (9글자, connect의 명사형)',
-        '["The obituary section was spread open."]'
-    ),
-    (
-        70,
-        'EN',
-        '다음 중 ''그제야, 마침내''를 뜻하는 영어 표현은?',
-        '["finally", "firstly", "formerly", "frequently"]',
-        'finally',
-        '''finally''는 마침내, 그제야라는 뜻이야. 미란이 상황을 이해하게 된 순간을 표현하는 거지.',
-        '우리나라에서도 놀랄 때 흔히 쓰이는 단어야',
-        '["finally"]'
-    ),
-    (
-        71,
-        'EN',
-        'The habit is still ______ with me after all these years.',
-        '["stuck", "staying", "keeping", "holding"]',
-        'stuck',
-        '''stuck with me''는 습관이나 기억이 여전히 남아있다는 뜻의 자연스러운 영어 표현이야.',
-        'manual(수동의)과 같은 어원 mani(손) ? 손으로 교묘히 다루다 ?',
-        '["stuck"]'
-    ),
-    (
-        72,
-        'EN',
-        '''마지막 인사를 하다''
-
-She came to ______ her final farewell.
-(뜻: 작별 인사를 하다)',
-        '[]',
-        'bid',
-        '''bid farewell''은 작별 인사를 한다는 격식있는 표현이야. say farewell, give farewell도 쓸 수 있어.',
-        'a________ t_ (전치사구, ''~에 따르면''이란 뜻도 있어)',
-        '["bid", "say", "give", "make"]'
-    );
-
 -- ----- [특이한연애썰] 남자친구가 제 꿈을 예측해요 -----
 INSERT IGNORE INTO
     content (
@@ -4120,306 +2965,6 @@ VALUES (
         NULL,
         5,
         NULL
-    );
-
-INSERT IGNORE INTO
-    quiz_detail (
-        quiz_id,
-        quiz_type,
-        content_id,
-        script_id,
-        difficulty
-    )
-VALUES (
-        73,
-        'multiple_choice',
-        5,
-        270,
-        1
-    ),
-    (
-        74,
-        'fill_in_blank',
-        5,
-        270,
-        2
-    ),
-    (75, 'contextual', 5, 270, 3),
-    (
-        76,
-        'multiple_choice',
-        5,
-        277,
-        1
-    ),
-    (
-        77,
-        'fill_in_blank',
-        5,
-        277,
-        2
-    ),
-    (78, 'contextual', 5, 277, 3),
-    (
-        79,
-        'multiple_choice',
-        5,
-        284,
-        1
-    ),
-    (
-        80,
-        'fill_in_blank',
-        5,
-        284,
-        2
-    ),
-    (81, 'subjective', 5, 284, 3),
-    (
-        82,
-        'multiple_choice',
-        5,
-        291,
-        1
-    ),
-    (
-        83,
-        'fill_in_blank',
-        5,
-        291,
-        2
-    ),
-    (84, 'contextual', 5, 291, 3),
-    (
-        85,
-        'multiple_choice',
-        5,
-        298,
-        1
-    ),
-    (
-        86,
-        'fill_in_blank',
-        5,
-        298,
-        2
-    ),
-    (87, 'subjective', 5, 298, 3),
-    (
-        88,
-        'multiple_choice',
-        5,
-        310,
-        1
-    ),
-    (
-        89,
-        'fill_in_blank',
-        5,
-        310,
-        2
-    ),
-    (90, 'subjective', 5, 310, 3);
-
-INSERT IGNORE INTO
-    quiz_content (
-        quiz_id,
-        lang_code,
-        question,
-        options,
-        correct_answer,
-        explanation,
-        hint,
-        acceptable_answers
-    )
-VALUES (
-        73,
-        'EN',
-        '다음 중 ''신비로운, 불가사의한''의 영어 표현으로 알맞은 것은?',
-        '["mysterious", "marvelous", "magnificent", "mischievous"]',
-        'mysterious',
-        '''mysterious''는 신비롭고 이해하기 어려운 성격이나 상황을 나타낼 때 쓰는 말이야.',
-        '''I wonder why~(왜일까~)'' 할 때 쓰는 동사, wonderful의 원형 ?',
-        '["mysterious"]'
-    ),
-    (
-        74,
-        'EN',
-        'He''s an art student who is ______ in psychology as well.',
-        '["minoring", "majoring", "specializing", "concentrating"]',
-        'minoring',
-        '''minor in''은 복수전공하다라는 뜻이야. 주전공(major)과 함께 부전공으로 공부하는 걸 말해.',
-        '선택의 순간에 쓰는 단어, ''shall''과 비슷해',
-        '["minoring"]'
-    ),
-    (
-        75,
-        'EN',
-        '이야기 맥락에서 ''신비로운 성격''을 영어로 가장 자연스럽게 표현한 것은?',
-        '["He has a mysterious personality.", "He has a suspicious personality.", "He has a curious personality.", "He has a serious personality."]',
-        'He has a mysterious personality.',
-        '''mysterious''는 신비롭고 이해하기 어려운 성격을 표현할 때 쓰는 가장 자연스러운 표현이야.',
-        's_____ d_ (조언을 구할 때 가장 기본적인 표현)',
-        '["He has a mysterious personality."]'
-    ),
-    (
-        76,
-        'EN',
-        '다음 중 ''우연한, 우연의''를 뜻하는 영어 단어는?',
-        '["accidental", "artificial", "additional", "automatic"]',
-        'accidental',
-        '''accidental''은 우연히 일어나는 일을 뜻해. 꿈 예측이 맞아도 그냥 우연이라고 생각한 상황이지.',
-        '전구가 ''밝아질'' 때도 써요',
-        '["accidental"]'
-    ),
-    (
-        77,
-        'EN',
-        'I thought it was just a ______ and let it slide.',
-        '["coincidence", "accident", "mistake", "surprise"]',
-        'coincidence',
-        '''coincidence''는 우연의 일치를 의미하고, ''let it slide''는 넘어가다라는 뜻의 표현이야.',
-        't로 시작, ''teach''와 같은 어근을 가진 단어',
-        '["coincidence"]'
-    ),
-    (
-        78,
-        'EN',
-        '이야기 맥락에서 ''우연이겠지 하고 넘어갔다''를 영어로 가장 자연스럽게 표현한 것은?',
-        '["I brushed it off as a coincidence.", "I passed by it as a coincidence.", "I moved over it as a coincidence.", "I crossed it as a coincidence."]',
-        'I brushed it off as a coincidence.',
-        '''brush off''는 대수롭지 않게 여기고 넘어간다는 뜻이야. 우연이라고 생각하며 별로 신경 쓰지 않았다는 의미를 잘 표현해.',
-        'h___ (4글자, 고용하다라는 뜻도 있음)',
-        '["I brushed it off as a coincidence."]'
-    ),
-    (
-        79,
-        'EN',
-        '다음 중 ''정확함의 정도, 정확도''를 뜻하는 영어 단어는?',
-        '["accuracy", "activity", "ability", "anxiety"]',
-        'accuracy',
-        '''accuracy''는 정확도나 정확함의 정도를 나타내는 단어야. 꿈 예측이 80% 맞는다는 상황에 딱 맞지.',
-        '4개 중 발음이 어려울 거 같은 단어! ?',
-        '["accuracy"]'
-    ),
-    (
-        80,
-        'EN',
-        'His predictions have an ______ rate of about 80%.',
-        '["accuracy", "efficiency", "frequency", "intensity"]',
-        'accuracy',
-        '''accuracy rate''는 정확도를 나타내는 표현이야. 예측이나 측정의 정확한 정도를 말할 때 써.',
-        '바꾸다 c + 주제/제목을 뜻하는 s로 시작하는 단어',
-        '["accuracy"]'
-    ),
-    (
-        81,
-        'EN',
-        '''정확도가 80% 정도다''
-
-His predictions have an ______ rate of about 80%.
-(뜻: 정확성, 맞는 비율)',
-        '[]',
-        'accuracy',
-        '''accuracy rate''는 정확도를 나타내는 표현이야. success rate도 비슷한 의미로 쓸 수 있어.',
-        'c_____ (전환하다, 바꾸다라는 뜻의 동사)',
-        '["accuracy", "accuracy rate", "success", "success rate"]'
-    ),
-    (
-        82,
-        'EN',
-        '다음 중 ''예측하다, 예상하다''의 영어 표현으로 알맞은 것은?',
-        '["predict", "prevent", "pretend", "prepare"]',
-        'predict',
-        '''predict''는 미래에 일어날 일을 미리 예측한다는 뜻이야. 남자친구가 꿈을 예측한다고 한 상황이지.',
-        '게임에서 ''딜레이 걸렸다''할 때 그 delay의 과거형 ??',
-        '["predict"]'
-    ),
-    (
-        83,
-        'EN',
-        'He studied the ______ between the unconscious mind and dreams in psychology class.',
-        '["connection", "correlation", "relationship", "association"]',
-        'correlation',
-        '''correlation''은 두 현상 간의 상관관계를 나타내는 학술적인 표현이야. 심리학에서 무의식과 꿈의 연관성을 설명할 때 자주 쓰여.',
-        '''Excuse me'' 할 때 그 단어의 복수형, make와 짝꿍으로 쓰여',
-        '["correlation"]'
-    ),
-    (
-        84,
-        'EN',
-        '이야기에서 남자친구가 설명하는 ''무의식이랑 꿈의 연관성''을 영어로 가장 적절하게 표현한 것은?',
-        '["The connection between the unconscious and dreams", "The conflict between consciousness and nightmares", "The difference between awareness and sleep", "The relationship between memory and imagination"]',
-        'The connection between the unconscious and dreams',
-        '''무의식이랑 꿈의 연관성''은 ''the connection between the unconscious and dreams''로 표현해. 심리학에서 자주 쓰이는 표현이야.',
-        'm___ u_ (2단어, 만들다ing + 위로)',
-        '["The connection between the unconscious and dreams"]'
-    ),
-    (
-        85,
-        'EN',
-        '다음 중 ''충격적인, 놀라운''을 뜻하는 영어 표현은?',
-        '["shocking", "sharing", "shining", "shouting"]',
-        'shocking',
-        '''shocking''은 충격적이고 놀라운 일을 발견했을 때 쓰는 표현이야.',
-        'e로 시작하는 7글자 단어, ''흥분한'' 느낌',
-        '["shocking"]'
-    ),
-    (
-        86,
-        'EN',
-        'The notebook was ______ packed with three months'' worth of data.',
-        '["densely", "loosely", "barely", "randomly"]',
-        'densely',
-        '''densely packed''는 빽빽하게 채워져 있다는 뜻으로, ''빼곡히''의 영어 표현이야.',
-        '건강과 행복을 뜻하는 단어, w로 시작해',
-        '["densely"]'
-    ),
-    (
-        87,
-        'EN',
-        '''빼곡히 적혀있다''는 표현을 영어로 하면?
-
-Three months'' worth of data was ______ ______ written in the notebook.
-(뜻: 빽빽하게, 조밀하게)',
-        '[]',
-        'densely packed',
-        '''densely packed''은 빼곡히, 빽빽하게 기록되어 있다는 뜻이야. tightly packed, closely packed도 같은 의미로 쓸 수 있어.',
-        'c___ u_ (2단어, 전화로 상황 확인할 때 쓰는 표현)',
-        '["densely packed", "tightly packed", "closely packed", "meticulously recorded", "thoroughly documented", "extensively written"]'
-    ),
-    (
-        88,
-        'EN',
-        '다음 중 ''조종하다, 통제하다''의 영어 표현으로 알맞은 것은?',
-        '["control", "contact", "contain", "compare"]',
-        'control',
-        '''control''은 누군가나 무언가를 조종하고 통제한다는 뜻이야. 남자친구가 꿈을 조종했던 상황이지.',
-        'cert(증명서) + ain, certificate(자격증)과 같은 어원',
-        '["control"]'
-    ),
-    (
-        89,
-        'EN',
-        'When I ______ him about it, he just said "Sorry, but your reaction was so cute."',
-        '["confronted", "approached", "questioned", "contacted"]',
-        'confronted',
-        '''confront''는 누군가에게 따지거나 문제를 제기할 때 쓰는 표현이야. 여기서는 남자친구의 행동에 대해 따져 물을 때 가장 적절한 동사야.',
-        'd로 시작, ''명백히/분명히''라는 부사로도 쓰여',
-        '["confronted"]'
-    ),
-    (
-        90,
-        'EN',
-        '''남자친구한테 따졌다''
-
-I ________ him about it.
-(뜻: 문제를 제기하며 따지다, 맞서다)',
-        '[]',
-        'confronted',
-        '''confront''는 문제에 대해 직접적으로 맞서서 따질 때 쓰는 표현이야. challenge나 call out도 비슷한 의미로 사용할 수 있어.',
-        's_____ f____ (2단어, 생선 비린내를 떠올려봐 ?)',
-        '["confronted", "challenged", "called out"]'
     );
 
 -- ----- [연애갈등] 수학 과외 선생님과 내 여자친구 -----
@@ -4900,6 +3445,9 @@ VALUES (
         NULL
     );
 
+-- =============================================
+-- 3-2. quiz_detail / quiz_content (다국어: EN/JA/ZH, 90문제 = 5구간 x 3난이도 x 6스토리)
+-- =============================================
 INSERT IGNORE INTO
     quiz_detail (
         quiz_id,
@@ -4909,95 +3457,293 @@ INSERT IGNORE INTO
         difficulty
     )
 VALUES (
-        91,
+        1,
         'multiple_choice',
-        6,
-        318,
+        1,
+        11,
+        1
+    ),
+    (2, 'subjective', 1, 11, 2),
+    (3, 'subjective', 1, 11, 3),
+    (
+        4,
+        'multiple_choice',
+        1,
+        22,
+        1
+    ),
+    (5, 'subjective', 1, 22, 2),
+    (6, 'subjective', 1, 22, 3),
+    (
+        7,
+        'multiple_choice',
+        1,
+        33,
+        1
+    ),
+    (8, 'fill_in_blank', 1, 33, 2),
+    (9, 'subjective', 1, 33, 3),
+    (
+        10,
+        'multiple_choice',
+        1,
+        44,
+        1
+    ),
+    (11, 'subjective', 1, 44, 2),
+    (12, 'subjective', 1, 44, 3),
+    (
+        13,
+        'multiple_choice',
+        1,
+        57,
+        1
+    ),
+    (14, 'subjective', 1, 57, 2),
+    (15, 'subjective', 1, 57, 3),
+    (
+        16,
+        'multiple_choice',
+        2,
+        69,
+        1
+    ),
+    (17, 'subjective', 2, 69, 2),
+    (18, 'subjective', 2, 69, 3),
+    (
+        19,
+        'multiple_choice',
+        2,
+        81,
+        1
+    ),
+    (20, 'subjective', 2, 81, 2),
+    (21, 'subjective', 2, 81, 3),
+    (
+        22,
+        'multiple_choice',
+        2,
+        93,
+        1
+    ),
+    (23, 'fill_in_blank', 2, 93, 2),
+    (24, 'subjective', 2, 93, 3),
+    (
+        25,
+        'multiple_choice',
+        2,
+        105,
+        1
+    ),
+    (26, 'subjective', 2, 105, 2),
+    (27, 'subjective', 2, 105, 3),
+    (
+        28,
+        'multiple_choice',
+        2,
+        118,
+        1
+    ),
+    (29, 'subjective', 2, 118, 2),
+    (30, 'subjective', 2, 118, 3),
+    (
+        31,
+        'multiple_choice',
+        3,
+        135,
+        1
+    ),
+    (32, 'subjective', 3, 135, 2),
+    (33, 'subjective', 3, 135, 3),
+    (
+        34,
+        'multiple_choice',
+        3,
+        152,
+        1
+    ),
+    (35, 'subjective', 3, 152, 2),
+    (36, 'subjective', 3, 152, 3),
+    (
+        37,
+        'multiple_choice',
+        3,
+        169,
+        1
+    ),
+    (38, 'subjective', 3, 169, 2),
+    (39, 'subjective', 3, 169, 3),
+    (
+        40,
+        'multiple_choice',
+        3,
+        186,
+        1
+    ),
+    (41, 'subjective', 3, 186, 2),
+    (42, 'subjective', 3, 186, 3),
+    (
+        43,
+        'multiple_choice',
+        3,
+        207,
         1
     ),
     (
-        92,
+        44,
         'fill_in_blank',
-        6,
-        318,
+        3,
+        207,
         2
     ),
-    (93, 'subjective', 6, 318, 3),
+    (45, 'subjective', 3, 207, 3),
     (
-        94,
+        46,
         'multiple_choice',
-        6,
-        326,
+        4,
+        218,
+        1
+    ),
+    (47, 'subjective', 4, 218, 2),
+    (48, 'subjective', 4, 218, 3),
+    (
+        49,
+        'multiple_choice',
+        4,
+        229,
+        1
+    ),
+    (50, 'subjective', 4, 229, 2),
+    (51, 'subjective', 4, 229, 3),
+    (
+        52,
+        'multiple_choice',
+        4,
+        240,
+        1
+    ),
+    (53, 'subjective', 4, 240, 2),
+    (54, 'subjective', 4, 240, 3),
+    (
+        55,
+        'multiple_choice',
+        4,
+        251,
+        1
+    ),
+    (56, 'subjective', 4, 251, 2),
+    (57, 'subjective', 4, 251, 3),
+    (
+        58,
+        'multiple_choice',
+        4,
+        263,
+        1
+    ),
+    (59, 'subjective', 4, 263, 2),
+    (60, 'subjective', 4, 263, 3),
+    (
+        61,
+        'multiple_choice',
+        5,
+        272,
+        1
+    ),
+    (62, 'subjective', 5, 272, 2),
+    (63, 'subjective', 5, 272, 3),
+    (
+        64,
+        'multiple_choice',
+        5,
+        281,
         1
     ),
     (
-        95,
+        65,
         'fill_in_blank',
-        6,
-        326,
+        5,
+        281,
         2
     ),
-    (96, 'subjective', 6, 326, 3),
+    (66, 'subjective', 5, 281, 3),
     (
-        97,
+        67,
+        'multiple_choice',
+        5,
+        290,
+        1
+    ),
+    (68, 'subjective', 5, 290, 2),
+    (69, 'subjective', 5, 290, 3),
+    (
+        70,
+        'multiple_choice',
+        5,
+        299,
+        1
+    ),
+    (71, 'subjective', 5, 299, 2),
+    (72, 'subjective', 5, 299, 3),
+    (
+        73,
+        'multiple_choice',
+        5,
+        310,
+        1
+    ),
+    (74, 'subjective', 5, 310, 2),
+    (75, 'subjective', 5, 310, 3),
+    (
+        76,
         'multiple_choice',
         6,
-        334,
+        320,
+        1
+    ),
+    (77, 'subjective', 6, 320, 2),
+    (78, 'subjective', 6, 320, 3),
+    (
+        79,
+        'multiple_choice',
+        6,
+        330,
+        1
+    ),
+    (80, 'subjective', 6, 330, 2),
+    (81, 'subjective', 6, 330, 3),
+    (
+        82,
+        'multiple_choice',
+        6,
+        340,
         1
     ),
     (
-        98,
+        83,
         'fill_in_blank',
         6,
-        334,
+        340,
         2
     ),
-    (99, 'subjective', 6, 334, 3),
+    (84, 'subjective', 6, 340, 3),
     (
-        100,
-        'multiple_choice',
-        6,
-        342,
-        1
-    ),
-    (
-        101,
-        'fill_in_blank',
-        6,
-        342,
-        2
-    ),
-    (102, 'subjective', 6, 342, 3),
-    (
-        103,
+        85,
         'multiple_choice',
         6,
         350,
         1
     ),
+    (86, 'subjective', 6, 350, 2),
+    (87, 'subjective', 6, 350, 3),
     (
-        104,
-        'fill_in_blank',
-        6,
-        350,
-        2
-    ),
-    (105, 'subjective', 6, 350, 3),
-    (
-        106,
+        88,
         'multiple_choice',
         6,
         360,
         1
     ),
-    (
-        107,
-        'fill_in_blank',
-        6,
-        360,
-        2
-    ),
-    (108, 'contextual', 6, 360, 3);
+    (89, 'subjective', 6, 360, 2),
+    (90, 'subjective', 6, 360, 3);
 
 INSERT IGNORE INTO
     quiz_content (
@@ -5011,199 +3757,3116 @@ INSERT IGNORE INTO
         acceptable_answers
     )
 VALUES (
-        91,
+        1,
         'EN',
-        '다음 중 ''짜증내다, 성가해하다''를 뜻하는 영어 표현은?',
-        '["annoyed", "amused", "amazed", "ashamed"]',
+        '다음 중 ''짜증나는, 화나는''의 영어 표현으로 알맞은 것은?',
+        '["annoyed", "awkward", "anxious", "amazing"]',
         'annoyed',
-        '''annoyed''는 짜증나고 성가할 때 느끼는 감정을 표현해. 공부 얘기에 짜증내던 상황이지.',
-        NULL,
-        '["annoyed"]'
+        '''annoyed''는 뭔가 때문에 짜증나거나 화날 때 쓰는 표현이야. 자리 문제로 짜증난 상황이지.',
+        'annoy(짜증나게 하다)에 -ed, 모기 앵앵거릴 때 느끼는 그 감정 🦟',
+        '[]'
     ),
     (
-        92,
+        2,
         'EN',
-        'She wasn''t good at studying, so her parents ______ her with a tutor.',
-        '["provided", "equipped", "supplied", "connected"]',
-        'provided',
-        '''provide someone with something''은 누군가에게 무언가를 제공해주다라는 뜻이야. 과외 선생님을 붙여준다는 상황에 가장 자연스러운 표현이지.',
-        NULL,
-        '["provided"]'
-    ),
-    (
-        93,
-        'EN',
-        '''밝아진 느낌''을 영어로 표현하기
+        '''살짝/몰래'' = s______
 
-She seemed to ______ ______ lately.
-(뜻: 기분이 좋아지다, 밝아지다)',
+I ______ glanced at her while she was reading.
+(뜻: 그녀가 책을 읽는 동안 나는 살짝 쳐다봤다)',
         '[]',
-        'light up',
-        '''light up''은 사람이 기분 좋아져서 밝아지는 모습을 표현할 때 쓰는 자연스러운 표현이야. brighten up이나 cheer up도 비슷한 의미로 쓸 수 있어.',
-        NULL,
-        '["light up", "brighten up", "cheer up", "perk up"]'
+        'slyly',
+        '''slyly glance''는 몰래 살짝 쳐다본다는 뜻이야. 상황을 파악하려고 조심스럽게 볼 때 쓰는 표현이지.',
+        's로 시작하는 5글자, ''미끄러지다''는 뜻도 있어 🕵️',
+        '["slyly", "Slyly", "sly"]'
     ),
     (
-        94,
+        3,
+        'EN',
+        '''말 걸기 애매했다''
+
+She was so focused on her book that it felt ______ to strike up a conversation.
+(뜻: 어색한, 민망한)',
+        '[]',
+        'awkward',
+        '''awkward''는 어색하고 불편한 상황을 표현할 때 쓰는 단어야. uncomfortable, weird도 비슷한 의미로 쓸 수 있어.',
+        'a_____ (어색하고 불편한 상황을 표현, 7글자)',
+        '["awkward", "uncomfortable", "weird", "strange"]'
+    ),
+    (
+        4,
+        'EN',
+        '다음 중 ''호기심''을 뜻하는 영어 단어는?',
+        '["confusion", "creativity", "confidence", "curiosity"]',
+        'curiosity',
+        '''curiosity''는 궁금해하는 마음, 호기심을 뜻해. 쪽지 때문에 호기심이 생긴 상황이지.',
+        'Curiosity killed the cat(호기심이 고양이를 죽였다) 🐱 그 단어!',
+        '[]'
+    ),
+    (
+        5,
+        'EN',
+        '''호기심'' = c______
+
+My ______ about the mysterious notes kept growing.
+(뜻: 그 신비한 쪽지들에 대한 호기심이 계속 커졌다)',
+        '[]',
+        'curiosity',
+        '''curiosity''는 호기심이라는 뜻이야. ''curiosity killed the cat''이라는 유명한 속담도 있어.',
+        'c로 시작하는 9글자 단어, 고양이를 죽인다는 유명한 속담의 주인공 🐱',
+        '["curiosity", "Curiosity"]'
+    ),
+    (
+        6,
+        'EN',
+        '''일부러 일찍 가봤다''
+
+I went there ______ ______ out of curiosity.
+(뜻: 의도적으로, 일부러)',
+        '[]',
+        'on purpose',
+        '''on purpose''는 일부러, 의도적으로 한다는 뜻이야. intentionally, deliberately도 같은 의미로 쓸 수 있어.',
+        'on p_______ (2단어, ''목적''이란 뜻의 단어)',
+        '["on purpose", "intentionally", "deliberately"]'
+    ),
+    (
+        7,
+        'EN',
+        '다음 중 ''용기, 담력''을 뜻하는 영어 단어는?',
+        '["careful", "courage", "comfort", "curious"]',
+        'courage',
+        '''courage''는 용기를 뜻해. 무서워도 해내는 담력을 말하지.',
+        'encourage(격려하다)에서 en을 빼 보면 💪',
+        '[]'
+    ),
+    (
+        8,
+        'EN',
+        'From that day on, we started ______ notes back and forth.',
+        '["sharing", "writing", "sending", "exchanging"]',
+        'exchanging',
+        '''exchange''는 서로 주고받다라는 뜻으로, 쪽지를 주고받는 상황에 딱 맞는 표현이야.',
+        'e로 시작, ''서로 바꾸다''라는 뜻이야',
+        '[]'
+    ),
+    (
+        9,
+        'EN',
+        '''쪽지를 주고받다''
+
+We started _______ notes back and forth.
+(뜻: 서로 주고받다)',
+        '[]',
+        'exchanging',
+        '''exchange''는 서로 주고받는다는 뜻이야. passing, trading, swapping도 비슷한 의미로 쓸 수 있어.',
+        'e_______ (8글자, ''교환하다''라는 뜻)',
+        '["exchanging", "passing", "trading", "swapping"]'
+    ),
+    (
+        10,
+        'EN',
+        '다음 중 ''허무한, 공허한''을 뜻하는 영어 단어는?',
+        '["early", "eager", "empty", "exact"]',
+        'empty',
+        '''empty''는 물리적으로 비어있다는 뜻뿐만 아니라 마음이 허무하고 공허할 때도 쓸 수 있어.',
+        '''빈''이라는 뜻도 있어!',
+        '[]'
+    ),
+    (
+        11,
+        'EN',
+        '''허무한, 공허한'' = e______
+
+I felt ______ after waiting for nothing.
+(뜻: 아무것도 얻지 못하고 기다린 후 허무했다)',
+        '[]',
+        'empty',
+        '''feel empty''는 허무하고 공허한 감정을 표현할 때 쓰는 자연스러운 영어 표현이야.',
+        'e로 시작, ''비다''라는 뜻의 형용사에서 나온 감정 표현',
+        '["empty", "Empty"]'
+    ),
+    (
+        12,
+        'EN',
+        '''허무했다''는 감정을 표현할 때
+
+I felt so ______.
+(뜻: 텅 빈 듯한, 공허한 느낌)',
+        '[]',
+        'hollow',
+        '''empty''는 허무하고 공허한 감정을 표현할 때 자주 써. ''hollow''나 ''deflated''도 비슷한 의미로 쓸 수 있어.',
+        'h____ (6글자, ''쑥 들어간'' 뜻의 형용사)',
+        '["empty", "hollow", "deflated", "let down"]'
+    ),
+    (
+        13,
+        'EN',
+        '다음 중 ''가끔, 때때로''를 뜻하는 영어 표현은?',
+        '["occasionally", "officially", "ordinarily", "obviously"]',
+        'occasionally',
+        '''occasionally''는 가끔씩, 때때로라는 뜻이야. 아직도 가끔 쪽지로 대화한다는 상황을 표현할 때 써.',
+        'occasion(특별한 날)의 부사형 — 항상은 아니고 가끔만 일어난다는 뉘앙스',
+        '[]'
+    ),
+    (
+        14,
+        'EN',
+        '''가끔'' = o_________
+
+We __________ still communicate through notes.
+(뜻: 우리는 가끔 여전히 쪽지로 소통해)',
+        '[]',
+        'occasionally',
+        '''occasionally''는 ''가끔, 때때로''라는 뜻의 부사로 일상 대화에서 자주 쓰이는 표현이야.',
+        'o로 시작하는 부사, ''특별한 occasion''할 때 그 단어의 부사 버전 🎉',
+        '["occasionally", "Occasionally"]'
+    ),
+    (
+        15,
+        'EN',
+        '''가끔씩, 때때로''
+
+We still communicate through notes ______ and ______.
+(뜻: 가끔씩)',
+        '[]',
+        'now and then',
+        '''now and then''은 ''가끔씩, 때때로''라는 뜻이야. from time to time, once in a while도 같은 의미로 쓸 수 있어.',
+        'n__ a__ t___ (이제와 그때, 시간 표현)',
+        '["now and then", "from time to time", "every now and then", "once in a while", "occasionally"]'
+    ),
+    (
+        16,
+        'EN',
+        '다음 중 ''가끔, 때때로''를 뜻하는 영어 표현은?',
+        '["officially", "occasionally", "obviously", "originally"]',
+        'occasionally',
+        '''occasionally''는 가끔씩, 때때로라는 뜻이야. 학생이 가끔 머리를 쥐어뜯는 상황을 표현할 때 쓸 수 있어.',
+        'once in a while과 같은 뜻, ''occasion(기회)''에서 나온 단어',
+        '[]'
+    ),
+    (
+        17,
+        'EN',
+        '''낙서하다/끄적거리다'' = s______
+
+He was ______ notes in the margin.
+(뜻: 그는 여백에 끄적거리고 있었다)',
+        '[]',
+        'scribbling',
+        '''scribble''은 급하게 쓰거나 끄적거린다는 뜻이야. 학생이 숙제하면서 연필로 끄적이는 모습을 표현할 때 딱이지.',
+        's로 시작하는 동사, 긁는다는 뜻도 있어 ✏️',
+        '["scribbling", "Scribbling", "scribble"]'
+    ),
+    (
+        18,
+        'EN',
+        '수학 문제가 어려워서 ''머리를 쥐어뜯었다''
+
+He would sometimes ______ his hair in frustration.
+(뜻: 머리카락을 잡아당기다, 좌절감에 빠지다)',
+        '[]',
+        'tug at',
+        '''tug at his hair''는 좌절이나 스트레스로 머리카락을 잡아당기는 걸 표현해. pull at도 같은 의미로 쓸 수 있어.',
+        '줄다리기 = tug of war, ''잡아당기다'' + at 🪢',
+        '["tug at", "pull at", "grab at", "clutch at"]'
+    ),
+    (
+        19,
+        'EN',
+        '다음 중 ''비어있는, 텅 빈''을 뜻하는 영어 단어는?',
+        '["early", "equal", "enjoy", "empty"]',
+        'empty',
+        '''empty''는 비어있다는 뜻이야. 학생이 없어서 자리가 텅 빈 상황을 표현할 때 써.',
+        'e로 시작하는 5글자, 반대말은 full',
+        '[]'
+    ),
+    (
+        20,
+        'EN',
+        '''훌쩍거리다'' = s______
+
+She was quietly ______ while reading her workbook.
+(뜻: 그녀는 문제집을 보며 조용히 훌쩍거리고 있었다)',
+        '[]',
+        'sniffling',
+        '''sniffling''은 코를 훌쩍거리는 소리를 나타내는 표현이야. 울고 난 후나 감정이 북받칠 때 자주 쓰지.',
+        '코감기 걸렸을 때 내는 소리 💧',
+        '["sniffling", "Sniffling", "sniffing"]'
+    ),
+    (
+        21,
+        'EN',
+        '''자꾸 창가를 쳐다봤다''
+
+Yeon-woo kept ______ ______ at the window.
+(뜻: 자꾸 힐끗힐끗 보다)',
+        '[]',
+        'glancing over',
+        '''glance over''는 자꾸 힐끗힐끗 쳐다보는 걸 표현해. keep -ing와 함께 쓰면 반복적인 행동을 나타내지.',
+        '''at a glance(한눈에)'' 할 때 그 단어 + over 👀',
+        '["glancing over", "looking over", "peeking over", "gazing over", "staring over"]'
+    ),
+    (
+        22,
+        'EN',
+        '다음 중 ''부어있는, 팽창한''을 뜻하는 영어 표현은?',
+        '["swollen", "serious", "smooth", "sleepy"]',
+        'swollen',
+        '''swollen''은 울거나 다쳐서 부어있는 상태를 표현할 때 써. 눈이 빨갛게 부은 모습이지.',
+        '풍선처럼 부풀어 오른 상태, swell',
+        '[]'
+    ),
+    (
+        23,
+        'EN',
+        'His eyes were red and ______.',
+        '["watery", "swollen", "tired", "burning"]',
+        'swollen',
+        '''swollen''은 부어오른 상태를 나타내는 형용사야. 울고 난 후 눈이 부은 모습을 표현할 때 자주 쓰여.',
+        's로 시작하는 7글자 단어, 벌에 쏘이면?',
+        '[]'
+    ),
+    (
+        24,
+        'EN',
+        '''갑자기 쓰러지다''
+
+He suddenly ______.
+(뜻: 의식을 잃고 넘어지다)',
+        '[]',
+        'collapsed',
+        '''collapsed''나 ''passed out''은 갑자기 의식을 잃고 쓰러지는 걸 표현해. ''fainted''도 같은 의미로 쓸 수 있어.',
+        'c_______ (''무너지다''라는 뜻도 있어)',
+        '["collapsed", "passed out", "fell down", "collapsed", "fainted"]'
+    ),
+    (
+        25,
+        'EN',
+        '다음 중 ''포기하다''의 영어 표현으로 알맞은 것은?',
+        '["give off", "give out", "give away", "give up"]',
+        'give up',
+        '''give up''은 포기하다라는 뜻이야. 아버지가 딸에게 어려워도 포기하지 말라고 격려하는 상황이지.',
+        '항복할 때 손을 위로 올리는 모습을 떠올려봐',
+        '[]'
+    ),
+    (
+        26,
+        'EN',
+        '''끼우다/사이에 넣다'' = t______
+
+A letter was ______ between the pages.
+(뜻: 편지가 페이지 사이에 끼워져 있었다)',
+        '[]',
+        'tucked',
+        '''tuck''은 무언가를 사이나 틈에 끼워넣는다는 뜻이야. ''tucked between''은 ~사이에 끼워져 있다는 표현이지.',
+        't로 시작, ''집어넣다''라는 뜻. 셔츠를 바지에 넣을 때도 써',
+        '["tucked", "Tucked"]'
+    ),
+    (
+        27,
+        'EN',
+        '''편지가 끼워져 있었다''
+
+A letter was ______ between the pages.
+(뜻: ~이 사이에 끼워지다)',
+        '[]',
+        'tucked',
+        '''tucked''는 무언가가 사이에 끼워져 있거나 숨겨져 있는 상태를 표현해. inserted나 placed도 같은 의미로 쓸 수 있어.',
+        't_____ (6글자, 갇혀있다는 뜻)',
+        '["tucked", "inserted", "placed", "stuck", "wedged"]'
+    ),
+    (
+        28,
+        'EN',
+        '다음 중 ''유심히, 주의 깊게''를 뜻하는 영어 부사는?',
+        '["calmly", "closely", "cleverly", "clearly"]',
+        'closely',
+        '''closely''는 유심히, 주의 깊게 관찰하거나 보는 것을 의미해. 아버지가 딸의 자리를 자세히 살펴보는 상황이야.',
+        '''닫다''라는 단어와 연관된 부사',
+        '[]'
+    ),
+    (
+        29,
+        'EN',
+        '''유심히 보다'' = c_______ watched
+
+He ______ watched seat number 3 before leaving without a word.
+(뜻: 그는 3번 자리를 유심히 보더니 아무 말 없이 나갔다)',
+        '[]',
+        'carefully',
+        '''carefully watched''나 ''closely watched''는 유심히, 주의깊게 관찰한다는 뜻이야.',
+        'c로 시작하는 ''주의깊게''라는 부사',
+        '["carefully", "closely", "Carefully", "Closely"]'
+    ),
+    (
+        30,
+        'EN',
+        '''유심히 보다''
+
+He looked at seat #3 ______ and left without saying a word.
+(뜻: 세심하게, 주의 깊게)',
+        '[]',
+        'intently',
+        '''intently''는 집중해서 유심히 보는 걸 표현해. closely, carefully, attentively도 비슷한 의미로 쓸 수 있어.',
+        'i___ly (부사, intense의 부사형)',
+        '["intently", "closely", "carefully", "attentively"]'
+    ),
+    (
+        31,
+        'EN',
+        '다음 중 ''긴장한, 불안한''의 영어 표현으로 알맞은 것은?',
+        '["nervous", "negative", "numerous", "natural"]',
+        'nervous',
+        '''nervous''는 긴장되고 불안할 때 쓰는 표현이야. 이상한 전화 때문에 민혜가 느끼는 감정이지.',
+        'nerve(신경) + ous, 신경이 곤두설 때의 느낌',
+        '[]'
+    ),
+    (
+        32,
+        'EN',
+        '''장난 전화'' = p____ call
+
+Most calls were just ______ calls from drunk people.
+(뜻: 대부분의 전화는 술 취한 사람들의 장난 전화였다)',
+        '[]',
+        'prank',
+        '''prank call''은 장난 전화라는 뜻으로, 콜센터에서 자주 받게 되는 성가신 전화를 말해.',
+        'p로 시작, ''허위의/가짜의''라는 뜻도 있어 📞',
+        '["prank", "Prank"]'
+    ),
+    (
+        33,
+        'EN',
+        '''손에 땀이 났다''
+
+Her ______ were sweaty.
+(뜻: 손바닥이 땀으로 젖었다)',
+        '[]',
+        'palms',
+        '''palms''는 손바닥을 뜻해. 긴장하면 손바닥에 땀이 나는 걸 ''sweaty palms''라고 표현해.',
+        'p___ (5글자, 손바닥을 뜻하는 단어)',
+        '["palms", "hands"]'
+    ),
+    (
+        34,
+        'EN',
+        '다음 중 ''떨리다, 진동하다''의 영어 표현으로 알맞은 것은?',
+        '["shine", "share", "shake", "smile"]',
+        'shake',
+        '''shake''는 손이 떨리거나 진동하는 것을 표현할 때 쓰는 단어야. 무서워서 손이 떨리는 상황이지.',
+        '지진이 일어날 때도 사용해',
+        '[]'
+    ),
+    (
+        35,
+        'EN',
+        '''소름이 돋다'' = get g______
+
+When I heard the strange voice, I got ______ all over my back.
+(뜻: 이상한 목소리를 들었을 때 등에 소름이 돋았다)',
+        '[]',
+        'goosebumps',
+        '''get goosebumps''는 무서울 때나 감동받을 때 피부에 소름이 돋는 걸 표현하는 영어 관용구야.',
+        '거위의 피부처럼 오돌토돌해진다고 해서 붙은 이름 🪿',
+        '["goosebumps", "goose bumps"]'
+    ),
+    (
+        36,
+        'EN',
+        '''등에 소름이 돋았다''
+
+Chills ______ ______ her spine.
+(뜻: 등골이 오싹하다)',
+        '[]',
+        'ran up',
+        '''chills ran up/down one''s spine''은 무서워서 등골이 오싹한 느낌을 표현할 때 쓰는 표현이야.',
+        'r___ u_ (2단어, 달리다 + 위)',
+        '["ran up", "went up", "ran down", "went down", "shot up"]'
+    ),
+    (
+        37,
+        'EN',
+        '다음 중 ''당황한, 놀란''의 영어 표현으로 알맞은 것은?',
+        '["serious", "silly", "sleepy", "shocked"]',
+        'shocked',
+        '''shocked''는 갑작스런 상황에 놀라고 당황한 상태를 말해. 예상치 못한 전화에 민혜가 당황한 거지.',
+        '''쇼크 받았다''할 때 그 shock의 과거분사 ⚡',
+        '[]'
+    ),
+    (
+        38,
+        'EN',
+        '''당황하다'' = p______
+
+She was ______ by the unexpected call.
+(뜻: 그녀는 예상치 못한 전화에 당황했다)',
+        '[]',
+        'panicked',
+        '''panic''은 당황하다, 공포에 빠지다라는 뜻이야. 과거형은 ''panicked''로 써.',
+        'p로 시작, ''공황''이라는 단어와 친척 관계 😰',
+        '["panicked", "Panicked"]'
+    ),
+    (
+        39,
+        'EN',
+        '''당황했다''
+
+Minhye was ______.
+(뜻: 혼란스럽고 어찌할 바를 모르는 상태)',
+        '[]',
+        'flustered',
+        '''flustered''는 갑작스러운 상황에 당황하고 혼란스러워하는 감정을 표현해. bewildered, confused도 비슷한 의미야.',
+        'f로 시작하는 7글자, flutter(파닥파닥)처럼 마음이 흔들려서 어쩔 줄 모르는 상태 😵',
+        '["flustered", "bewildered", "confused", "perplexed", "rattled"]'
+    ),
+    (
+        40,
+        'EN',
+        '다음 중 ''텅 빈, 비어있는''을 뜻하는 영어 표현은?',
+        '["eager", "exact", "empty", "early"]',
+        'empty',
+        '''empty''는 아무것도 없이 텅 비어있다는 뜻이야. 사무실에 아무도 없는 상황을 표현할 때 쓰지.',
+        '''MT''랑 발음이 같아',
+        '[]'
+    ),
+    (
+        41,
+        'EN',
+        '''얼어붙다, 마비되다'' = f______
+
+Her hands ______ and wouldn''t move.
+(뜻: 그녀의 손이 얼어붙어서 움직이지 않았다)',
+        '[]',
+        'froze',
+        '''freeze''는 얼다는 뜻뿐만 아니라 공포나 충격으로 몸이 굳어질 때도 써. ''froze''는 과거형이야.',
+        '겨울왕국 영어 제목의 과거형! 🧊',
+        '["froze", "Froze"]'
+    ),
+    (
+        42,
+        'EN',
+        '''손이 말을 듣지 않는다''
+
+My hands ______ ______ to me.
+(뜻: 내 의지대로 움직이지 않다)',
+        '[]',
+        'wouldn''t move',
+        '''wouldn''t obey''는 몸이 내 의지대로 움직이지 않을 때 쓰는 표현이야. wouldn''t listen이나 wouldn''t respond도 같은 의미로 쓸 수 있어.',
+        'w___''t m___ (몸이 ''움직''이질 않는거지)',
+        '["wouldn''t move", "won''t obey", "wouldn''t listen", "won''t listen", "wouldn''t respond", "won''t respond"]'
+    ),
+    (
+        43,
+        'EN',
+        '다음 중 ''(전화벨이) 울리다''를 뜻하는 영어 표현은?',
+        '["ring", "rock", "roll", "rise"]',
+        'ring',
+        '''ring''은 전화벨이나 종이 울리는 소리를 표현할 때 쓰는 동사야. 새로운 야간 근무자에게도 같은 일이 반복되는 무서운 결말이지.',
+        '''반지, 고리''랑 같은 단어야',
+        '[]'
+    ),
+    (
+        44,
+        'EN',
+        'At 2:47 AM, the phone started ______ again.',
+        '["sounding", "ringing", "buzzing", "calling"]',
+        'ringing',
+        '전화벨이 울린다는 ''the phone is ringing''으로 표현해. 이야기의 무한 반복을 암시하는 마지막 장면이야.',
+        'r으로 시작, 전화가 울릴 때 쓰는 동사',
+        '[]'
+    ),
+    (
+        45,
+        'EN',
+        '''전화벨이 울린다''
+
+The phone ______ ______.
+(현재 진행되는 상황을 표현)',
+        '[]',
+        'is ringing',
+        '''ring''은 전화벨이나 종이 울릴 때 쓰는 동사야. 현재 진행형으로 ''is ringing''이 가장 자연스러워.',
+        'r___ (4글자) - 종이나 벨이 소리낼 때 쓰는 동사',
+        '["is ringing", "rings", "starts ringing", "begins ringing"]'
+    ),
+    (
+        46,
+        'EN',
+        '다음 중 ''주변을 살펴보다, 둘러보다''의 영어 표현으로 알맞은 것은?',
+        '["look into", "look around", "look forward", "look after"]',
+        'look around',
+        '''look around''는 주변을 둘러보거나 살펴본다는 뜻이야. 미란이 이상한 상황에서 주변을 확인하는 거지.',
+        '주변은 around라는 단어야',
+        '[]'
+    ),
+    (
+        47,
+        'EN',
+        '''새벽'' = d____
+
+She arrived at ______ to avoid the crowd.
+(뜻: 그녀는 사람들을 피하려고 새벽에 도착했다)',
+        '[]',
+        'dawn',
+        '''dawn''은 새벽, 여명을 뜻하는 단어로 해가 떠오르기 시작하는 이른 아침 시간을 나타내.',
+        '여명의 눈동자 = Eyes of Dawn, 해 뜨기 직전의 시간 🌅',
+        '["dawn", "Dawn"]'
+    ),
+    (
+        48,
+        'EN',
+        '''주변을 살펴보다''
+
+Miran ______ ______ to see if anyone was around.
+(뜻: 주위를 둘러보다, 살피다)',
+        '[]',
+        'looked around',
+        '''look around''는 주변을 둘러보며 살펴본다는 뜻이야. glance around, peer around도 비슷한 의미로 쓸 수 있어.',
+        'l___ a_____ (2단어, 돌아보면서 확인한다는 뜻)',
+        '["looked around", "glanced around", "peered around", "gazed around"]'
+    ),
+    (
+        49,
+        'EN',
+        '다음 중 ''비어 있는, 빈''을 뜻하는 영어 단어는?',
+        '["equal", "empty", "exact", "early"]',
+        'empty',
+        '''empty''는 자리나 공간이 비어있다는 뜻이야. 7번 자리에 학생이 없어서 빈 상태였다는 거지.',
+        '''MT''랑 같은 발음이야',
+        '[]'
+    ),
+    (
+        50,
+        'EN',
+        '''기록, 녹화, 녹음하다'' = r______
+
+There was no ______ of anyone leaving.
+(뜻: 누군가 나간 기록이 없었다)',
+        '[]',
+        'record',
+        '''record''는 기록이라는 뜻으로, 보안 시스템의 출입 기록을 말할 때 자주 쓰이는 단어야.',
+        'r로 시작하는 6글자, 음악 앨범을 만들 때도 쓰는 단어 🎵',
+        '["record", "Record"]'
+    ),
+    (
+        51,
+        'EN',
+        '''~라는 뜻이다''를 영어로 표현하면?
+
+This ______ that someone was still inside the school.
+(뜻: ~를 의미하다)',
+        '[]',
+        'meant',
+        '''This meant that~''은 ''이것은 ~을 의미했다''라는 뜻으로, 상황을 분석하고 결론을 내릴 때 자주 쓰는 표현이야.',
+        'm_____ (6글자, mean(의미하다)의 과거형)',
+        '["meant", "means", "indicated", "suggested", "implied"]'
+    ),
+    (
+        52,
+        'EN',
+        '다음 중 ''고요한, 조용한''을 뜻하는 영어 단어는?',
+        '["quite", "quick", "quiet", "quest"]',
+        'quiet',
+        '''quiet''는 조용하고 고요한 상태를 나타내는 단어야. 체육관 안이 아무 소리 없이 고요했다는 뜻이지.',
+        '이 단어로 유명한 래퍼가 있어!',
+        '[]'
+    ),
+    (
+        53,
+        'EN',
+        '''입구'' = e_______
+
+There was a security guard at the ______ of the building.
+(뜻: 건물 입구에 경비원이 있었다)',
+        '[]',
+        'entrance',
+        '''entrance''는 입구라는 뜻으로, 건물이나 장소로 들어가는 문이나 통로를 말해.',
+        'e로 시작, ''exit''의 반대말! 들어가는 곳 🚪',
+        '["entrance", "Entrance"]'
+    ),
+    (
+        54,
+        'EN',
+        '''떨어져 있다'' (물건이 바닥에)
+
+The shoe was ______ on the ground in front of the gym entrance.
+(뜻: 바닥에 떨어져 있다)',
+        '[]',
+        'lying',
+        '''lying''은 물건이 바닥에 떨어져 있는 상태를 표현해. dropped, left, sitting도 비슷한 의미로 쓸 수 있어.',
+        'l_____ (과거분사, 누워있다는 뜻도 있음)',
+        '["lying", "dropped", "left", "sitting"]'
+    ),
+    (
+        55,
+        'EN',
+        '다음 중 ''깨닫다, 알아차리다''의 영어 표현으로 알맞은 것은?',
+        '["reflect", "realize", "receive", "require"]',
+        'realize',
+        '''realize''는 갑자기 뭔가를 깨달아서 이해하게 되는 걸 말해. 미란이가 여자의 행동 이유를 깨달은 상황이지.',
+        '진짜라는 걸 알아차리는거지!',
+        '[]'
+    ),
+    (
+        56,
+        'EN',
+        '''부고'' = o______
+
+She opened the newspaper to the ______ section.
+(뜻: 그녀는 신문의 부고란을 펼쳤다)',
+        '[]',
+        'obituary',
+        '''obituary''는 신문의 부고란이나 부고 기사를 뜻하는 단어야.',
+        '''ob(죽음을 향해) + it + uary'' — 라틴어에서 온 격식 있는 단어 🪦',
+        '["obituary", "obituaries", "Obituary"]'
+    ),
+    (
+        57,
+        'EN',
+        '''부고란''을 영어로?
+
+______ section
+(뜻: 신문에서 사망 소식을 알리는 란)',
+        '[]',
+        'obituary',
+        '''obituary section''은 신문의 부고란을 뜻해. obituary는 사망자의 생애를 기리는 기사를 말하지.',
+        'o_______ (사망자를 기리는 글, 기억하다는 뜻의 동사와 관련)',
+        '["obituary", "obituaries", "death notice", "death notices"]'
+    ),
+    (
+        58,
+        'EN',
+        '다음 중 ''지우다, 없애다''의 영어 표현으로 알맞은 것은?',
+        '["escape", "erase", "expect", "excuse"]',
+        'erase',
+        '''erase''는 칠판의 글씨나 자국을 지우다는 뜻이야. 이야기의 마지막에 미란이 칠판을 지우며 하루를 마무리하는 장면이지.',
+        '지우개 = earser',
+        '[]'
+    ),
+    (
+        59,
+        'EN',
+        '''칠판을 지우다'' = e______ the board
+
+After class, the teacher ______ the board.
+(뜻: 수업 후에 선생님이 칠판을 지웠다)',
+        '[]',
+        'erased',
+        '''erase the board''는 칠판을 지우다라는 뜻으로, 학교에서 자주 쓰이는 표현이야.',
+        'e로 시작, ''삭제하다/완전히 없애다''라는 뜻 📝',
+        '["erased", "Erased"]'
+    ),
+    (
+        60,
+        'EN',
+        '이야기 마지막 장면에서 ''칠판을 지웠다''
+
+Miran went back to classroom 3-4 and ______ ______ the blackboard.
+(뜻: 칠판의 글씨를 지우다)',
+        '[]',
+        'wiped off',
+        '''wipe off''는 칠판이나 표면의 글씨를 닦아서 지운다는 뜻이야. erase나 clean off도 같은 의미로 쓸 수 있어.',
+        'w___ o__ (2단어, 자동차 와이퍼(wiper)가 하는 동작 + off)',
+        '["wiped off", "erased", "cleaned off", "wiped clean", "cleared"]'
+    ),
+    (
+        61,
+        'EN',
+        '다음 중 ''신비로운, 불가사의한''의 영어 표현으로 알맞은 것은?',
+        '["mechanical", "miraculous", "magnificent", "mysterious"]',
+        'mysterious',
+        '''mysterious''는 신비롭고 수수께끼 같은 느낌을 주는 성격을 표현할 때 쓰는 단어야.',
+        'mystery(미스터리)의 형용사형',
+        '[]'
+    ),
+    (
+        62,
+        'EN',
+        '''우연'' = c______
+
+It was probably just a ______.
+(뜻: 아마 그냥 우연이었을 거야)',
+        '[]',
+        'coincidence',
+        '''coincidence''는 우연의 일치라는 뜻으로, 예상치 못한 일이 동시에 일어날 때 쓰는 단어야.',
+        '동전을 던질 때 쓰는 그 단어와 같아 🪙',
+        '["coincidence", "Coincidence"]'
+    ),
+    (
+        63,
+        'EN',
+        '''복수전공하다''
+
+He is ______ ______ in psychology at art university.
+(뜻: 두 개의 전공을 동시에 하다)',
+        '[]',
+        'double majoring',
+        '''double majoring''은 두 개의 전공을 동시에 하는 것을 뜻해. dual majoring도 같은 의미로 쓸 수 있어.',
+        'd_____ m_____ (첫 번째 단어는 ''두 배''라는 뜻)',
+        '["double majoring", "dual majoring", "pursuing double major", "doing double major"]'
+    ),
+    (
+        64,
+        'EN',
+        '다음 중 ''우연, 우연의 일치''를 뜻하는 영어 단어는?',
+        '["consequence", "convenience", "coincidence", "conference"]',
+        'coincidence',
+        '''coincidence''는 우연히 동시에 일어나는 일을 말해. 꿈 예측이 계속 맞는 상황이 우연인지 궁금해하는 거지.',
+        'coin(동전)이 들어있는 단어 — 동전 던지기처럼 우연히 겹치는 일 🪙',
+        '[]'
+    ),
+    (
+        65,
+        'EN',
+        'I ______ down the stairs in my dream that night.',
+        '["walked", "jumped", "tumbled", "slipped"]',
+        'tumbled',
+        '''tumble down''은 굴러떨어지다라는 뜻으로, 계단에서 굴러떨어지는 상황을 표현할 때 자주 쓰는 표현이야.',
+        't으로 시작, 종양도 이 단어를 써서 표현해',
+        '[]'
+    ),
+    (
+        66,
+        'EN',
+        '''계단을 굴러떨어지다''
+
+I ______ ______ the stairs in my dream.
+(뜻: 계단에서 굴러서 떨어지다)',
+        '[]',
+        'tumbled down',
+        '''tumble down the stairs''는 계단에서 굴러떨어지다라는 뜻이야. roll down이나 fall down도 비슷한 의미로 쓸 수 있어.',
+        't_____ d___ (넘어져서 아래로 굴러간다는 뜻)',
+        '["tumbled down", "rolled down", "fell down", "tumbled off", "rolled off"]'
+    ),
+    (
+        67,
+        'EN',
+        '다음 중 ''점점, 서서히''를 뜻하는 영어 표현은?',
+        '["gracefully", "generally", "greatly", "gradually"]',
+        'gradually',
+        '''gradually''는 점점, 서서히 변화하는 걸 표현할 때 쓰는 부사야.',
+        'grade(등급)와 같은 어원 — 한 단계씩 천천히 📶',
+        '[]'
+    ),
+    (
+        68,
+        'EN',
+        '''무의식'' = u_________
+
+The _________ mind affects our dreams.
+(뜻: 무의식이 우리 꿈에 영향을 준다)',
+        '[]',
+        'unconscious',
+        '''unconscious''는 무의식을 뜻하는 심리학 용어야. 꿈과 깊은 연관이 있다고 알려져 있어.',
+        'conscious의 반대, 프로이드가 연구한 의식 아래 숨겨진 마음의 영역 🧠',
+        '["unconscious", "Unconscious"]'
+    ),
+    (
+        69,
+        'EN',
+        '''무의식이랑 꿈의 연관성''
+
+The ______ between the unconscious mind and dreams
+(뜻: 두 가지 사이의 관련성, 연결고리)',
+        '[]',
+        'connection',
+        '''connection''은 두 가지 사이의 연관성이나 연결을 나타내는 단어야. correlation, relationship도 같은 맥락에서 쓸 수 있어.',
+        'c_______ (9글자, connect의 명사형)',
+        '["connection", "correlation", "relationship", "link", "association"]'
+    ),
+    (
+        70,
+        'EN',
+        '다음 중 ''충격적인, 놀라운''을 뜻하는 영어 단어는?',
+        '["shocking", "sparkling", "sleeping", "speaking"]',
+        'shocking',
+        '''shocking''은 충격적이고 놀라운 일을 발견했을 때 쓰는 표현이야.',
+        '우리나라에서도 놀랄 때 흔히 쓰이는 단어야',
+        '[]'
+    ),
+    (
+        71,
+        'EN',
+        '''조작하다/다루다'' = m______
+
+He tried to ______ the situation to his advantage.
+(뜻: 그는 자신에게 유리하도록 상황을 조작하려고 했다)',
+        '[]',
+        'manipulate',
+        '''manipulate''는 조작하다, 다루다라는 뜻으로 꿈을 인위적으로 조작한다는 맥락에 딱 맞는 표현이야.',
+        'manual(수동의)과 같은 어원 mani(손) — 손으로 교묘히 다루다 ✋',
+        '["manipulate", "Manipulate"]'
+    ),
+    (
+        72,
+        'EN',
+        '''날짜별로 정리되어 있다''
+
+The dreams were organized ______ ______ date.
+(뜻: ~에 따라, ~별로)',
+        '[]',
+        'according to',
+        '''according to''는 ''~에 따라, ~별로''라는 뜻으로 정보를 분류할 때 자주 써. ''by''도 같은 의미로 쓸 수 있어.',
+        'a________ t_ (전치사구, ''~에 따르면''이란 뜻도 있어)',
+        '["according to", "by", "arranged by", "organized by"]'
+    ),
+    (
+        73,
+        'EN',
+        '다음 중 ''고민하다, 궁금해하다''를 뜻하는 영어 표현은?',
+        '["welcome", "wander", "whisper", "wonder"]',
+        'wonder',
+        '''wonder''는 뭔가에 대해 고민하거나 궁금해할 때 쓰는 표현이야. 어떻게 해야 할지 고민하는 상황이지.',
+        '''I wonder why~(왜일까~)'' 할 때 쓰는 동사, wonderful의 원형 ✨',
+        '[]'
+    ),
+    (
+        74,
+        'EN',
+        '''어떻게 해야 할까요?'' = What s______ I do?
+
+______ I break up with him or give him another chance?
+(뜻: 그와 헤어져야 할까요, 아니면 한 번 더 기회를 줘야 할까요?)',
+        '[]',
+        'should',
+        '''What should I do?''는 어떻게 해야 할지 모를 때 조언을 구하는 표현이야. ''Should I~?''로 선택에 대한 고민을 나타낼 수 있어.',
+        '선택의 순간에 쓰는 단어, ''shall''과 비슷해',
+        '["should", "Should"]'
+    ),
+    (
+        75,
+        'EN',
+        '이야기 마지막에서 화자가 고민하며 조언을 구하는 상황
+
+What ______ I ______ ?
+(뜻: 어떻게 해야 할까요?)',
+        '[]',
+        'should do',
+        '''What should I do?''는 어떻게 해야 할지 모르는 상황에서 조언을 구할 때 쓰는 가장 일반적인 표현이야.',
+        's_____ d_ (조언을 구할 때 가장 기본적인 표현)',
+        '["should do", "shall do", "ought to do"]'
+    ),
+    (
+        76,
+        'EN',
+        '다음 중 ''밝아지다, 활기차게 되다''를 뜻하는 영어 표현은?',
+        '["bother", "broaden", "brighten", "burden"]',
+        'brighten',
+        '''brighten''은 밝아지거나 활기차게 되는 걸 의미해. 여자친구가 과외 후 표정이 밝아진 상황이지.',
+        '전구가 ''밝아질'' 때도 써요',
+        '[]'
+    ),
+    (
+        77,
+        'EN',
+        '''과외'' = t______
+
+Her parents hired a ______ to help with her math.
+(뜻: 부모님이 수학을 도와줄 과외선생님을 고용했다)',
+        '[]',
+        'tutor',
+        '''tutor''는 과외선생님이나 개인교습을 해주는 사람을 뜻해.',
+        't로 시작, ''teach''와 같은 어근을 가진 단어',
+        '["tutor", "Tutor"]'
+    ),
+    (
+        78,
+        'EN',
+        '''과외 선생님을 붙여주다''
+
+Her parents ______ a private tutor for her.
+(뜻: ~을 고용하다, 채용하다)',
+        '[]',
+        'hired',
+        '''hire''는 돈을 주고 사람을 고용한다는 뜻이야. got, found, arranged도 이 맥락에서 쓸 수 있어.',
+        'h___ (4글자, 고용하다라는 뜻도 있음)',
+        '["hired", "got", "found", "arranged", "provided"]'
+    ),
+    (
+        79,
         'EN',
         '다음 중 ''어색한, 불편한''의 영어 표현으로 알맞은 것은?',
-        '["awkward", "awesome", "ancient", "accurate"]',
+        '["awkward", "annoying", "amazing", "anxious"]',
         'awkward',
-        '''awkward''는 상황이나 분위기가 어색하고 불편할 때 쓰는 표현이야. 친구가 뭔가 어색하게 반응한 상황이지.',
-        NULL,
-        '["awkward"]'
+        '''awkward''는 상황이 어색하거나 불편할 때 쓰는 표현이야. 친구가 뭔가 이상하게 웃는 어색한 분위기를 말하는 거지.',
+        '4개 중 발음이 어려울 거 같은 단어! 😬',
+        '[]'
     ),
     (
-        95,
+        80,
         'EN',
-        'It seemed strange, but I decided to ______ it slide since studying hard is a good thing.',
-        '["let", "make", "put", "get"]',
-        'let',
-        '''let it slide''는 뭔가 이상하지만 그냥 넘어가다, 문제 삼지 않고 지나치다라는 뜻의 표현이야.',
-        NULL,
-        '["let"]'
-    ),
-    (
-        96,
-        'EN',
-        '''그냥 넘어갔다'' (의심스럽지만 문제 삼지 않고 지나쳤다)
+        '''화제를 바꾸다/돌리다'' = c______ the s______
 
-It was weird, but I just ______ it ______.
-(뜻: ~을 그냥 넘어가다, 문제 삼지 않다)',
+She tried to ______ the ______ when I asked about her boyfriend.
+(뜻: 남자친구에 대해 물어보자 그녀는 화제를 돌리려 했다)',
         '[]',
-        'let slide',
-        '''let it slide''는 뭔가 이상하거나 문제가 있어도 그냥 넘어가버린다는 뜻이야. let it go, brush it off도 비슷한 의미로 쓸 수 있어.',
-        NULL,
-        '["let slide", "let go", "brushed off", "shrugged off", "overlooked"]'
+        'change the subject',
+        '''change the subject''는 화제를 바꾸다라는 뜻의 기본 표현이야. 어색한 상황에서 자주 쓰이지.',
+        '바꾸다 c + 주제/제목을 뜻하는 s로 시작하는 단어',
+        '["change the subject", "change subject", "Change the subject", "Change subject"]'
     ),
     (
-        97,
+        81,
         'EN',
-        '다음 중 ''신경쓰이다, 걱정되다''를 뜻하는 영어 표현은?',
-        '["bother", "brother", "butter", "better"]',
-        'bother',
-        '''bother''는 뭔가가 신경쓰이고 걱정될 때 쓰는 표현이야. 과외 선생님 때문에 마음이 불편해진 상황이지.',
-        NULL,
-        '["bother"]'
-    ),
-    (
-        98,
-        'EN',
-        'From that day on, it started to ______ at me.',
-        '["bother", "annoy", "nag", "worry"]',
-        'nag',
-        '''nag at someone''은 계속 신경 쓰이고 마음에 걸린다는 뜻의 표현이야.',
-        NULL,
-        '["nag"]'
-    ),
-    (
-        99,
-        'EN',
-        '''신경이 쓰이기 시작했다''
+        '''화제를 돌리다''
 
-From that day on, it started to ______ me.
-(뜻: 신경 쓰이게 하다, 괴롭히다)',
+She ______ the subject when I asked about the tutor.
+(뜻: 대화 주제를 바꾸다)',
         '[]',
-        'bother',
-        '''bother''는 뭔가 계속 신경 쓰이고 마음에 걸릴 때 쓰는 표현이야. bug나 nag at도 비슷한 의미로 쓸 수 있어.',
-        NULL,
-        '["bother", "bug", "nag at", "eat at", "trouble", "worry"]'
+        'changed',
+        '''change the subject''는 화제를 돌리다라는 뜻이야. switch나 shift도 같은 의미로 쓸 수 있어.',
+        'c_____ (전환하다, 바꾸다라는 뜻의 동사)',
+        '["changed", "switched", "shifted", "diverted"]'
     ),
     (
-        100,
+        82,
         'EN',
-        '다음 중 ''늦어지다, 지연되다''의 영어 표현으로 알맞은 것은?',
-        '["delayed", "detailed", "decided", "deleted"]',
+        '다음 중 ''지연되다, 늦어지다''의 영어 표현으로 알맞은 것은?',
+        '["decided", "delayed", "deleted", "detailed"]',
         'delayed',
-        '''delayed''는 예정된 시간보다 늦어지거나 지연되는 걸 말해. 과외가 늦어진다고 할 때 쓰는 표현이야.',
-        NULL,
-        '["delayed"]'
+        '''delayed''는 예정보다 늦어지거나 지연되는 걸 의미해. 과외가 늦어지는 상황에 딱 맞는 표현이야.',
+        '게임에서 ''딜레이 걸렸다''할 때 그 delay의 과거형 ✈️',
+        '[]'
     ),
     (
-        101,
+        83,
         'EN',
-        'The tutoring session was supposed to last 2 hours, but it ______ over 3 hours.',
-        '["ran", "went", "took", "lasted"]',
-        'ran',
-        '''run over''는 예정된 시간을 초과하다는 뜻의 숙어야. ''The meeting ran over''처럼 자주 쓰이지.',
-        NULL,
-        '["ran"]'
+        'She always makes ______ when she''s late.',
+        '["explanations", "excuses", "reasons", "stories"]',
+        'excuses',
+        '''make excuses''는 핑계를 대다라는 뜻의 자연스러운 영어 표현이야.',
+        '''Excuse me'' 할 때 그 단어의 복수형, make와 짝꿍으로 쓰여',
+        '[]'
     ),
     (
-        102,
+        84,
         'EN',
-        '''정확히는 안 보인다''를 영어로 표현할 때
+        '''핑계를 대다''
 
-I couldn''t ______ ______ clearly from that distance.
-(뜻: 명확하게/정확하게 보다)',
+She started ______ ______ excuses like "I was tired and took a nap."
+(뜻: 핑계나 변명을 늘어놓다)',
         '[]',
-        'make out',
-        '''make out''은 멀리서 뭔가를 정확히 구별해서 보다라는 뜻이야. 거리 때문에 선명하게 보기 어려운 상황에서 자주 써.',
-        NULL,
-        '["make out", "see them", "tell exactly", "observe them"]'
+        'making up',
+        '''make up excuses''는 핑계나 변명을 지어내다라는 뜻이야. come up with도 비슷한 의미로 쓸 수 있어.',
+        'm___ u_ (2단어, 만들다ing + 위로)',
+        '["making up", "coming up with", "giving", "making"]'
     ),
     (
-        103,
+        85,
         'EN',
-        '다음 중 ''들뜬, 흥분한''의 영어 표현으로 알맞은 것은?',
-        '["excited", "exhausted", "expected", "expired"]',
+        '다음 중 ''들뜬, 신난''을 뜻하는 영어 표현으로 알맞은 것은?',
+        '["exhausted", "excited", "experienced", "embarrassed"]',
         'excited',
-        '''excited''는 기분이 좋아서 들떠 있는 상태를 말해. 여자친구 목소리가 평소와 달리 들떠 있었던 거지.',
-        NULL,
-        '["excited"]'
+        '''excited''는 기분이 좋아서 들뜨거나 신난 상태를 말해. 목소리에서 설렘이 느껴지는 상황이지.',
+        'e로 시작하는 7글자 단어, ''흥분한'' 느낌',
+        '[]'
     ),
     (
-        104,
+        86,
         'EN',
-        'A few days later, I called her mom to ______ how she was doing.',
-        '["check in on", "look after", "keep up with", "follow up on"]',
-        'check in on',
-        '''check in on someone''은 누군가의 안부를 묻거나 상태를 확인한다는 뜻의 구동사야.',
-        NULL,
-        '["check in on"]'
-    ),
-    (
-        105,
-        'EN',
-        '''연락처를 달라''는 표현
+        '''안부를 묻다'' = ask about someone''s w______
 
-Could you give me his ______ ______? I want to get tutoring too.
-(뜻: 연락 정보)',
+I called to ask about her ______.
+(뜻: 그녀의 안부를 묻기 위해 전화했다)',
         '[]',
-        'contact information',
-        '''contact information''은 연락처 정보를 뜻해. contact info, contact details도 같은 의미로 쓸 수 있어.',
-        NULL,
-        '["contact information", "contact info", "contact details", "phone number", "contact number"]'
+        'well-being',
+        '''ask about someone''s well-being''은 안부를 묻다는 뜻의 정중한 표현이야.',
+        '건강과 행복을 뜻하는 단어, w로 시작해',
+        '["well-being", "wellbeing", "welfare"]'
     ),
     (
-        106,
+        87,
         'EN',
-        '다음 중 ''당황한, 혼란스러운''의 영어 표현으로 알맞은 것은?',
-        '["confused", "confident", "careful", "comfortable"]',
-        'confused',
-        '''confused''는 당황하거나 혼란스러운 상태를 나타내는 표현이야. 과외 선생님이 갑자기 남자친구라고 하니까 당황한 거지.',
-        NULL,
-        '["confused"]'
+        '''안부 인사차 전화하다''
+
+I called her mom to ______ ______ on how she was doing.
+(뜻: ~의 안부를 묻다)',
+        '[]',
+        'check up',
+        '''check up on''은 누군가의 안부나 상황을 확인한다는 뜻이야. check in이나 follow up도 비슷한 의미로 쓸 수 있어.',
+        'c___ u_ (2단어, 전화로 상황 확인할 때 쓰는 표현)',
+        '["check up", "check in", "follow up"]'
     ),
     (
-        107,
+        88,
         'EN',
-        'His voice suddenly changed when I mentioned who I was. He sounded ______ and flustered.',
-        '["taken aback", "excited", "confident", "pleased"]',
-        'taken aback',
-        '''taken aback''은 당황하거나 놀란 상태를 나타내는 표현이야. 과외 선생님이 남자친구라고 하니까 당황한 상황에 딱 맞아.',
-        NULL,
-        '["taken aback"]'
+        '다음 중 ''분명한, 확실한''을 뜻하는 영어 표현으로 알맞은 것은?',
+        '["central", "careful", "certain", "curious"]',
+        'certain',
+        '''certain''은 뭔가가 분명하거나 확실할 때 쓰는 표현이야. 의심스러운 상황에서 확신을 나타낼 때 사용해.',
+        'cert(증명서) + ain, certificate(자격증)과 같은 어원',
+        '[]'
     ),
     (
-        108,
+        89,
         'EN',
-        '이야기 맥락에서 ''목소리가 확 달라지고 당황하는 느낌''을 영어로 가장 자연스럽게 표현한 것은?',
-        '["His voice suddenly changed and he sounded flustered.", "His voice became louder and more confident.", "His voice got softer and more romantic.", "His voice remained calm and professional."]',
-        'His voice suddenly changed and he sounded flustered.',
-        '''flustered''는 당황하고 어쩔 줄 몰라 하는 상태를 표현할 때 쓰는 자연스러운 영어 표현이야.',
+        '''분명한, 확실한'' = d______
+
+Something is ______ wrong here.
+(뜻: 뭔가 분명히 잘못됐어)',
+        '[]',
+        'definitely',
+        '''definitely''는 ''분명히, 확실히''라는 뜻으로 확신을 표현할 때 쓰는 부사야.',
+        'd로 시작, ''명백히/분명히''라는 부사로도 쓰여',
+        '["definitely", "Definitely"]'
+    ),
+    (
+        90,
+        'EN',
+        '''뭔가 수상하다''
+
+Something ______ ______.
+(뜻: 뭔가 수상한 냄새가 난다)',
+        '[]',
+        'smells fishy',
+        '''Something smells fishy''는 뭔가 수상하다는 뜻이야. 생선이 상하면 냄새가 나듯이, 상황이 의심스러울 때 쓰는 관용 표현이지.',
+        's_____ f____ (2단어, 생선 비린내를 떠올려봐 🐟)',
+        '["smells fishy", "Smells fishy", "smells off", "seems fishy"]'
+    );
+
+INSERT IGNORE INTO
+    quiz_content (
+        quiz_id,
+        lang_code,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        hint,
+        acceptable_answers
+    )
+VALUES (
+        1,
+        'JA',
+        '쪽지를 보고 ''고맙다''고 느낀 상황에서, ''고맙다, 감사하다''를 뜻하는 일본어 표현은?',
+        '["はずかしい(恥ずかしい)", "ありがたい", "うれしい(嬉しい)", "かなしい(悲しい)"]',
+        'ありがたい',
+        '''ありがたい''는 ''고맙다, 감사하다''는 뜻이야. 쪽지로 자리를 비워준 게 이상하면서도 고마웠던 그 감정이 딱 이 단어야. ''ありがとう''와 같은 어원이라서 함께 외워두면 좋아. (JLPT N4)',
+        '''ありがとう''의 형용사 형태 — 감사함을 느끼는 마음',
+        '[]'
+    ),
+    (
+        2,
+        'JA',
+        '彼女は本に______いて、声をかけにくかった。
+(그녀는 책에 집중하고 있어서 말을 걸기 어려웠다)',
+        '["集中して(しゅうちゅうして)", "夢中になって(むちゅうになって)", "没頭して(ぼっとうして)", "熱中して(ねっちゅうして)"]',
+        '集中して(しゅうちゅうして)',
+        '''集中する(しゅうちゅうする)''는 한 가지에 집중하다는 뜻으로 N3 핵심 어휘야. ''熱中する''는 열중하다로 취미나 활동에 푹 빠질 때, ''没頭する''는 N2~N1 수준으로 좀 더 강한 몰입, ''夢中になる''는 넋을 잃을 정도로 빠질 때 써. 책을 읽으며 조용히 집중한 상황엔 ''集中する''가 가장 자연스러워. (JLPT N3)',
+        '집중해서 빠져드는 느낌, ''夢中''과 비슷한 뉘앙스의 복합동사',
+        '[]'
+    ),
+    (
+        3,
+        'JA',
+        '''말을 걸고 싶었지만 타이밍이 애매해서 선뜻 나서지 못하는'' 상황을 표현해.
+
+彼が本に集中していたので、声をかけるに______。
+(뜻: ~하기 어려웠다 / 차마 ~할 수 없었다)',
+        '[]',
+        'かねた',
+        '''〜かねる''는 ''차마 ~하기 어렵다, 선뜻 ~할 수 없다''는 뜻의 고급 표현이야. 단순히 ''難しい''나 ''できない''와 달리, 심리적 망설임이나 상황적 부담감으로 인해 행동을 못 하는 뉘앙스를 담고 있어. 이야기 속 화자가 말을 걸고 싶지만 집중하고 있는 그 애 때문에 타이밍을 잡지 못한 상황과 딱 맞는 표현이야. ''躊躇う(ためらう)''가 내면의 주저함이라면, ''〜かねる''는 상황과 심리가 결합된 더 격식 있는 표현. (JLPT N1)',
+        '「かねる」의 과거형 — ''차마 못 하겠다''는 뉘앙스의 고급 표현',
+        '["かねた", "声をかけるにかねた", "かねました"]'
+    ),
+    (
+        4,
+        'JA',
+        '쪽지에는 ''항상 열심히 하시는 모습''이라고 적혀 있었어. ''항상''을 뜻하는 일본어로 알맞은 것은?',
+        '["もう", "まだ", "いつも", "たくさん"]',
+        'いつも',
+        '''いつも''는 ''항상, 언제나''라는 뜻의 기본 부사야. 쪽지에서 ''항상 열심히 하는 모습''이라고 표현할 때 딱 맞는 단어지. (JLPT N4)',
+        'い로 시작하는 3글자 부사',
+        '[]'
+    ),
+    (
+        5,
+        'JA',
+        '''두근거리다, 설레다''
+
+そのメモを読んだとき、胸が______した。
+(그 쪽지를 읽었을 때, 가슴이 두근거렸다)',
+        '[]',
+        'ドキドキ',
+        '''胸がドキドキする(むねがどきどきする)''는 가슴이 두근거리다, 설레다라는 뜻이야. 긴장이나 설렘 모두에 쓸 수 있는 의성어 표현으로, 짝사랑 상대의 메시지를 읽고 심장이 뛰는 이 장면에 딱 맞아. 비슷한 ''ワクワク''는 기대감/흥분에 가깝고, ''ドキドキ''는 긴장+설렘의 뉘앙스야. (JLPT N3)',
+        '두근두근 — 일본어로 의성어 4글자',
+        '["ドキドキ", "どきどき"]'
+    ),
+    (
+        6,
+        'JA',
+        '상대방이 항상 먼저 와 있어서 ''도대체 몇 시에 오는 거야?''라고 의아해하는 상황. 이 ''의아함/갸웃함''을 표현하는 일본어로 가장 자연스러운 것은?',
+        '["首をかしげた", "頭を抱えた", "眉をひそめた", "目を丸くした"]',
+        '首をかしげた',
+        '''首をかしげる''는 ''이상하다, 납득이 안 된다''며 고개를 갸웃하는 동작에서 나온 관용표현으로, 의아함·석연찮음을 자연스럽게 표현해. ''目を丸くする''는 놀라서 눈을 동그랗게 뜨는 것, ''頭を抱える''는 심각하게 고민하며 머리를 감싸는 것, ''眉をひそめる''는 불쾌함·걱정으로 眉를 찌푸리는 것. 맥락상 가벼운 의문·의아함이므로 ''首をかしげた''가 가장 적절해. (JLPT N1)',
+        'と + 首を？ — 고개를 갸웃하는 동작에서 나온 관용표현',
+        '[]'
+    ),
+    (
+        7,
+        'JA',
+        '쪽지에 예쁜 그림을 그려준 상대방은 미술과 학생이었어. ''그림''을 일본어로 뭐라고 할까?',
+        '["絵(え)", "字(じ)", "紙(かみ)", "本(ほん)"]',
+        '絵(え)',
+        '''絵(え)''는 그림이라는 뜻이야. 미술과 학생이 쪽지에 귀여운 그림을 그려줬던 장면에서 나온 단어지. (JLPT N4)',
+        '''絵''는 실(糸)을 모아 만든 아름다운 형태를 나타내',
+        '[]'
+    ),
+    (
+        8,
+        'JA',
+        '방학이 되어 도서관에 가지 않게 됐는데, 그 사람이 자꾸 생각난다.
+
+彼女のことが、なんか______んだよね。
+(그녀가 왠지 신경 쓰이는 거야)',
+        '["気を使う(きをつかう)", "気になる(きになる)", "気がする(きがする)", "気に入る(きにいる)"]',
+        '気になる(きになる)',
+        '''気になる(きになる)''는 ''신경 쓰이다, 궁금하다''는 뜻의 관용 표현이야. 마음이 자꾸 그쪽으로 끌리는 느낌을 표현해. ''気に入る''는 마음에 들다, ''気がする''는 ~느낌이 든다, ''気を使う''는 신경을 쓰다(배려)로 뉘앙스가 각각 달라. (JLPT N2)',
+        'き＿＿＿になる — ''気''로 시작하는 3글자 관용구',
+        '[]'
+    ),
+    (
+        9,
+        'JA',
+        '''방학이 되어 만날 기회가 사라졌지만, 그 사람이 자꾸 마음에 걸린다''
+
+夏休みになって会う機会もなくなったのに、なぜか彼女のことが______。
+(뜻: 마음에 걸리다 / 신경이 쓰이다)',
+        '[]',
+        '頭から離れなかった',
+        '''頭から離れない''는 어떤 사람이나 일이 머릿속에서 계속 맴돌아 잊히지 않는다는 뜻의 관용표현이야. 짝사랑 상대가 방학으로 멀어졌는데도 계속 신경 쓰이는 이 상황에 딱 맞아. ''気になって仕方なかった''도 자연스러운 표현이지만, ''頭から離れない''는 더 문학적이고 감정의 집착에 가까운 뉘앙스를 담고 있어. (JLPT N1)',
+        '머릿속(頭)에서 떠나지(離れない) 않는다는 뉘앙스의 관용표현',
+        '["頭から離れなかった", "あたまからはなれなかった", "心から離れなかった", "こころからはなれなかった", "気になって仕方なかった", "きになってしかたなかった"]'
+    ),
+    (
+        10,
+        'JA',
+        '이야기 속 주인공은 1년 뒤 그 사람이 ''돌아왔는지'' 확인하러 갔어. ''돌아오다''를 일본어로 뭐라고 할까?',
+        '["帰る(かえる)", "歩く(あるく)", "起きる(おきる)", "変わる(かわる)"]',
+        '帰る(かえる)',
+        '''帰る(かえる)''는 ''돌아오다/돌아가다''라는 뜻이야. 교환학생을 떠난 그 사람이 1년 후에 돌아오겠다고 했잖아. 일상에서 가장 자주 쓰는 기본 동사 중 하나야. (JLPT N4)',
+        'か로 시작하는 동사, 집에 올 때 쓰는 그 말',
+        '[]'
+    ),
+    (
+        11,
+        'JA',
+        '''제대로, 똑바로, 충분히''
+
+顔も______見られないまま、別れてしまった。
+(얼굴도 제대로 보지 못한 채로 헤어지고 말았다)',
+        '[]',
+        'ちゃんと',
+        '''ちゃんと''는 ''제대로, 똑바로, 충분히''라는 뜻의 부사야. 비슷한 표현 ''きちんと''도 있지만, ''ちゃんと''는 감정적 아쉬움이 담긴 구어 상황에 더 자연스럽게 쓰여. 얼굴도 제대로 못 본 채 헤어진 허무한 감정을 담기에 딱 맞는 표현이야. (JLPT N2)',
+        'ち + 2글자, ''제대로 된'' 상태를 나타내는 부사',
+        '["ちゃんと"]'
+    ),
+    (
+        12,
+        'JA',
+        '''얼굴도 제대로 못 본 채로 헤어졌다''는 상황에서 느끼는 감정 — 허탈하고 덧없는 느낌을 가장 잘 표현한 일본어는?',
+        '["やるせなかった", "もどかしかった", "切なかった(せつなかった)", "虚しかった(むなしかった)"]',
+        '虚しかった(むなしかった)',
+        '''虚しい(むなしい)''는 노력이나 기대가 결실 없이 끝났을 때의 허무하고 텅 빈 감정이야. ''切ない''는 그리움·안타까움이 뒤섞인 쓸쓸함, ''もどかしい''는 답답하고 뜻대로 안 되는 느낌, ''やるせない''는 어쩔 수 없는 슬픔·억울함. 얼굴도 못 본 채 이별한 허탈감엔 ''虚しい''가 가장 정확해. (JLPT N1)',
+        '한자로 ''虚''가 들어가는 느낌, ''텅 빈'' 기분',
+        '[]'
+    ),
+    (
+        13,
+        'JA',
+        '이야기 속 두 사람은 지금도 가끔 쪽지로 대화를 나눠. ''대화하다''를 일본어로 어떻게 표현할까?',
+        '["散歩する(さんぽする)", "運動する(うんどうする)", "会話する(かいわする)", "勉強する(べんきょうする)"]',
+        '会話する(かいわする)',
+        '''会話する(かいわする)''는 ''대화하다''라는 뜻이야. 두 사람이 쪽지를 주고받으며 계속 대화를 이어간다는 마지막 장면과 딱 맞는 표현이지. (JLPT N4)',
+        'かい로 시작하는 명사 형태야',
+        '[]'
+    ),
+    (
+        14,
+        'JA',
+        '今も彼女と______いる。時々メモで話したりもする。
+(지금도 그녀와 만나고 있다. 가끔 쪽지로 대화하기도 한다)',
+        '["付いて(ついて)", "出会って(であって)", "関わって(かかわって)", "付き合って(つきあって)"]',
+        '付き合って(つきあって)',
+        '''付き合う(つきあう)''는 사귀다, 교제하다라는 뜻으로, 연인 관계를 표현할 때 가장 자연스러운 동사야. 出会う(만나다/우연히 만나다), 関わる(관계하다)와는 뉘앙스가 달라서 구별해야 해. (JLPT N3)',
+        '付き合う의 て형 — ''사귀다''라는 뜻의 복합동사',
+        '[]'
+    ),
+    (
+        15,
+        'JA',
+        '사귀게 된 지금도 쪽지를 주고받는 습관이 남아 있는 상황이야. ''옛날 습관이 지금도 남아 있다''는 뉘앙스를 담아 문장을 완성해봐.
+
+付き合っている今でも、あの頃の______で、たまに手紙でやり取りしている。
+(뜻: 습관/버릇이 남아서, ~이 배어 있어서)',
+        '[]',
+        '名残(なごり)で',
+        '''名残(なごり)''는 ''그 당시의 흔적/여운이 남아 있다''는 뜻으로, 단순한 습관(癖・習慣)보다 감성적인 뉘앙스가 있어. 사랑이 시작된 그 시절의 쪽지 교환이 지금도 이어진다는 이야기의 마지막 장면에 딱 어울리는 고급 표현이야. ''癖で''나 ''習慣で''도 문법적으로는 맞지만, 이 맥락의 감성적 여운을 담기엔 ''名残で''가 가장 자연스럽고 풍부한 표현이야. (JLPT N1)',
+        '몸에 ''배다/스며들다''는 뜻, 癖(くせ)와 비슷하지만 더 고급스러운 표현',
+        '["名残で", "なごりで", "名残(なごり)で", "癖で", "くせで", "習慣で", "しゅうかんで"]'
+    ),
+    (
+        16,
+        'JA',
+        '서점에 손님이 많지 않았다고 해. 다음 중 ''많い''의 반대말로 알맞은 것은?',
+        '["少ない(すくない)", "新しい(あたらしい)", "悲しい(かなしい)", "小さい(ちいさい)"]',
+        '少ない(すくない)',
+        '''少ない(すくない)''는 ''적다, 많지 않다''는 뜻이야. 손님이 별로 없는 작은 서점 상황에 딱 맞는 단어지. (JLPT N5)',
+        'す로 시작하는 い형용사, 4글자',
+        '[]'
+    ),
+    (
+        17,
+        'JA',
+        '難しい問題が解けなくて、______を抱えてしまった。
+(어려운 문제를 못 풀어서, 머리를 감싸 쥐고 말았다)',
+        '["胸(むね)", "頭(あたま)", "肩(かた)", "手(て)"]',
+        '頭(あたま)',
+        '''頭を抱える(あたまをかかえる)''는 머리를 감싸 쥐다, 즉 고민이나 어려움으로 괴로워하는 모습을 나타내는 관용표현이야. 수학 문제집을 앞에 두고 머리를 쥐어뜯는 장면과 딱 맞는 표현이지. 手(손), 胸(가슴), 肩(어깨)와 헷갈리지 않도록 주의해. (JLPT N3)',
+        '머리를 감싸 쥐는 동작 — ''かかえる''와 짝을 이루는 신체 부위',
+        '[]'
+    ),
+    (
+        18,
+        'JA',
+        '''문제가 너무 어려워서 머리를 쥐어뜯을 만큼 고민하다''
+
+難しい問題に______して、頭を抱えてしまった。
+(뜻: 몹시 애를 태우며 고민하다)',
+        '[]',
+        '苦悩(くのう)',
+        '''苦悩(くのう)する''는 단순히 ''迷う(망설이다)''나 ''悩む(고민하다)''보다 훨씬 강도 높은 번민·고통을 뜻해. 수학 문제를 앞에 두고 머리를 쥐어뜯는 장면처럼, 도저히 풀리지 않아 괴로운 상태에 딱 맞는 표현이야. ''悩む''는 일상적 고민, ''苦悩する''는 깊고 고통스러운 번민이라는 뉘앙스 차이를 기억해. (JLPT N1)',
+        '苦(고통 고) + 뇌(悩) — 깊은 고민/번민을 나타내는 한자어 동사',
+        '["苦悩して", "くのうして", "苦悩", "くのう", "悩んで"]'
+    ),
+    (
+        19,
+        'JA',
+        '그 학생이 오지 않아 3번 자리가 텅 비어 있었어요. ''비어 있다''에 가장 가까운 일본어 표현은?',
+        '["空(から)っぽ", "遠い(とおい)", "暗い(くらい)", "静か(しずか)"]',
+        '空(から)っぽ',
+        '''空っぽ(からっぽ)''는 ''텅 빈, 아무것도 없는'' 상태를 뜻해. 아무도 앉지 않은 빈 자리를 표현할 때 딱 맞는 말이야. (JLPT N4)',
+        'から로 끝나는 い형용사, 반대말은 いっぱい',
+        '[]'
+    ),
+    (
+        20,
+        'JA',
+        '''자꾸, 몇 번이고 계속''
+
+연우는 창가를 ______見ていた。
+(연우는 자꾸 창가를 쳐다봤다)',
+        '[]',
+        'しきりに',
+        '''しきりに(頻りに)''는 ''자꾸, 연신, 몇 번이고''라는 뜻의 부사로, 의지와 상관없이 반복되는 행동이나 충동을 표현할 때 써. 연우가 학생이 안 온 자리를 자꾸 바라보는 장면에 딱 맞는 표현이야. 비슷한 ''何度も''는 횟수에 초점, ''しきりに''는 멈추지 못하는 반복의 뉘앙스. (JLPT N3)',
+        '「何度も」보다 더 무의식적·반복적인 느낌, ''し''로 시작하는 부사',
+        '["しきりに", "頻りに", "しきりに"]'
+    ),
+    (
+        21,
+        'JA',
+        '그 학생이 며칠째 오지 않자 연우는 자꾸 창가를 바라봤다. 이처럼 ''무언가를 기다리며 애타게 신경이 쓰이는'' 심리 상태를 나타내는 표현으로 가장 적절한 것은?',
+        '["目を細める", "首を長くして待つ", "肩の荷が下りる", "胸がいっぱいになる"]',
+        '首を長くして待つ',
+        '''首を長くして待つ(くびをながくしてまつ)''는 목을 길게 빼고 기다린다는 뜻으로, 무언가를 애타게 기다리거나 신경을 곤두세우며 기다리는 상태를 나타내는 관용표현이야. 연우가 학생이 오기를 기다리며 계속 창가를 쳐다보는 장면과 딱 맞는 표현이지. ''胸がいっぱいになる''는 감동으로 가슴이 벅차오르는 것, ''目を細める''는 흐뭇하게 바라보는 것, ''肩の荷が下りる''는 짐이 내려지는 안도감을 뜻해서 맥락과 맞지 않아. (JLPT N1)',
+        '首(목) + 길게(長く) + 기다린다 — 목을 길게 빼고 기다리는 모습을 떠올려봐',
+        '[]'
+    ),
+    (
+        22,
+        'JA',
+        '이야기 속 학생은 아버지가 돌아가셨다고 했어. 다음 중 ''아버지''를 뜻하는 일본어로 알맞은 것은?',
+        '["お兄さん(おにいさん)", "お父さん(おとうさん)", "弟(おとうと)", "お母さん(おかあさん)"]',
+        'お父さん(おとうさん)',
+        '''お父さん(おとうさん)''은 아버지를 뜻하는 기본 단어야. 가족을 잃은 슬픈 상황에서 등장하는 단어지. (JLPT N5)',
+        '''父''는 아버지를 뜻하는 한자, 존칭 ''お~さん''을 붙여서',
+        '[]'
+    ),
+    (
+        23,
+        'JA',
+        '연우는 뭐라고 말해야 할지 몰라서 그냥 옆에 앉았다.
+
+連宇は何と言えばいいか分からなくて、ただ______に座った。',
+        '["前(まえ)", "隣(となり)", "後ろ(うしろ)", "周り(まわり)"]',
+        '隣(となり)',
+        '''隣(となり)''는 바로 옆, 이웃을 뜻하는 명사야. 연우가 말을 잇지 못하고 학생의 옆자리에 조용히 앉는 장면과 딱 맞는 표현이야. ''周り''는 주변 전체, ''前''은 앞, ''後ろ''는 뒤라서 뉘앙스가 달라. (JLPT N3)',
+        'とな…로 시작하는 2글자, ''바로 옆''을 뜻해',
+        '[]'
+    ),
+    (
+        24,
+        'JA',
+        '''위로의 말을 찾지 못해 그냥 곁에 있어 주는 상황''
+
+何と声をかければいいかわからず、ただ______に徹した。
+(뜻: 말없이 곁에서 조용히 함께 있어 주다)',
+        '[]',
+        'そばにいること',
+        '''～に徹する(てっする)''는 ''~로 일관하다, ~에 전념하다''는 뜻의 N1 고급 표현이야. 여기서는 말 대신 ''그냥 곁에 있어 주는 것에 전념했다''는 뉘앙스로, ''寄り添う(よりそう)''는 단순히 옆에 있는 것을 넘어 상대의 감정에 함께 머무르는 따뜻한 표현이야. 아버지를 잃은 학생 앞에서 어떤 말도 꺼내지 못하고 조용히 옆에 앉은 연우의 행동을 가장 정확하게 담는 표현. (JLPT N1)',
+        '「寄り添う(よりそう)」와 비슷한 뉘앙스, ''곁에 있다''는 뜻의 관용적 표현',
+        '["そばにいること", "傍にいること", "寄り添うこと", "よりそうこと", "そばにいる", "傍にいる"]'
+    ),
+    (
+        25,
+        'JA',
+        '이야기에서 학생은 수학을 제일 ''싫어한다''고 했어. 다음 중 ''싫어하다''에 해당하는 일본어 표현은?',
+        '["好き(すき)", "楽しい(たのしい)", "嫌い(きらい)", "悲しい(かなしい)"]',
+        '嫌い(きらい)',
+        '''嫌い(きらい)''는 ''싫어하다''는 뜻의 な형용사야. 好き(すき)의 반대말이지. 학생이 수학을 제일 싫어한다고 했으니 이 표현이 딱 맞아. (JLPT N4)',
+        'き로 시작하는 な형용사',
+        '[]'
+    ),
+    (
+        26,
+        'JA',
+        '''포기하다''
+
+数学が難しくても、______な。
+(수학이 어려워도 포기하지 마.)',
+        '[]',
+        '諦める(あきらめる)',
+        '''諦める(あきらめる)''는 포기하다라는 뜻이야. 편지 속 ''포기하지 마''는 ''諦めるな''가 자연스러운 표현이고, 이 문장에서는 禁止형 な와 함께 쓰였어. ''諦める''는 N2 어휘로, N3의 ''やめる(그만두다)''와 뉘앙스가 달라 — 諦める는 희망이나 목표를 내려놓는 뉘앙스가 강해. (JLPT N2)',
+        'あき + 3글자 (「諦」라는 한자를 쓰는 동사)',
+        '["諦める", "あきらめる", "あきらめるな", "諦めるな"]'
+    ),
+    (
+        27,
+        'JA',
+        '아버지가 딸에게 남긴 편지에서 ''어려워도 포기하지 마''라는 말의 뉘앙스와 가장 가까운 일본어 표현은?',
+        '["七転び八起き(ななころびやおき)", "猿も木から落ちる(さるもきからおちる)", "石の上にも三年(いしのうえにもさんねん)", "案ずるより産むが易し(あんずるよりうむがやすし)"]',
+        '七転び八起き(ななころびやおき)',
+        '''七転び八起き''는 몇 번 넘어져도 다시 일어선다는 뜻으로, 포기하지 말라는 아버지의 응원 메시지와 뉘앙스가 딱 맞아. ''案ずるより産むが易し''는 해보면 생각보다 쉽다는 뜻이고, ''石の上にも三年''은 참고 견디면 성공한다는 인내의 속담, ''猿も木から落ちる''는 전문가도 실수한다는 뜻이야. 포기하지 말고 다시 일어서라는 격려에는 七転び八起き가 가장 자연스럽게 맞아. (JLPT N1)',
+        '七(なな)から始まる, 넘어져도 다시 일어서는 정신',
+        '[]'
+    ),
+    (
+        28,
+        'JA',
+        '이야기의 마지막 장면에서 중년 남자는 아무 말 없이 나갔어. ''나가다''를 뜻하는 일본어로 알맞은 것은?',
+        '["出る(でる)", "起きる(おきる)", "走る(はしる)", "帰る(かえる)"]',
+        '出る(でる)',
+        '''出る(でる)''는 ''나가다, 나오다''라는 뜻이야. 중년 남자가 3번 자리를 조용히 바라보고 아무 말 없이 서점을 떠나는 마지막 장면에 딱 맞는 단어지. (JLPT N4)',
+        'で로 시작하는 동사, 入る(はいる)의 반대말',
+        '[]'
+    ),
+    (
+        29,
+        'JA',
+        '彼は3番の席を______見てから、何も言わずに出て行った。
+(그는 3번 자리를 유심히 보더니, 아무 말 없이 나갔다)',
+        '["ぼんやりと", "ちらりと", "じっくり", "さっさと"]',
+        'じっくり',
+        '''じっくり''는 천천히 꼼꼼하게, 유심히 살피는 모양을 나타내는 부사야. ''ちらりと''는 흘깃 보는 것, ''ぼんやりと''는 멍하니 보는 것, ''さっさと''는 재빨리 행동하는 것과 구별해야 해. 아버지가 딸의 자리를 말없이 조용히 살펴보고 나가는 장면의 감정과 딱 맞아. (JLPT N3)',
+        'じっ＋2글자 — 눈을 고정하고 뚫어지게 보는 느낌',
+        '[]'
+    ),
+    (
+        30,
+        'JA',
+        '''아무 말도 하지 않고 조용히 그 자리를 떠나다''
+
+彼は3番の席を______と見つめてから、何も言わずにその場を______。
+
+두 번째 빈칸: ''자리를 떠나다''는 뜻의 관용표현을 써.',
+        '[]',
+        'その場を立ち去った',
+        '''立ち去る(たちさる)''는 그 자리를 아무 말 없이 떠나다라는 뜻의 복합동사야. 단순히 ''出た(나갔다)''나 ''帰った(돌아갔다)''보다 훨씬 여운이 있고 문학적인 뉘앙스를 담고 있어. 아버지가 딸의 자리를 묵묵히 확인하고 아무 말 없이 사라지는 이 마지막 장면의 감정 — 말없는 사랑과 쓸쓸함 — 을 가장 잘 담아내는 표현이야. (JLPT N1)',
+        '자리(その場)에서 물러나다 — ''立つ''와 결합하는 두 글자 표현',
+        '["立ち去った", "その場を立ち去った", "たちさった", "立ちさった"]'
+    ),
+    (
+        31,
+        'JA',
+        '매일 새벽 같은 시간에 이상한 전화가 오자, 민혜는 점점 긴장하기 시작했다. ''긴장한, 불안한'' 상태를 나타내는 일본어 표현으로 알맞은 것은?',
+        '["楽しい(たのしい)", "優しい(やさしい)", "嬉しい(うれしい)", "怖い(こわい)"]',
+        '怖い(こわい)',
+        '''怖い(こわい)''는 무섭거나 두려운 느낌을 나타내는 형용사야. 매일 같은 시각에 걸려오는 이상한 전화에 민혜가 긴장하고 두려움을 느끼는 상황에 딱 맞는 단어지. (JLPT N4)',
+        'こ로 시작하는 い형용사, 무서운 느낌',
+        '[]'
+    ),
+    (
+        32,
+        'JA',
+        '時計を見たら2時46分だった。手に汗をかくほど______していた。
+(시계를 보니 2시 46분이었다. 손에 땀이 날 만큼 긴장하고 있었다.)',
+        '["動揺(どうよう)", "心配(しんぱい)", "緊張(きんちょう)", "不安(ふあん)"]',
+        '緊張(きんちょう)',
+        '''緊張する(きんちょうする)''는 긴장하다라는 뜻이야. 心配(걱정), 不安(불안), 動揺(동요)도 비슷한 감정이지만, 손에 땀이 날 만큼 몸이 바짝 조여드는 신체적 긴장감을 나타낼 땐 緊張이 가장 자연스러워. (JLPT N3)',
+        '긴장감을 나타내는 한자 2글자, 첫 글자는 ''緊''',
+        '[]'
+    ),
+    (
+        33,
+        'JA',
+        '매일 새벽 정확히 같은 시각에 걸려오는 정체불명의 전화. 민혜는 자신도 모르게 긴장감에 휩싸인다.
+
+민혜は自分でも気づかないうちに、じわじわと恐怖に______いた。
+(뜻: (감정/상황에) 사로잡혀 있다, 빠져들어 있다)',
+        '[]',
+        'とらわれて',
+        '''囚われる(とらわれる)''는 감정·생각·상황에 사로잡히다, 얽매이다라는 뜻이야. 단순히 ''무섭다(怖い)''거나 ''긴장하다(緊張する)''와는 달리, 자신도 모르게 서서히 그 감정에 빠져들어 헤어나오지 못하는 뉘앙스를 담고 있어. 이야기에서 민혜가 의식하지 못하는 사이에 두려움에 잠식되어가는 심리를 표현하는 데 딱 맞는 고급 표현이야. (JLPT N1)',
+        'と로 시작하는 5글자 — 감정이나 생각에 ''사로잡히다/얽매이다''는 뜻',
+        '["とらわれて", "囚われて", "捕らわれて", "とらわれ"]'
+    ),
+    (
+        34,
+        'JA',
+        '이야기에서 민혜의 손이 떨리고, 여자 목소리도 떨리고 있었어. ''떨리다, 흔들리다''를 뜻하는 일본어 동사는?',
+        '["倒れる(たおれる)", "震える(ふるえる)", "走る(はしる)", "動く(うごく)"]',
+        '震える(ふるえる)',
+        '''震える(ふるえる)''는 몸이나 목소리가 떨리다, 흔들리다는 뜻이야. 공포로 손이 떨리거나 목소리가 떨릴 때 쓰는 기본 동사야. (JLPT N4)',
+        '한자에 ''雨''(비) 밑에 ''辰''이 들어가는 글자',
+        '[]'
+    ),
+    (
+        35,
+        'JA',
+        '''소름이 돋다, 닭살이 돋다''
+
+彼女は背中に______が立った。
+(그녀는 등에 소름이 돋았다)',
+        '[]',
+        '鳥肌(とりはだ)',
+        '''鳥肌が立つ(とりはだがたつ)''는 소름이 돋다는 뜻의 관용표현이야. 공포나 강한 감동으로 피부가 닭살처럼 오돌토돌해지는 상태를 나타내. 등에서 소름이 퍼지는 공포스러운 장면에 딱 맞는 표현이지. (JLPT N2)',
+        'と로 시작하는 4글자 — ''鳥''(새)의 ''肌''(피부)처럼 오돌토돌해지는 느낌',
+        '["鳥肌", "とりはだ", "鳥はだ"]'
+    ),
+    (
+        36,
+        'JA',
+        '민혜의 등에 소름이 돋았다는 상황을 일본어로 가장 자연스럽게 표현한 것은?',
+        '["背筋が伸びた", "背筋がじんわりした", "背筋が痛くなった", "背筋がぞっとした"]',
+        '背筋がぞっとした',
+        '''背筋がぞっとした''는 등줄기가 오싹해지다, 즉 공포로 소름이 돋는 표현이야. ''背筋が伸びた''는 자세가 바로 서다/긴장하다, ''背筋が痛くなった''는 단순히 등이 아프다, ''じんわりした''는 서서히 따뜻하게 스며드는 느낌으로 공포와는 전혀 맞지 않아. 낯선 여자 목소리에 소름이 돋는 강한 공포 상황이므로 ''ぞっとした''가 딱 맞는 표현이야. (JLPT N1)',
+        '背筋(등줄기) + 소름/오싹함을 나타내는 관용표현',
+        '[]'
+    ),
+    (
+        37,
+        'JA',
+        '민혜는 갑작스러운 말에 당황했어. ''당황하다''에 가장 가까운 일본어 표현은?',
+        '["驚く(おどろく)", "悲しい(かなしい)", "困る(こまる)", "急ぐ(いそぐ)"]',
+        '驚く(おどろく)',
+        '''驚く(おどろく)''는 뜻밖의 상황에 놀라거나 당황할 때 쓰는 동사야. 민혜가 전화 속 목소리에 갑자기 말을 걸려 순간 놀란 상황에 딱 맞아. (JLPT N4)',
+        '''驚''은 말(馬)이 놀라 뛰듯이 갑자기 충격받는 모습',
+        '[]'
+    ),
+    (
+        38,
+        'JA',
+        '彼女の声が頭の中で______いた。
+(그녀의 목소리가 머릿속에서 계속 맴돌고 있었다)',
+        '["ぼんやり消えて(ぼんやりきえて)", "ぐるぐる回って(ぐるぐるまわって)", "どんどん増えて(どんどんふえて)", "ふらふら歩いて(ふらふらあるいて)"]',
+        'ぐるぐる回って(ぐるぐるまわって)',
+        '''ぐるぐる回る(ぐるぐるまわる)''는 빙글빙글 돌다, 머릿속에서 맴돌다라는 뜻이야. 생각이나 목소리가 머릿속을 떠나지 않는 상황에 딱 맞는 표현이지. ふらふら(비틀비틀), どんどん(점점), ぼんやり(흐릿하게)는 뉘앙스가 전혀 달라. (JLPT N3)',
+        '빙글빙글 도는 이미지, ''ぐ''로 시작하는 복합동사',
+        '[]'
+    ),
+    (
+        39,
+        'JA',
+        '''~하지 않을 수 없다''는 고급 표현을 완성해 봐.
+
+気にしない______がなかった。
+(뜻: 신경 쓰지 않을 수가 없었다)',
+        '[]',
+        'わけ',
+        '''わけがない''는 ''~할 리가 없다''이고, ''気にしないわけがなかった''는 ''신경 쓰지 않을 수가 없었다''는 뜻이야. 직역하면 ''신경 쓰지 않을 이유(わけ)가 없었다''로, 강한 심리적 필연성을 나타내는 고급 표현이야. ''ざるを得なかった''와 비슷한 뉘앙스지만, わけがない는 논리적 불가능성을 강조해. (JLPT N1)',
+        '2글자, ''이유/도리''를 뜻하는 단어 + がない로 ''~할 리가 없다''',
+        '["わけ", "訳"]'
+    ),
+    (
+        40,
+        'JA',
+        '민혜는 전화기를 내려놓으려 했지만 손이 말을 듣지 않았어. 이때 ''손''을 뜻하는 일본어는 무엇일까?',
+        '["目(め)", "手(て)", "足(あし)", "耳(みみ)"]',
+        '手(て)',
+        '''手(て)''는 ''손''을 뜻하는 기초 단어야. 민혜의 손이 말을 듣지 않아 전화기를 내려놓지 못하는 장면에서 나온 표현이지. (JLPT N5)',
+        'て로 읽는 한 글자 단어',
+        '[]'
+    ),
+    (
+        41,
+        'JA',
+        '''말을 듣지 않다, 뜻대로 움직이지 않다''
+
+怖くて、手が______きかない。
+(무서워서 손이 말을 듣지 않는다)',
+        '[]',
+        'いうことを',
+        '''言うことをきかない(いうことをきかない)''는 말을 듣지 않다, 뜻대로 되지 않다라는 뜻의 관용표현이야. 신체나 사물이 의지대로 움직이지 않을 때 자주 쓰여. ''手が言うことをきかない''처럼 신체 부위와 함께 쓰는 게 자연스러운 표현이야. (JLPT N3)',
+        'い로 시작하는 5글자 — ''말(言)을 듣다(聞く)''와 관련된 관용구',
+        '["いうことを", "言うことを", "いうことを聞かない", "言うことを聞かない"]'
+    ),
+    (
+        42,
+        'JA',
+        '전화기를 내려놓으려 해도 손이 말을 듣지 않는 상황. ''몸이 말을 듣지 않다''를 일본어로 가장 자연스럽게 표현한 것은?',
+        '["体がぞくぞくしてきた", "体が言うことを聞かなかった", "体がしびれてしまった", "体が動かせなくなった"]',
+        '体が言うことを聞かなかった',
+        '''体が言うことを聞かない''는 ''몸이 말을 듣지 않다''라는 뜻의 관용표현으로, 의지와 달리 몸이 움직이지 않는 상황에 써. ''動かせなくなった''는 물리적으로 움직임이 불가능해진 것, ''しびれた''는 마비/저림, ''ぞくぞく''는 소름/흥분의 의태어라 이 공포스러운 상황에서 몸이 의지를 따르지 않는 뉘앙스와는 다르게 맥락이 맞지 않아. (JLPT N1)',
+        '몸(体/身体) + 말을 듣다(言うことを聞く) 구조',
+        '[]'
+    ),
+    (
+        43,
+        'JA',
+        '이야기의 마지막, 새벽에 전화벨이 울리는 장면이에요. ''아침(새벽)''을 뜻하는 일본어로 알맞은 것은?',
+        '["朝(あさ)", "昼(ひる)", "夜(よる)", "夕方(ゆうがた)"]',
+        '朝(あさ)',
+        '''朝(あさ)''는 아침/새벽을 뜻하는 기본 시간 표현이야. 새벽 2시 47분, 전화벨이 울리는 마지막 장면의 시간대와 연결되지. (JLPT N5)',
+        'あ로 시작하는 시간대 표현',
+        '[]'
+    ),
+    (
+        44,
+        'JA',
+        '新しい夜勤者が席に着いた瞬間、電話が______。
+(새로운 야간 근무자가 자리에 앉은 순간, 전화벨이 울렸다)',
+        '["鳴った(なった)", "叫んだ(さけんだ)", "響いた(ひびいた)", "震えた(ふるえた)"]',
+        '鳴った(なった)',
+        '''鳴る(なる)''는 전화, 벨, 알람 등이 소리를 내며 울리다는 뜻이야. 이야기의 마지막 장면에서 새벽 2시 47분에 전화벨이 울리는 장면과 딱 맞아. ''響く''는 소리가 울려 퍼지다, ''叫ぶ''는 외치다, ''震える''는 떨리다로 뉘앙스가 달라. (JLPT N3)',
+        '''鳴''은 새(鳥)가 울어서(口) 소리가 나는 모습 — 전화벨이 이걸 해',
+        '[]'
+    ),
+    (
+        45,
+        'JA',
+        '''공포가 되풀이되다''는 느낌을 주는 이야기의 마지막 장면처럼, 불길한 일이 또다시 반복되려 할 때 쓸 수 있는 일본어 표현을 완성해봐.
+
+悪夢が______とする瞬間、電話が鳴り響いた。
+(뜻: 악몽이 되풀이되려 하는 순간)',
+        '[]',
+        '繰り返されよう',
+        '''繰り返す(くりかえす)''는 ''되풀이하다/반복하다''라는 동사야. 수동형 ''繰り返される''에 의지·추측의 ''～ようとする''를 붙이면 ''반복되려 하다''는 뜻이 돼. 이야기 마지막에서 새로운 야간 근무자에게 똑같은 전화벨이 울리는 장면은, 공포가 끝나지 않고 되풀이됨을 암시해. 이런 순환적 공포를 표현할 때 ''くりかえす'' 계열 표현이 자연스럽게 쓰여. (JLPT N1)',
+        '「繰り返す(くりかえす)」의 변형 + 「～ようとする」 구조',
+        '["繰り返されよう", "くりかえされよう", "繰り返そう", "くりかえそう", "繰り返され"]'
+    ),
+    (
+        46,
+        'JA',
+        '미란은 새벽 6시에 학교에 왔어. ''학교''를 일본어로 하면?',
+        '["図書館(としょかん)", "学校(がっこう)", "病院(びょういん)", "会社(かいしゃ)"]',
+        '学校(がっこう)',
+        '''学校(がっこう)''는 ''학교''라는 뜻이야. 미란이 청소를 하러 새벽에 출근한 바로 그 장소지. (JLPT N5)',
+        'が로 시작하는 4글자 단어',
+        '[]'
+    ),
+    (
+        47,
+        'JA',
+        'ミランは不審に思い、あたりを______。
+(미란은 이상하게 여겨 주변을 살펴봤다)',
+        '["見渡した(みわたした)", "見逃した(みのがした)", "見合わせた(みあわせた)", "見送った(みおくった)"]',
+        '見渡した(みわたした)',
+        '''見渡す(みわたす)''는 주변을 넓게 둘러보다, 살펴보다라는 뜻의 복합동사야. 見送る(배웅하다/보내다), 見逃す(見逃す — 놓치다), 見合わせる(보류하다)와 혼동하지 않도록 주의해. (JLPT N3)',
+        '見 + 동사, ''둘러보다''는 뜻의 복합동사',
+        '[]'
+    ),
+    (
+        48,
+        'JA',
+        '''분명히 청소해 뒀는데 이상한 것이 놓여 있다'' — 있을 수 없는 일이 눈앞에 펼쳐졌을 때의 위화감과 당혹감
+
+廊下は昨夜きれいに掃除したままだったのに、赤いヒールが一足だけ置かれていた。ミランは______を覚えた。
+(뜻: 현실과 맞지 않는 이상함/위화감을 느꼈다)',
+        '[]',
+        '違和感',
+        '''違和感(いわかん)''는 현실이나 예상과 어긋나는 이질감·위화감을 뜻하는 고급 명사야. 단순한 놀람(驚き)이나 두려움(恐怖)과는 달리, ''무언가 맞지 않는다''는 인지적·감각적 불일치를 정밀하게 표현해. 어젯밤 깨끗이 닦아둔 복도에 갑자기 구두 한 짝이 놓여 있는 상황처럼, 논리적으로 말이 안 되는 장면을 목격했을 때 딱 쓰는 표현이야. (JLPT N1)',
+        '違(い) + 和(わ) + 感(かん) — 뭔가 ''어긋난'' 느낌을 나타내는 한자어 3글자',
+        '["違和感", "いわかん", "違和感(いわかん)"]'
+    ),
+    (
+        49,
+        'JA',
+        '책상 위에 놓인 ''종이''를 일본어로 뭐라고 할까?',
+        '["机(つくえ)", "窓(まど)", "本(ほん)", "紙(かみ)"]',
+        '紙(かみ)',
+        '''紙(かみ)''는 종이라는 뜻이야. 책상 위에 접힌 메모 한 장이 있는 장면에서 핵심 단어지. (JLPT N5)',
+        'か로 시작하는 2글자 명사',
+        '[]'
+    ),
+    (
+        50,
+        'JA',
+        '''(학교 안에) 남아 있다, 아직 안에 있다''
+
+誰かがまだ校内に______いるということだった。
+(누군가 아직 학교 안에 남아 있다는 뜻이었다)',
+        '[]',
+        '残って',
+        '''残る(のこる)''는 남다, 남아 있다는 뜻의 동사야. ''校内に残っている''는 건물 안에 아직 머물러 있다는 상황을 자연스럽게 표현해. 보안 기록에 나간 기록이 없다는 단서와 딱 맞는 표현이지. (JLPT N2)',
+        '「残る」의 て형 — ''と'' 아니고 ''で''로 이어져요',
+        '["残って", "のこって"]'
+    ),
+    (
+        51,
+        'JA',
+        '보안 기록상 들어간 기록만 있고 나간 기록이 없어 누군가 아직 안에 있음을 추리하는 상황이야. ''～ということにほかならない(~라는 뜻에 다름 아니다)''와 가장 가까운 의미로, 이 맥락에서 쓸 수 있는 표현은?',
+        '["誰かがまだ校内にいるにほかならなかった", "誰かがまだ校内にいるかもしれなかった", "誰かがまだ校内にいるべきだった", "誰かがまだ校内にいるはずがなかった"]',
+        '誰かがまだ校内にいるにほかならなかった',
+        '''～にほかならない''는 ''~에 다름 아니다'', 즉 논리적으로 그것 외에 다른 결론이 없다는 단정적 추론 표현이야. 보안 기록이라는 객관적 근거를 바탕으로 내린 결론이므로 이 표현이 맥락상 가장 적절해. ''～かもしれない''는 막연한 가능성, ''～べきだった''는 당위/후회, ''～はずがない''는 부정적 단정으로 각각 맥락에 맞지 않아. (JLPT N1)',
+        '논리적 귀결을 나타내는 N1 표현 — ''~라고밖에 볼 수 없다''는 뉘앙스',
+        '[]'
+    ),
+    (
+        52,
+        'JA',
+        '체육관 안이 고요한 상황을 표현할 때, ''조용한''에 해당하는 일본어로 알맞은 것은?',
+        '["元気(げんき)", "親切(しんせつ)", "静か(しずか)", "大切(たいせつ)"]',
+        '静か(しずか)',
+        '''静か(しずか)''는 조용하다는 뜻의 な형용사야. 아무도 없는 체육관 안이 쥐 죽은 듯 고요한 장면에 딱 맞는 단어지. (JLPT N5)',
+        'し로 시작하는 な형용사',
+        '[]'
+    ),
+    (
+        53,
+        'JA',
+        '深夜の体育館の中は______していた。
+(한밤중의 체육관 안은 고요했다)',
+        '["静寂(せいじゃく)", "静か(しずか)", "穏やか(おだやか)", "閑散(かんさん)"]',
+        '静か(しずか)',
+        '''静か(しずか)''는 조용하다, 고요하다는 뜻의 형용동사야. 체육관 안에 아무도 없는 듯 고요한 분위기를 자연스럽게 표현할 수 있어. ''静寂''는 같은 한자를 포함하지만 명사이고 더 격식적인 표현, ''閑散''은 한산하다는 뜻으로 뉘앙스가 달라. (JLPT N3)',
+        'し＋2글자, ''조용히 잠잠한'' 분위기를 나타내는 형용동사',
+        '[]'
+    ),
+    (
+        54,
+        'JA',
+        '''고요하고 쥐 죽은 듯 조용한 분위기''를 나타내는 표현
+
+体育館の中は______としていた。
+(뜻: 쥐 죽은 듯 고요한, 적막한)',
+        '[]',
+        'しーん',
+        '''しーん''은 완전한 침묵과 적막함을 표현하는 의태어야. 단순히 조용한 ''静か''와 달리, 사람의 기척도 소리도 전혀 없는 긴장감 있는 정적의 뉘앙스를 담고 있어. 추리물에서 수상한 공간의 분위기를 묘사할 때 자주 쓰이는 고급 의태어야. (JLPT N1)',
+        'し행 의태어, 사람 기척이 전혀 없는 적막함을 나타내는 표현',
+        '["しーん", "シーン", "しん", "シン"]'
+    ),
+    (
+        55,
+        'JA',
+        '여자가 가방에서 신문을 꺼내는 장면이 나와. ''가방''을 일본어로 뭐라고 할까?',
+        '["鞄(かばん)", "財布(さいふ)", "棚(たな)", "箱(はこ)"]',
+        '鞄(かばん)',
+        '''鞄(かばん)''는 가방이라는 뜻이야. 여자가 이 가방에서 신문을 꺼내 부고란을 보여주는 장면에서 등장해. (JLPT N4)',
+        'か로 시작하는 2글자 명사',
+        '[]'
+    ),
+    (
+        56,
+        'JA',
+        '''(신문 등을) 꺼내다''
+
+女性はバッグから新聞を______。
+(여자는 가방에서 신문을 꺼냈다)',
+        '[]',
+        '取り出した',
+        '''取り出す(とりだす)''는 ''꺼내다, 끄집어내다''라는 뜻의 복합동사야. 取る(가지다/잡다) + 出す(내다)가 합쳐진 형태로, 가방이나 주머니에서 물건을 꺼내는 상황에 자연스럽게 쓰여. 過去形으로 取り出した가 돼. (JLPT N3)',
+        '取り出す와 같은 뜻의 복합동사, ''だ''로 끝나는 2음절',
+        '["取り出した", "とりだした", "取りだした", "とり出した"]'
+    ),
+    (
+        57,
+        'JA',
+        '여자가 가방에서 신문을 꺼내 펼쳤을 때, 거기엔 누군가의 죽음을 알리는 란이 펼쳐져 있었다. 이처럼 신문 등에 실리는 ''부고(訃報)를 알리는 란''을 일본어로 가장 적절하게 표현한 것은?',
+        '["弔辞欄(ちょうじらん)", "追悼欄(ついとうらん)", "訃報欄(ふほうらん)", "死亡欄(しぼうらん)"]',
+        '訃報欄(ふほうらん)',
+        '''訃報欄(ふほうらん)''은 신문에서 사망 소식을 알리는 난을 뜻해. ''死亡欄''은 일상적으로 잘 쓰이지 않는 직접적 표현이고, ''弔辞欄''은 조사(弔辞)를 싣는 란, ''追悼欄''은 추도 글을 싣는 란으로 뉘앙스가 달라. 신문에서 사망 소식을 공지하는 란은 ''訃報欄''이 가장 정확한 표현이야. (JLPT N1)',
+        '訃(부고 부)자가 들어가는 두 글자 단어',
+        '[]'
+    ),
+    (
+        58,
+        'JA',
+        '미란이 교실로 돌아가 칠판을 지웠어. 다음 중 ''칠판''을 뜻하는 일본어로 알맞은 것은?',
+        '["窓(まど)", "机(つくえ)", "本棚(ほんだな)", "黒板(こくばん)"]',
+        '黒板(こくばん)',
+        '''黒板(こくばん)''은 칠판을 뜻하는 단어야. 교실에서 선생님이 글씨를 쓰는 그 검은 판이지. 미란이 마지막에 교실로 돌아가 칠판을 지우는 장면에서 나와. (JLPT N5)',
+        'こく로 시작하는 2글자 단어',
+        '[]'
+    ),
+    (
+        59,
+        'JA',
+        'ミランは教室に戻って、黒板を______。
+(미란은 교실로 돌아가서 칠판을 지웠다)',
+        '["外した(はずした)", "拭いた(ふいた)", "消えた(きえた)", "消した(けした)"]',
+        '消した(けした)',
+        '''消す(けす)''는 타동사로 ''지우다, 끄다''라는 뜻이야. 자동사 ''消える(きえる)''는 ''(저절로) 사라지다''로 뉘앙스가 달라. 칠판을 능동적으로 지우는 행위이므로 타동사 ''消した''가 정답. ''拭く(ふく, 닦다)''나 ''外す(はずす, 떼다)''와 혼동하지 않도록 주의해. (JLPT N3)',
+        '지우다 + 과거형, ''消す''의 과거형은?',
+        '[]'
+    ),
+    (
+        60,
+        'JA',
+        '''감정을 억누르며 조용히 마무리하다''
+
+미란은 모든 것을 알게 된 후, 아무 말 없이 교실로 돌아가 칠판을 지웠다. 이처럼 감정을 겉으로 드러내지 않고 조용히 받아들이는 모습을 일본어로:
+
+彼女は何も言わず、______と黒板を消した。
+(뜻: 말없이 차분하게, 감동이 서서히 스며드는 듯한)',
+        '[]',
+        'じんわり',
+        '''じんわり''는 감동이나 온기, 눈물 같은 것이 서서히 스며들 듯 퍼지는 모습을 나타내는 고급 의태어야. ''しんみり''는 차분하고 약간 쓸쓸한 분위기, ''じっくり''는 천천히 꼼꼼하게 하는 뉘앙스라 미란이 모든 진실을 조용히 받아들이며 칠판을 지우는 이 장면의 감정과는 달라. 감정이 속으로 서서히 스며드는 뉘앙스엔 ''じんわり''가 가장 자연스러워. (JLPT N1)',
+        'じ행, 서서히 스며드는 느낌의 의태어 — 눈물이 ''______'' 흘러내리다',
+        '["じんわり"]'
+    ),
+    (
+        61,
+        'JA',
+        '이야기 속 화자는 그날 밤에 꿈을 꿨어요. ''밤''을 일본어로 뭐라고 할까요?',
+        '["夜(よる)", "昼(ひる)", "今日(きょう)", "朝(あさ)"]',
+        '夜(よる)',
+        '''夜(よる)''는 밤을 뜻하는 기본 단어야. 남자친구가 예언한 그날 밤, 진짜로 파란 나비 꿈을 꾼 장면에서 쓰였지. (JLPT N5)',
+        'よ로 시작하는 2글자',
+        '[]'
+    ),
+    (
+        62,
+        'JA',
+        '不思議だとは思ったけど、______だろうと______にした。
+(신기하긴 했지만, 우연이겠지 하고 넘어갔다)',
+        '["偶然(ぐうぜん)", "必然(ひつぜん)", "当然(とうぜん)", "突然(とつぜん)"]',
+        '偶然(ぐうぜん)',
+        '''偶然(ぐうぜん)''은 우연이라는 뜻으로, 계획이나 의도 없이 일어난 일을 가리켜. ''必然(ひつぜん)''은 필연, ''突然(とつぜん)''은 갑자기, ''当然(とうぜん)''은 당연이라는 뜻이라 문맥과 맞지 않아. (JLPT N3)',
+        '운이나 확률로 설명되는 뜻밖의 일치 — 영어로 치면 ''coincidence''',
+        '[]'
+    ),
+    (
+        63,
+        'JA',
+        '''대수롭지 않게 흘려보내다''는 뜻의 표현을 완성해 보세요.
+
+まあ偶然だろうと思って、______してしまった。
+(뜻: 그냥 흘려버리다 / 대충 넘기다)',
+        '[]',
+        '聞き流し',
         NULL,
-        '["His voice suddenly changed and he sounded flustered."]'
+        '''흘려듣다''할 때 쓰는 그 단어, 聞き～와 짝을 이루기도 해요',
+        '["聞き流し", "きき流し", "ききながし", "聞き流す", "聞きながし", "流し", "ながし"]'
+    ),
+    (
+        64,
+        'JA',
+        '남자친구가 매일 잠들기 전에 꿈 예언 메시지를 보내요. ''매일''을 뜻하는 일본어로 알맞은 것은?',
+        '["明日(あした)", "毎朝(まいあさ)", "今日(きょう)", "毎日(まいにち)"]',
+        '毎日(まいにち)',
+        '''毎日(まいにち)''는 ''매일''이라는 뜻이야. 남자친구가 하루도 빠짐없이 꿈 예언을 보내는 상황에 딱 맞는 단어지. (JLPT N5)',
+        'まい로 시작하는 2글자 단어',
+        '[]'
+    ),
+    (
+        65,
+        'JA',
+        '''~와 관련된, ~에 관한''
+
+今日は水______夢を見るかも。
+(오늘은 물과 관련된 꿈을 꿀지도 몰라)',
+        '[]',
+        'に関する(にかんする)',
+        '''〜に関する(にかんする)''는 ''~에 관한, ~와 관련된''이라는 뜻의 중급 표현이야. 명사를 수식할 때 ''水に関する夢(みずにかんするゆめ)''처럼 써. 비슷한 ''〜について''는 ''~에 대해서''로 조금 더 구어적인 뉘앙스. (JLPT N3)',
+        'かん + 3글자, ''관련''을 뜻하는 한자어',
+        '["に関する", "にかんする", "関する", "かんする"]'
+    ),
+    (
+        66,
+        'JA',
+        '남자친구의 꿈 예언이 계속 맞아떨어지는 상황에서 ''이게 우연일 리가 없다''고 느낄 때, 가장 자연스러운 일본어 표현은?',
+        '["これは偶然にすぎない", "これは偶然であるはずがない", "これは偶然だったかもしれない", "これは偶然ではないかもしれない"]',
+        'これは偶然であるはずがない',
+        '''〜はずがない''는 ''~일 리가 없다''는 뜻으로, 논리적·경험적 근거에 기반한 강한 부정을 나타내는 N1 표현이야. ''〜ないかもしれない''는 단순한 추측, ''〜にすぎない''는 ''~에 불과하다'', ''〜かもしれない''는 불확실한 가능성이라 맥락상 맞지 않아. 꿈 예언이 세 번씩이나 맞아떨어진 상황이니 ''우연일 리 없다''는 강한 확신의 뉘앙스가 가장 자연스러워. (JLPT N1)',
+        '「〜にほかならない」와 비슷한 강한 단정 표현, ''~일 리 없다''',
+        '[]'
+    ),
+    (
+        67,
+        'JA',
+        '남자친구의 꿈 예측이 점점 ''무서워지기 시작했다''고 해. 다음 중 ''무서운''을 뜻하는 일본어로 알맞은 것은?',
+        '["悲しい(かなしい)", "寂しい(さびしい)", "怖い(こわい)", "恥ずかしい(はずかしい)"]',
+        '怖い(こわい)',
+        '''怖い(こわい)''는 ''무섭다''는 뜻이야. 처음엔 신기했던 꿈 예측이 점점 무서워지는 상황에 딱 맞는 단어지. (JLPT N4)',
+        'こ로 시작하는 い형용사, 공포 영화 떠올려봐',
+        '[]'
+    ),
+    (
+        68,
+        'JA',
+        '夢と無意識の______について、心理学で学んだ。
+(꿈과 무의식의 연관성에 대해 심리학에서 배웠다)',
+        '["関連性(かんれんせい)", "重要性(じゅうようせい)", "共通性(きょうつうせい)", "可能性(かのうせい)"]',
+        '関連性(かんれんせい)',
+        '''関連性(かんれんせい)''는 두 가지 사이의 연관성·관련성을 뜻하는 명사야. ''可能性(かのうせい)''는 가능성, ''重要性(じゅうようせい)''는 중요성, ''共通性(きょうつうせい)''는 공통성으로 각각 뜻이 달라. 이야기 속 남자친구가 무의식과 꿈의 연관성을 심리학으로 설명하는 장면에서 딱 맞는 표현이야. (JLPT N2)',
+        '두 가지가 서로 이어져 있을 때 쓰는 단어, ''かん''으로 시작해',
+        '[]'
+    ),
+    (
+        69,
+        'JA',
+        '''무의식과 꿈의 연관성''처럼, 두 가지 사이의 깊은 관련성을 나타낼 때 쓰는 일본어 표현을 완성해.
+
+無意識と夢の______を心理学で学んだんだ。
+(뜻: 연관성 / 관련성)',
+        '[]',
+        '関連性',
+        '''関連性(かんれんせい)''는 두 가지 이상의 사물이나 개념이 서로 연결되어 있는 성질을 뜻하는 고급 명사야. 단순한 ''関係(かんけい)''보다 학문적·분석적 뉘앙스가 강해서 심리학이나 논문 같은 맥락에서 자주 쓰여. ''相関性(そうかんせい)''도 정답으로 인정 가능하며, ''서로 영향을 주고받는 상관관계''라는 뜻으로 더 통계적인 느낌. (JLPT N1)',
+        '「関」이 들어가는 한자어, ''서로 연결된 성질''을 나타내는 N1 명사',
+        '["関連性", "かんれんせい", "相関性", "そうかんせい", "関連", "かんれん"]'
+    ),
+    (
+        70,
+        'JA',
+        '이야기에서 남자친구 집 책상 위에 노트가 있었어요. ''책상''을 일본어로 뭐라고 할까요?',
+        '["窓(まど)", "椅子(いす)", "机(つくえ)", "棚(たな)"]',
+        '机(つくえ)',
+        '''机(つくえ)''는 책상이라는 뜻이야. 남자친구 집 책상 위에 수상한 노트가 놓여 있었던 장면에서 나온 단어지. (JLPT N4)',
+        'つ로 시작하는 4글자 단어',
+        '[]'
+    ),
+    (
+        71,
+        'JA',
+        '''빼곡히 적혀 있다, 가득 채워져 있다''
+
+ノートに3ヶ月分のデータが______書かれていた。
+(노트에 3개월치 데이터가 빼곡히 적혀 있었다)',
+        '[]',
+        'びっしり',
+        '''びっしり''는 틈 없이 빼곡히 가득 차 있는 상태를 나타내는 부사야. ''ぎっしり''도 비슷한 의미로 쓰이는데, ''びっしり''는 특히 글씨나 글자가 빽빽하게 채워진 상황에 잘 어울려. 이야기 속 3개월치 기록이 노트에 빼곡히 적힌 장면과 딱 맞는 표현이야. (JLPT N2)',
+        'び＋3글자, ''빽빽하다''는 느낌의 부사',
+        '["びっしり"]'
+    ),
+    (
+        72,
+        'JA',
+        '노트 마지막 페이지에 ''꿈 조작 실험''이라는 말을 발견했을 때의 심정을 가장 잘 표현한 일본어는?',
+        '["胸がいっぱいになった", "胸がときめいた", "呆然自失(ぼうぜんじしつ)した", "目頭(めがしら)が熱くなった"]',
+        '呆然自失(ぼうぜんじしつ)した',
+        '''呆然自失''는 너무 놀라거나 충격을 받아 멍하니 제정신을 잃은 상태를 뜻하는 사자성어야. ''꿈 조작 실험''이라는 충격적인 문구를 발견한 순간의 감정으로 딱 맞아. ''胸がいっぱいになった''는 감동으로 벅찬 상태, ''目頭が熱くなった''는 눈물이 핑 도는 감동, ''胸がときめいた''는 설레는 두근거림이라 모두 맥락과 맞지 않아. (JLPT N1)',
+        'あ然(어이없음) + ぼう然(멍함)이 합쳐진 사자성어',
+        '[]'
+    ),
+    (
+        73,
+        'JA',
+        '이야기의 마지막 문장처럼 ''어떻게 해야 할지 모르겠다''는 상황에서, ''어떻게''에 해당하는 일본어로 알맞은 것은?',
+        '["いつ", "どこ", "どう", "なぜ"]',
+        'どう',
+        '''どう''는 ''어떻게''라는 뜻의 기본 의문사야. ''어떻게 해야 할까요?''는 일본어로 ''どうすればいいですか？''라고 표현해. 이야기 마지막에서 화자가 남자친구에 대해 어떻게 해야 할지 고민하는 상황과 딱 맞는 단어지. (JLPT N4)',
+        'ど로 시작하는 2글자 의문사',
+        '[]'
+    ),
+    (
+        74,
+        'JA',
+        '彼は私がストレスを______とき、気にかけてくれる。
+(그는 내가 스트레스를 받을 때 챙겨준다)',
+        '["受ける(うける)", "溜める(ためる)", "抱える(かかえる)", "感じる(かんじる)"]',
+        '溜める(ためる)',
+        '''ストレスを溜める(ためる)''는 스트레스가 쌓이다/받다라는 뜻의 자연스러운 일본어 콜로케이션이야. 受ける는 주로 충격·영향을 받을 때, 抱える는 문제를 떠안을 때, 感じる는 느낌을 표현할 때 써. 스트레스가 내면에 쌓이는 뉘앙스에는 溜める가 가장 잘 맞아. (JLPT N2)',
+        '스트레스를 ''받다''는 동사, 受ける 패밀리',
+        '[]'
+    ),
+    (
+        75,
+        'JA',
+        '이야기의 화자는 남자친구가 나쁜 사람은 아닌 것 같지만, 어떻게 해야 할지 몰라 속이 찝찝하고 개운하지 않은 상태야.
+
+''속이 찝찝하고 개운하지 않은 느낌''을 나타내는 일본어 의태어를 써봐.
+
+彼氏のことが嫌いじゃないけど、______した気持ちが残って、どうすればいいかわからない。',
+        '[]',
+        'もやもや',
+        '''もやもや''는 안개처럼 마음이 흐리고 개운하지 않은 찝찝한 상태를 나타내는 의태어야. 결론을 내리지 못하고 감정이 정리되지 않은 이 이야기의 마지막 상황과 딱 맞아. 비슷해 보이는 ''ぐずぐず''는 행동을 질질 끄는 뉘앙스, ''むかむか''는 메스꺼움이나 화가 치미는 느낌이라 다르니 주의해. (JLPT N1)',
+        '안개가 낀 것처럼 마음이 흐리고 찝찝한 느낌, ''も''로 시작하는 4글자 의태어',
+        '["もやもや"]'
+    ),
+    (
+        76,
+        'JA',
+        '여자친구의 성적이 올라가자 남자친구도 기분이 좋았다. ''성적''을 일본어로 뭐라고 할까?',
+        '["勉強(べんきょう)", "授業(じゅぎょう)", "成績(せいせき)", "試験(しけん)"]',
+        '成績(せいせき)',
+        '''成績(せいせき)''는 성적이라는 뜻이야. 여자친구의 성적이 올라서 남자친구도 뿌듯해하는 장면에서 핵심 단어지. (JLPT N4)',
+        'せ로 시작하는 3글자 단어',
+        '[]'
+    ),
+    (
+        77,
+        'JA',
+        'デートしているのに、急に「ちょっと待って」と言って______を始めた。
+(데이트 중인데 갑자기 ''잠깐만''이라며 답장을 시작했다)',
+        '["発信(はっしん)", "返信(へんしん)", "連絡(れんらく)", "確認(かくにん)"]',
+        '返信(へんしん)',
+        '''返信(へんしん)''은 메시지나 편지 등에 답장을 보내는 것을 뜻해. ''発信(はっしん)''은 발신·전송, ''連絡(れんらく)''는 연락, ''確認(かくにん)''은 확인으로 각각 뉘앙스가 달라. 데이트 중에 다른 사람 문자에 답장하는 상황이니 返信이 가장 자연스러워. (JLPT N3)',
+        '返 + 동사, ''돌려보내다''는 뜻의 한자가 들어가',
+        '[]'
+    ),
+    (
+        78,
+        'JA',
+        '데이트 중에 여자친구가 다른 사람의 문자에 답장하는 걸 보고 뭔가 불길한 느낌이 드는 상황.
+
+彼女がデート中に別の人へ返信しているのを見て、胸の中に______ものを感じた。
+(뜻: 찝찝하고 개운치 않은 감정이 마음속에 떠오르는 느낌)',
+        '[]',
+        'もやもやした',
+        '''もやもや''는 안개처럼 마음이 흐릿하게 찝찝하고 개운치 않은 상태를 나타내는 고급 의태어야. ''ドキドキ''는 두근거림, ''ざわざわ''는 술렁이는 느낌, ''しんみり''는 조용히 감동받는 느낌으로 이 맥락과는 달라. 데이트 중 여자친구가 다른 남자에게 답장하는 걸 보고 확신은 없지만 뭔가 찜찜한 감정이 드는 이 장면에 가장 정밀하게 맞는 표현이 바로 もやもや야. (JLPT N1)',
+        '명확하지 않은 불안감, 안개처럼 마음을 흐리게 하는 의태어',
+        '["もやもやした", "もやもやする", "もやもや"]'
+    ),
+    (
+        79,
+        'JA',
+        '과외 있는 날 평소보다 화장을 진하게 한다는 걸 눈치챘어. 이처럼 무언가가 ''신경 쓰이다, 마음에 걸리다''는 상황을 나타내는 일본어 표현은?',
+        '["楽になる(らくになる)", "気になる(きになる)", "好きになる(すきになる)", "元気になる(げんきになる)"]',
+        '気になる(きになる)',
+        '''気になる(きになる)''는 무언가가 신경 쓰이거나 마음에 걸릴 때 쓰는 표현이야. 여자친구의 행동이 점점 이상하게 느껴지면서 신경이 쓰이기 시작하는 이 상황에 딱 맞는 말이지. (JLPT N4)',
+        'き로 시작하는 두 글자 명사 + になる',
+        '[]'
+    ),
+    (
+        80,
+        'JA',
+        '''신경 쓰이다, 마음에 걸리다''
+
+その日から、ずっと______なった。
+(그날부터 계속 신경이 쓰이게 됐다)',
+        '[]',
+        '気に',
+        '''気になる(きになる)''는 무언가가 자꾸 마음에 걸리고 신경 쓰인다는 뜻의 관용 표현이야. 비슷한 ''気にする(きにする)''는 스스로 신경을 쓰는 능동적 뉘앙스인 반면, ''気になる''는 자기도 모르게 마음이 쓰이는 상태를 나타내. 여자친구의 행동이 자꾸 머릿속에 남는 이 상황에 딱 맞는 표현이지. (JLPT N2)',
+        'き＋に (관용구 気になる의 앞 두 글자)',
+        '["気に", "きに"]'
+    ),
+    (
+        81,
+        'JA',
+        '친구가 불편한 기색으로 말을 얼버무리며 화제를 돌리는 상황. ''話題(わだい)を______''에 가장 어울리는 표현은?',
+        '["話題を断ち切った(わだいをたちきった)", "話題を持ち出した(わだいをもちだした)", "話題を変えようとした(わだいをかえようとした)", "話題をそらした(わだいをそらした)"]',
+        '話題をそらした(わだいをそらした)',
+        '''話題をそらす''는 불편한 주제를 슬쩍 피해 다른 쪽으로 돌리는 뉘앙스야. 친구가 의도적으로 불편한 질문을 회피한 이 장면에 딱 맞아. ''話題を変える''는 단순히 주제를 바꾸는 것, ''断ち切る''는 완전히 끊어버리는 강한 표현, ''持ち出す''는 새 화제를 꺼내는 것이라 맥락과 다르게 느껴져. ''そらす''에는 ''들키지 않으려 슬쩍 피한다''는 함축이 있어서 이 상황의 뉘앙스를 가장 잘 살려줘. (JLPT N1)',
+        '화제의 방향을 바꾼다 — ''돌리다/전환하다''를 뜻하는 동사',
+        '[]'
+    ),
+    (
+        82,
+        'JA',
+        '카페에서 기다리는 장면이 나와. ''기다리다''를 일본어로 어떻게 말할까?',
+        '["会う(あう)", "見る(みる)", "待つ(まつ)", "聞く(きく)"]',
+        '待つ(まつ)',
+        '''待つ(まつ)''는 ''기다리다''라는 뜻이야. 주인공이 카페에서 여자친구가 나오길 기다리는 장면에서 딱 맞는 단어지. (JLPT N4)',
+        'ま로 시작하는 동사, 2글자',
+        '[]'
+    ),
+    (
+        83,
+        'JA',
+        '家庭教師は2時間のはずなのに、3時間を______ても出てこなかった。
+(과외는 2시간이어야 하는데, 3시간이 넘어도 나오지 않았다)',
+        '["外れて(はずれて)", "越して(こして)", "超えて(こえて)", "過ぎて(すぎて)"]',
+        '超えて(こえて)',
+        '''超える(こえる)''는 어떤 기준이나 수량을 넘어서다, 초과하다라는 뜻이야. ''過ぎる''는 시간이 지나가다 또는 정도가 지나치다는 의미로 뉘앙스가 달라. ''越す''는 장소나 경계를 넘을 때 주로 써서 여기엔 어색해. (JLPT N3)',
+        '시간이나 수량이 어떤 기준을 ''초과''할 때 쓰는 복합동사, 超(こ)で始まる',
+        '[]'
+    ),
+    (
+        84,
+        'JA',
+        '''뭔가 이상한 낌새를 눈치채다''
+
+遠くてはっきりとは見えないけど、二人が笑いながら話しているのを見て、______がした。
+(뜻: 불길한 예감/좋지 않은 느낌이 들었다)',
+        '[]',
+        '虫の知らせ',
+        '''胸騒ぎ(むなさわぎ)''는 불안하고 불길한 예감으로 가슴이 술렁이는 느낌이야. ''虫の知らせ(むしのしらせ)''는 근거 없이 느껴지는 불길한 예감을 뜻하는 관용표현이고. 두 표현 모두 이 상황처럼 ''왠지 모르게 나쁜 일이 일어날 것 같은 느낌''에 딱 맞아. ''嫌な予感''는 좀 더 직접적인 표현. (JLPT N1)',
+        '''胸''나 ''虫''가 들어가는 예감 관련 관용표현',
+        '["虫の知らせ", "むしのしらせ", "嫌な予感", "いやなよかん", "胸騒ぎ", "むなさわぎ"]'
+    ),
+    (
+        85,
+        'JA',
+        '여자친구의 목소리가 ''들떠 있었다''는 상황에서, ''기분이 좋은, 즐거운'' 상태를 나타내는 일본어 형용사는?',
+        '["眠い(ねむい)", "楽しい(たのしい)", "難しい(むずかしい)", "悲しい(かなしい)"]',
+        '楽しい(たのしい)',
+        '''楽しい(たのしい)''는 즐겁고 기분이 좋은 상태를 나타내는 형용사야. 목소리가 들떠 있을 만큼 기분이 좋은 여자친구의 상황과 딱 맞는 표현이지. (JLPT N4)',
+        'た로 시작하는 い형용사, 3글자',
+        '[]'
+    ),
+    (
+        86,
+        'JA',
+        '''들뜨다, 흥분되어 있다''
+
+彼女の声がなんか______いた。
+(그녀의 목소리가 왠지 들떠 있었다)',
+        '[]',
+        '浮いて(ういて)',
+        '''浮く(うく)'' 또는 ''浮つく(うわつく)''는 기분이나 마음이 들떠 있다는 뜻이야. 여기서는 ''声が浮いていた'' 혹은 ''声が浮ついていた''처럼 써서 목소리에서 설렘이나 흥분이 느껴지는 상태를 표현해. 차분하지 않고 뭔가 감추는 듯한 뉘앙스까지 담겨 있어. (JLPT N3)',
+        '''浮''는 물 위에 뜨는 모습 — 마음이 둥둥 떠오르는 느낌',
+        '["浮いて", "ういて", "うわついて", "浮ついて"]'
+    ),
+    (
+        87,
+        'JA',
+        '여자친구의 목소리가 ''뭔가 들떠 있었다''는 상황을 가장 정확하게 표현한 일본어는?',
+        '["声がうわずっていた", "声が弾んでいた", "声が震えていた", "声が上擦っていた"]',
+        '声が弾んでいた',
+        '''声が弾む(こえがはずむ)''는 목소리가 활기차게 튀어오르듯 들뜨는 긍정적 설렘의 뉘앙스야. 이 맥락에서 여자친구가 과외 후 기분 좋게 들뜬 상황이므로 가장 적절해. ''声がうわずる''는 긴장이나 흥분으로 목소리가 높아지는 것, ''声が震える''는 두려움/감동으로 떨리는 것, ''声が上擦る(こえがうわずる)''는 うわずる와 같은 표현이지만 긴장·불안의 뉘앙스가 강해. 설렘으로 들뜬 목소리엔 ''弾む''가 가장 자연스러워. (JLPT N1)',
+        '浮(う)く＋気分が上がる感じ — 가라앉지 않고 ''뜬'' 느낌의 형용동사',
+        '[]'
+    ),
+    (
+        88,
+        'JA',
+        '이야기 마지막에 화자는 뭔가 이상하다는 걸 ''분명히'' 느끼고 있어. ''분명히, 확실히''를 뜻하는 일본어 부사로 알맞은 것은?',
+        '["ゆっくり", "すっかり", "はっきり", "そっくり"]',
+        'はっきり',
+        '''はっきり''는 ''분명히, 확실히''라는 뜻의 부사야. 화자가 뭔가 이상하다는 걸 확실히 느끼는 상황에 딱 맞는 표현이지. (JLPT N4)',
+        '''きっと''와 비슷하지만 더 확신에 찬 느낌, ''は''로 시작해',
+        '[]'
+    ),
+    (
+        89,
+        'JA',
+        'はっきりしないけど、何かが______のは確かだ。
+(확실하진 않지만, 뭔가 이상한 건 분명하다)',
+        '["変(へん)な", "不思議(ふしぎ)な", "異常(いじょう)な", "おかしい"]',
+        'おかしい',
+        '''おかしい''는 ''이상하다, 뭔가 수상하다''는 뉘앙스로, 일상 대화에서 직감적으로 뭔가 맞지 않는 느낌을 표현할 때 써. 異常(비정상적), 変(이상야릇함), 不思議(신기함·불가사의)와는 뉘앙스가 달라. 이 문장처럼 ''뭔가 딱 꼬집을 수는 없지만 수상하다''는 감각에 가장 잘 맞는 표현이야. (JLPT N3)',
+        '「おかしい」와 비슷하지만 더 딱딱한 느낌, ''い형용사''',
+        '[]'
+    ),
+    (
+        90,
+        'JA',
+        '''확실한 증거는 없지만 뭔가 이상하다는 느낌을 지울 수 없다''는 상황을 표현할 때, 아래 빈칸에 알맞은 표현은?
+
+証拠は何もないのに、どうも______。
+(뜻: 뭔가 석연치 않다 / 납득이 안 된다)',
+        '[]',
+        '腑に落ちない',
+        '''腑に落ちない(ふにおちない)''는 ''납득이 안 되다, 석연치 않다''는 뜻의 고급 관용표현이야. ''腑''는 내장/속마음을 가리키고, 무언가가 마음속으로 ''떨어지지 않는다''는 이미지에서 온 표현이야. 증거는 없지만 뭔가 이상하다는 느낌을 지울 수 없는 이 장면의 감정과 딱 맞아. 비슷해 보이는 ''気になる''나 ''おかしい''보다 훨씬 강한 ''납득 불가''의 뉘앙스를 담고 있어. (JLPT N1)',
+        '「腑」(장기/속마음)가 들어가는 관용표현, 4글자',
+        '["腑に落ちない", "ふにおちない", "腑に落ちない(ふにおちない)"]'
+    );
+
+INSERT IGNORE INTO
+    quiz_content (
+        quiz_id,
+        lang_code,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        hint,
+        acceptable_answers
+    )
+VALUES (
+        1,
+        'ZH',
+        '처음에 자기 자리 옆에 누군가 앉아있는 걸 보고 짜증이 났어. 이때 ''짜증나다, 불쾌하다''를 나타내는 중국어 표현으로 가장 알맞은 것은?',
+        '["烦恼(fánnǎo)", "失望(shīwàng)", "害羞(hàixiū)", "难过(nánguò)"]',
+        '烦恼(fánnǎo)',
+        '''烦恼(fánnǎo)''는 짜증스럽거나 속이 상하고 불쾌한 감정을 나타내는 단어야. 자기만의 자리라고 생각했던 곳 옆에 낯선 사람이 앉아있으니 처음엔 당연히 기분이 좋지 않았겠지. (HSK 4급)',
+        'fán으로 시작하는 2글자 단어',
+        '[]'
+    ),
+    (
+        2,
+        'ZH',
+        '她______在书里，我不好意思打扰她。(그녀는 책에 집중하고 있어서 방해하기가 미안했다)',
+        '["耐心(nàixīn)", "用心(yòngxīn)", "关心(guānxīn)", "专心(zhuānxīn)"]',
+        '专心(zhuānxīn)',
+        '''专心(zhuānxīn)''은 한 가지에 집중하다라는 뜻이야. 用心(정성을 다하다), 关心(관심을 갖다), 耐心(인내심을 갖다)와 헷갈리기 쉬우니 주의해. (HSK 4급)',
+        '집중하다, zhuān으로 시작하는 2글자',
+        '[]'
+    ),
+    (
+        3,
+        'ZH',
+        '''말을 걸고 싶은데 타이밍이 애매해서 어떻게 해야 할지 모르는'' 상황을 나타내는 성어는?
+
+他正专心看书，我______，不知道该不该开口。
+(뜻: 어떻게 해야 할지 몰라 진퇴양난인 상태)',
+        '[]',
+        '进退两难',
+        '''进退两难(jìntuì liǎngnán)''은 나아가기도 물러서기도 어렵다, 즉 이러지도 저러지도 못하는 상황을 뜻하는 성어야. 말을 걸자니 분위기가 애매하고, 그냥 무시하자니 신경 쓰이는 이 장면에 딱 맞는 표현이지. 비슷한 ''左右为难(zuǒyòu wéinán)''도 같은 뜻으로 쓰이지만, ''进退两难''이 더 고급 서면어 뉘앙스야. (HSK 6급)',
+        '나아가지도 물러서지도 못하는 상태 — 进(나아가다)과 退(물러나다)가 들어가는 4글자',
+        '["进退两难", "jìntuì liǎngnán", "jìntuìliǎngnán", "jin tui liang nan", "jintuiliangnan"]'
+    ),
+    (
+        4,
+        'ZH',
+        '도서관 짝사랑 상대가 궁금해서 ''일부러'' 일찍 도서관에 가봤어. ''일부러, 고의로''를 뜻하는 중국어 표현은?',
+        '["终于(zhōngyú)", "偶然(ǒurán)", "居然(jūrán)", "故意(gùyì)"]',
+        '故意(gùyì)',
+        '''故意(gùyì)''는 ''일부러, 고의로''라는 뜻의 부사야. 궁금한 마음에 일부러 일찍 도서관에 가본 상황에 딱 맞는 표현이지. (HSK 4급)',
+        'gù로 시작하는 2글자 부사',
+        '[]'
+    ),
+    (
+        5,
+        'ZH',
+        '''두근거리다 (심장이 빠르게 뛰다)''
+
+看到纸条上的内容，他的心脏开始______。
+(뜻: 쪽지 내용을 보고 심장이 두근거리기 시작했다)',
+        '[]',
+        '跳得很快',
+        '''心跳加速(xīntiào jiāsù)''는 심장이 두근거리다/심박수가 빨라지다라는 뜻의 자연스러운 표현이야. ''加速(jiāsù)''는 속도가 빨라지다라는 뜻으로 HSK 4급 어휘야. 설레는 감정을 표현할 때 자주 쓰이는 표현이니 기억해 둬. (HSK 4급)',
+        '心脏이 빠르게 뛰는 소리, dōng dōng dōng~ (4글자, ''뛸 跳'' + ''빠를 快'')',
+        '["跳得很快", "tiào de hěn kuài", "tiao de hen kuai", "心跳加速", "xīntiào jiāsù", "xintiào jiāsù", "xintiao jiasu", "扑通扑通", "pūtōng pūtōng", "putong putong"]'
+    ),
+    (
+        6,
+        'ZH',
+        '''문득 깨닫다, 갑자기 이해가 되다''
+
+过了一个月，我才______，从来没见过他的脸。
+(뜻: 그제야 퍼뜩 깨달았다)',
+        '[]',
+        '恍然大悟',
+        '''恍然大悟(huǎngrán dàwù)''는 ''갑자기 환하게 깨닫다''는 뜻의 성어야. 한 달이 지나서야 그 사람 얼굴을 제대로 본 적이 없다는 걸 뒤늦게 깨달은 상황에 딱 맞는 표현이야. ''突然明白''보다 훨씬 문학적이고 고급스러운 표현이고, ''领悟(lǐngwù)''는 서서히 이해해 나가는 뉘앙스라 갑작스러운 깨달음엔 어울리지 않아. (HSK 6급)',
+        '빛이 번쩍 들어오는 느낌, ''환하게(恍) 깨달았다''는 표현',
+        '["恍然大悟", "huǎngrán dàwù", "huangrán dawù", "huangran dawu", "huǎngrán dàwù"]'
+    ),
+    (
+        7,
+        'ZH',
+        '방학이 되어 도서관에서 쪽지를 주고받던 그 사람이 너무 보고 싶고 궁금해졌어. 이처럼 ''그리워하다, 보고 싶다''는 감정을 중국어로 어떻게 표현할까?',
+        '["难过(nánguò)", "羡慕(xiànmù)", "想念(xiǎngniàn)", "失望(shīwàng)"]',
+        '想念(xiǎngniàn)',
+        '''想念(xiǎngniàn)''은 누군가를 그리워하거나 보고 싶어 하는 마음을 나타내는 단어야. 방학이 되어 더 이상 도서관에서 그 사람을 볼 수 없게 되자 궁금하고 그리운 마음이 드는 상황에 딱 맞는 표현이지. (HSK 4급)',
+        'xiǎng으로 시작하는 2글자, 한국어로도 자주 들어본 느낌',
+        '[]'
+    ),
+    (
+        8,
+        'ZH',
+        '我们开始______纸条，但从来不直接说话。
+(우리는 쪽지를 주고받기 시작했지만, 직접 대화는 전혀 하지 않았다)',
+        '["交流(jiāoliú)", "传递(chuándì)", "沟通(gōutōng)", "交换(jiāohuàn)"]',
+        '交换(jiāohuàn)',
+        '''交换(jiāohuàn)''은 서로 주고받다/교환하다는 뜻이야. 交流(소통하다), 沟通(의사소통하다), 传递(전달하다)와 헷갈릴 수 있는데, 쪽지를 ''주고받는'' 행위에는 交换이 가장 자연스러워. (HSK 4급)',
+        '주고받다! ''교환하다''는 뜻, jiāo로 시작하는 2글자',
+        '[]'
+    ),
+    (
+        9,
+        'ZH',
+        '''마음속에 그 사람이 계속 떠오르다, 잊히지 않다''
+
+放假后没有机会去图书馆，但他的样子总是______，挥之不去。
+(뜻: 마음속에 자꾸 떠올라 지워지지 않다)',
+        '[]',
+        '萦绕心头',
+        '''萦绕心头(yíngrào xīntóu)''는 무언가가 마음속에 맴돌며 떠나지 않는다는 뜻의 고급 서면어야. 방학이 되어 더 이상 도서관에서 쪽지를 주고받을 수 없게 됐는데도 그 애가 자꾸 생각나는 상황에 딱 맞는 표현이지. 비슷한 ''念念不忘(niànniàn bù wàng)''은 잊지 못하고 계속 생각한다는 뜻이지만, ''萦绕心头''는 생각이 실처럼 감겨 맴돈다는 뉘앙스가 더 강해. (HSK 6급)',
+        '마음(心) 위에 새기다(萦) — ''마음을 맴돌다''는 뜻의 고급 서면어',
+        '["萦绕心头", "yíngrào xīntóu", "yingrao xintou", "萦绕", "yíngrào", "yingrao"]'
+    ),
+    (
+        10,
+        'ZH',
+        '얼굴도 제대로 못 본 채 이별을 맞이한 상황에서 느끼는 ''허무한, 공허한'' 감정을 중국어로 어떻게 표현할까?',
+        '["后悔(hòuhuǐ)", "难过(nánguò)", "空虚(kōngxū)", "失望(shīwàng)"]',
+        '空虚(kōngxū)',
+        '''空虚(kōngxū)''는 마음이 텅 빈 듯한 허무함, 공허함을 표현할 때 써. 얼굴도 제대로 못 본 채 떠나버린 상황에서 느끼는 딱 그 감정이야. (HSK 4급)',
+        'kōng으로 시작하는 2글자, ''비어있다''는 느낌이 담긴 단어',
+        '[]'
+    ),
+    (
+        11,
+        'ZH',
+        '''이별하다, 헤어지다''
+
+连对方的脸都没看清楚就这样______了。
+(뜻: 상대방 얼굴도 제대로 못 본 채로 이렇게 헤어졌다)',
+        '[]',
+        '分开',
+        '''分开(fēnkāi)''는 헤어지다, 떨어지다라는 뜻이야. 연인 사이의 이별뿐 아니라 사람이나 사물이 갈라지는 상황에도 두루 쓸 수 있어. 얼굴도 못 본 채 헤어진 허무한 상황과 잘 어울리는 표현이야. (HSK 4급)',
+        'fēn으로 시작하는 2글자, ''나누다''는 뜻의 글자가 들어가',
+        '["分开", "fēnkāi", "fenkāi", "fenkai", "fēnkai"]'
+    ),
+    (
+        12,
+        'ZH',
+        '얼굴도 제대로 못 본 채 헤어진 상황에서 느끼는 ''허무하고 아쉬운 감정''을 가장 잘 표현한 단어는?',
+        '["心酸(xīnsuān)", "忐忑不安(tǎntè bù''ān)", "惆怅(chóuchàng)", "愕然(èrán)"]',
+        '惆怅(chóuchàng)',
+        '''惆怅(chóuchàng)''는 기대하던 것이 이루어지지 않거나 뭔가를 잃었을 때 느끼는 허무하고 쓸쓸한 감정이야. 얼굴도 제대로 못 본 채 상대가 떠나버린 이 상황에 딱 맞아. ''心酸''은 마음이 시리고 슬픈 느낌, ''愕然''은 충격으로 멍해진 상태, ''忐忑不安''은 결과를 모를 때 조마조마한 긴장감으로 모두 이 맥락과는 뉘앙스가 달라. (HSK 6급)',
+        '惆(chóu)로 시작하는 2글자, 기대가 사라진 뒤의 쓸쓸함',
+        '[]'
+    ),
+    (
+        13,
+        'ZH',
+        '이야기의 두 사람은 지금도 가끔 쪽지로 대화를 나눠요. ''대화하다, 이야기를 나누다''를 뜻하는 중국어 표현으로 알맞은 것은?',
+        '["讨论(tǎolùn)", "聊天(liáotiān)", "解释(jiěshì)", "商量(shāngliang)"]',
+        '聊天(liáotiān)',
+        '''聊天(liáotiān)''는 가볍게 이야기를 나누다, 수다를 떨다라는 뜻이야. 두 사람이 쪽지로 편하게 대화를 이어가는 귀여운 마무리 장면에 딱 맞는 표현이지. (HSK 3급)',
+        'liáo로 시작하는 2글자 동사, 수다 떠는 느낌',
+        '[]'
+    ),
+    (
+        14,
+        'ZH',
+        '我们现在还______，偶尔还是会用纸条聊天。(우리는 지금도 만나고 있고, 가끔은 아직도 쪽지로 대화해.)',
+        '["见面了(jiànmiàn le)", "在一起(zài yīqǐ)", "认识了(rènshi le)", "联系着(liánxì zhe)"]',
+        '在一起(zài yīqǐ)',
+        '''在一起(zài yīqǐ)''는 ''함께하다/사귀다''라는 뜻으로, 연인 관계가 지속되고 있음을 나타내는 고정 표현이야. 见面了(만났다), 认识了(알게 됐다), 联系着(연락하고 있다)와 헷갈릴 수 있지만, 지금도 연인으로 만나고 있다는 상황엔 在一起가 가장 자연스러워. (HSK 4급)',
+        '''사귀다/교제하다'' — 두 사람이 계속 이어지고 있다는 뜻, zài로 시작하는 3글자',
+        '[]'
+    ),
+    (
+        15,
+        'ZH',
+        '''옛 습관/방식을 그대로 이어가다''는 뉘앙스의 표현
+
+我们现在还在交往，______用小纸条聊天。
+(뜻: 지금도 여전히 가끔씩 쪽지로 대화를 나눈다)
+
+빈칸에 들어갈 ''여전히, 아직도''의 서면어적 표현은?',
+        '[]',
+        '依然',
+        '''依然(yīrán)''은 ''여전히, 변함없이''를 뜻하는 서면어적 표현으로, 이야기의 마지막처럼 시간이 흘러도 습관이나 상황이 그대로 이어지는 따뜻한 뉘앙스를 담아. 비슷한 표현으로 ''依旧(yījiù)''도 정답으로 인정해. 일상적인 구어에서는 ''还是(háishi)''나 ''仍然(réngrán)''을 쓰는데, ''依然/依旧''는 더 문학적이고 서정적인 여운을 줘서 이 이야기의 마무리 감성과 딱 맞아. (HSK 5급)',
+        '''여전히''를 뜻하는 서면어, 첫 글자는 依(yī)',
+        '["依然", "yīrán", "yiran", "依旧", "yījiù", "yijiu"]'
+    ),
+    (
+        16,
+        'ZH',
+        '수학 문제가 안 풀려서 머리를 쥐어뜯는 학생의 상태로 가장 잘 어울리는 중국어 표현은?',
+        '["害羞(hàixiū)", "奇怪(qíguài)", "失望(shīwàng)", "苦恼(kǔnǎo)"]',
+        '苦恼(kǔnǎo)',
+        '''苦恼(kǔnǎo)''는 어떤 문제나 상황 때문에 괴롭고 고민스러울 때 쓰는 표현이야. 수학 문제가 안 풀려서 머리를 쥐어뜯는 학생의 심리와 딱 맞지. (HSK 4급)',
+        '''苦''로 시작하는 2글자, 고민으로 머리가 아플 때',
+        '[]'
+    ),
+    (
+        17,
+        'ZH',
+        '他对着数学题______，实在想不出来。(수학 문제 앞에서 안절부절 어쩔 줄 몰랐다)',
+        '["失望(shīwàng)", "生气(shēngqì)", "紧张(jǐnzhāng)", "着急(zháojí)"]',
+        '着急(zháojí)',
+        '''着急(zháojí)''는 초조해하다, 안달하다라는 뜻이야. 수학 문제가 안 풀려 머리를 쥐어뜯는 상황처럼 답답하고 막막할 때 딱 맞는 표현이야. 生气(화나다), 失望(실망하다), 紧张(긴장하다)과는 뉘앙스가 달라. (HSK 4급)',
+        '급하거나 막막할 때 하는 행동, ''안달하다''의 느낌, zháo으로 시작',
+        '[]'
+    ),
+    (
+        18,
+        'ZH',
+        '''극도로 힘들고 괴로운 상황에서 머리를 쥐어뜯을 만큼 고통스러워하다''
+
+他做数学题做得______，有时甚至用手抓头发。
+(뜻: 너무 괴롭고 힘들어 어쩔 줄 모르다)',
+        '[]',
+        '苦不堪言',
+        '''苦不堪言(kǔ bù kān yán)''은 고통이 너무 심해 말로 표현할 수 없을 정도라는 뜻의 성어야. 수학 문제를 앞에 두고 머리를 쥐어뜯는 장면에서 느끼는 심한 고통과 괴로움을 정확히 담아. 비슷한 ''痛苦(tòngkǔ)''는 너무 일반적이고, ''焦虑(jiāolǜ)''는 불안 위주의 뉘앙스라 이 장면의 강도와는 차이가 있어. (HSK 6급)',
+        '苦(쓴) + 不(불) + 두 글자 — ''어찌할 바를 모르는'' 느낌의 4글자 성어',
+        '["苦不堪言", "kǔ bù kān yán", "ku bu kan yan", "苦不堪言(kǔ bù kān yán)"]'
+    ),
+    (
+        19,
+        'ZH',
+        '3번 관람석이 텅 비어 있고, 이틀째도 그 학생이 나타나지 않았어. 이처럼 ''(자리나 공간이) 텅 비어 있다''를 중국어로 어떻게 표현할까?',
+        '["空荡(kōngdàng)", "空旷(kōngkuàng)", "空闲(kōngxián)", "空白(kōngbái)"]',
+        '空荡(kōngdàng)',
+        '''空荡(kōngdàng)''는 공간이 텅 비어 허전한 느낌을 줄 때 쓰는 표현이야. 3번 자리가 비어 있어 허전하고 신경 쓰이는 연우의 감정과 딱 맞는 단어지. (HSK 4급)',
+        'kōng으로 시작하는 2글자, 냉장고가 비었을 때도 쓸 수 있어',
+        '[]'
+    ),
+    (
+        20,
+        'ZH',
+        '''텅 비다, 아무것도 없다''
+
+那个座位______着，没有人坐。
+(뜻: 그 자리가 텅 비어 있었고, 아무도 앉지 않았다)',
+        '[]',
+        '空着',
+        '''空着(kōngzhe)''는 ''텅 비어 있다''는 뜻으로, 자리나 공간이 비어 있는 상태를 나타내. ''3번 자리가 텅 비어 있었다''는 장면에서 자연스럽게 쓰이는 표현이야. (HSK 4급)',
+        'kōng으로 시작하는 2글자, ''하늘 空''이 반복되는 느낌',
+        '["空着", "空荡荡", "kōngzhe", "kongzhe", "空", "kōng"]'
+    ),
+    (
+        21,
+        'ZH',
+        '일주일째 그 학생이 나타나지 않자, 연우는 자꾸 창가 자리를 바라봤다. 이처럼 ''어떤 것이 마음에 걸려 계속 신경이 쓰이는'' 상태를 표현한 성어로 가장 적절한 것은?',
+        '["牵肠挂肚(qiāncháng guàdù)", "漠然置之(mòrán zhìzhī)", "若无其事(ruò wú qí shì)", "心旷神怡(xīnkuàng shényí)"]',
+        '牵肠挂肚(qiāncháng guàdù)',
+        '''牵肠挂肚(qiāncháng guàdù)''는 창자가 당기고 배가 매달리는 느낌처럼, 누군가 또는 무언가가 몹시 마음에 걸려 내내 신경이 쓰인다는 뜻이야. 연우가 빈 자리를 계속 쳐다보는 장면과 딱 맞는 표현이야. ''心旷神怡''는 마음이 탁 트이고 기분이 상쾌한 것, ''漠然置之''는 아무 관심 없이 내버려두는 것, ''若无其事''는 아무 일도 없다는 듯 태연한 것으로 모두 이 상황과 거리가 멀어. (HSK 6급)',
+        '마음(心)이 한 곳에 매달려(牵) 있는 느낌, 4글자',
+        '[]'
+    ),
+    (
+        22,
+        'ZH',
+        '아버지가 갑자기 돌아가셨다는 말을 듣고 연우는 뭐라고 해야 할지 몰랐다. 이처럼 ''갑자기, 뜻밖에''를 뜻하는 중국어 표현으로 알맞은 것은?',
+        '["突然(tūrán)", "居然(jūrán)", "故意(gùyì)", "终于(zhōngyú)"]',
+        '突然(tūrán)',
+        '''突然(tūrán)''은 예상치 못한 일이 갑자기 일어날 때 쓰는 부사야. 아버지가 갑자기 쓰러지셨다는 충격적인 상황에 딱 맞는 표현이지. (HSK 3급)',
+        'tū로 시작하는 2글자 부사',
+        '[]'
+    ),
+    (
+        23,
+        'ZH',
+        '她不知道该说什么，只是______在他旁边。(뭐라고 말해야 할지 몰라서 그냥 옆에 앉았다)',
+        '["留(liú)", "站(zhàn)", "守(shǒu)", "待(dāi)"]',
+        '待(dāi)',
+        '''待(dāi)''는 ''(어떤 장소에) 머물다, 있다''라는 뜻으로, 말없이 그냥 옆에 있어주는 상황에 자연스럽게 쓰여. 站(서다), 留(남다), 守(지키다)와 혼동하기 쉽지만, 조용히 그 자리에 함께 있는 뉘앙스는 待가 가장 잘 맞아. (HSK 4급)',
+        '말없이 그 자리에 ''머무르다'' — 기다리거나 있어주는 느낌의 동사',
+        '[]'
+    ),
+    (
+        24,
+        'ZH',
+        '''말문이 막히다, 어떻게 말해야 할지 모르다''
+
+연우는 학생의 말을 듣고 ______，只是默默地坐在他旁边。
+(뜻: 무슨 말을 해야 할지 몰라 말문이 막히다)',
+        '[]',
+        '不知所言',
+        '''哑口无言(yǎkǒu wú yán)''은 말문이 완전히 막혀 아무 말도 못하는 상태를 뜻하는 성어야. ''无言以对(wú yán yǐ duì)''는 대꾸할 말이 없다는 뜻으로 비슷하게 쓰여. 연우가 친구의 아버지 부고 소식 앞에서 위로의 말조차 찾지 못하는 상황에 자연스럽게 어울려. ''不知所措(bù zhī suǒ cuò)''는 어쩔 줄 모르다로 행동에 더 초점이 맞춰져 있어 뉘앙스가 약간 달라. (HSK 6급)',
+        '말(言)과 관련된 성어, ''어떻게 말해야 할지 모른다''는 상황 — 不知如何______',
+        '["不知所言", "bù zhī suǒ yán", "bu zhi suo yan", "哑口无言", "yǎkǒu wú yán", "yako wu yan", "无言以对", "wú yán yǐ duì", "wu yan yi dui"]'
+    ),
+    (
+        25,
+        'ZH',
+        '이야기 속 학생은 수학을 ''제일 싫어한다''고 했어. 다음 중 ''포기하다''의 중국어 표현으로 알맞은 것은?',
+        '["犹豫(yóuyù)", "失望(shīwàng)", "拒绝(jùjué)", "放弃(fàngqì)"]',
+        '放弃(fàngqì)',
+        '''放弃(fàngqì)''는 ''포기하다''라는 뜻이야. 편지에서 아버지가 ''수학이 어려워도 포기하지 마''라고 썼는데, 바로 이 단어가 쓰인 상황이지. (HSK 4급)',
+        'fàng으로 시작하는 2글자 단어',
+        '[]'
+    ),
+    (
+        26,
+        'ZH',
+        '''포기하다''
+
+数学再难也不要______。
+(뜻: 수학이 아무리 어려워도 포기하지 마.)',
+        '[]',
+        '放弃',
+        '''放弃(fàngqì)''는 ''포기하다''라는 뜻이야. 편지 속 ''포기하지 마''라는 말에 딱 맞는 표현이지. ''放(놓다)''+''弃(버리다)''가 합쳐진 단어야. (HSK 4급)',
+        'fàng + qì, ''놓다''+''버리다'' 조합의 2글자',
+        '["放弃", "fàngqì", "fangqi"]'
+    ),
+    (
+        27,
+        'ZH',
+        '''어떤 어려움에도 포기하지 않고 끝까지 버티다''라는 뜻의 성어를 써봐.
+
+无论数学多难，也要______，不要放弃。
+(뜻: 끝까지 견뎌내다, 굳게 버티다)',
+        '[]',
+        '百折不挠',
+        '''百折不挠(bǎizhé bù náo)''는 백 번 꺾여도 굽히지 않는다는 뜻으로, 어떤 어려움 앞에서도 포기하지 않는 굳은 의지를 나타내는 성어야. 아버지가 딸 지은이에게 ''수학이 어려워도 포기하지 말라''고 한 편지의 응원 메시지와 딱 맞는 표현이야. 비슷한 ''坚持不懈(jiānchí bù xiè)''는 꾸준히 계속하다는 뉘앙스이고, ''锲而不舍(qiè ér bù shě)''는 조각칼로 새기듯 포기하지 않는다는 더 문학적인 표현이야. (HSK 6급)',
+        '百折(백 번 꺾여도) + 不挠(굽히지 않다) — 강한 의지를 나타내는 4글자 성어',
+        '["百折不挠", "百折不挠(bǎizhé bù náo)", "bǎizhé bù náo", "baizhe bu nao", "百折不撓"]'
+    ),
+    (
+        28,
+        'ZH',
+        '아버지가 3번 자리를 ''유심히 바라보다''가 중국어로 어떻게 표현될까? 가장 알맞은 것은?',
+        '["偶然(ǒurán)", "仔细(zǐxì)", "随便(suíbiàn)", "故意(gùyì)"]',
+        '仔细(zǐxì)',
+        '''仔细(zǐxì)''는 ''꼼꼼히, 유심히''라는 뜻이야. 아버지가 딸이 앉는 3번 자리를 말없이 유심히 바라보던 장면에 딱 맞는 표현이지. (HSK 4급)',
+        '''仔''로 시작하는 2글자 부사, ''자세히''라는 느낌',
+        '[]'
+    ),
+    (
+        29,
+        'ZH',
+        '那个中年男人______地看了看3号座位，然后一声不吭地走了。(유심히, 주의 깊게 살펴보다)',
+        '["满意(mǎnyì)", "注意(zhùyì)", "随意(suíyì)", "同意(tóngyì)"]',
+        '注意(zhùyì)',
+        '''注意(zhùyì)''는 ''주의하다, 유심히 살펴보다''라는 뜻이야. 중년 남자가 3번 자리를 주의 깊게 바라봤다는 장면과 딱 맞는 표현이야. 随意(마음대로), 满意(만족하다), 同意(동의하다)와 혼동하지 않도록 주의해. (HSK 4급)',
+        'zhù + yì, ''주목하다''의 그 ''注'' 맞아 (2글자)',
+        '[]'
+    ),
+    (
+        30,
+        'ZH',
+        '''아무 말 없이 조용히 떠나다''는 상황을 표현하는 성어를 써봐.
+
+他______，没有留下任何话就离开了。
+(뜻: 말없이 조용히, 아무런 소리도 없이)',
+        '[]',
+        '悄无声息',
+        '''悄无声息(qiǎo wú shēng xī)''는 아무런 소리도 없이 조용히, 말없이의 뜻이야. 딸이 공부하는 자리를 말없이 지켜보고 그냥 나가버린 아버지의 모습을 정확하게 담아내는 표현이야. 비슷한 ''默默无闻''은 이름이 알려지지 않다는 뜻이라 맥락이 다르고, ''无声无息''도 유사하지만 ''悄无声息''이 더 문학적이고 감정적인 여운을 담고 있어. (HSK 6급)',
+        '소리(声) 없이, 숨소리(息)도 없이 — 4글자 성어',
+        '["悄无声息", "qiǎo wú shēng xī", "qiao wu sheng xi", "悄无声息(qiǎo wú shēng xī)"]'
+    ),
+    (
+        31,
+        'ZH',
+        '매일 새벽 같은 시간에 걸려오는 이상한 전화 때문에 민혜는 점점 긴장하기 시작했어. ''긴장하다''를 중국어로 표현하면?',
+        '["兴奋(xīngfèn)", "紧张(jǐnzhāng)", "难过(nánguò)", "失望(shīwàng)"]',
+        '紧张(jǐnzhāng)',
+        '''紧张(jǐnzhāng)''은 불안하거나 초조해서 긴장된 상태를 표현할 때 써. 매일 정확히 같은 시간에 울리는 정체불명의 전화가 다가올수록 민혜의 마음이 점점 조여드는 느낌이지. (HSK 3급)',
+        'jǐn으로 시작하는 2글자 단어',
+        '[]'
+    ),
+    (
+        32,
+        'ZH',
+        '看了一眼时钟，只剩一分钟了，她的手心开始冒汗，不知道为什么这么______。
+(시계를 보니 1분밖에 안 남았고, 손에 땀이 나기 시작했다. 왜 이렇게 긴장하는지 몰랐다.)',
+        '["害怕(hàipà)", "兴奋(xīngfèn)", "着急(zháojí)", "紧张(jǐnzhāng)"]',
+        '紧张(jǐnzhāng)',
+        '''紧张(jǐnzhāng)''은 긴장하다는 뜻으로, 손에 땀이 날 정도로 불안하고 초조한 상태를 표현할 때 딱 맞는 단어야. 着急(초조하게 서두르다), 害怕(무서워하다), 兴奋(흥분하다)과 뉘앙스가 달라. 여기서는 이유를 알 수 없는 긴장감이 핵심이야. (HSK 4급)',
+        '긴장할 때 몸이 굳는 느낌, jǐn으로 시작하는 2글자',
+        '[]'
+    ),
+    (
+        33,
+        'ZH',
+        '''불안하고 초조하여 마음이 안정되지 않다''
+
+每天都在同一时间接到那个电话，民慧______，不知道今晚会发生什么。
+(뜻: 마음이 두근두근 불안하여 안정되지 못하다)',
+        '[]',
+        '忐忑不安',
+        '''忐忑不安(tǎntè bù''ān)''은 마음이 두근거리고 불안하여 안정되지 못하다는 뜻이야. 단순한 긴장을 뜻하는 ''紧张(jǐnzhāng)''과 달리, 예측 불가한 상황 앞에서 느끼는 불안과 초조함이 함께 담긴 표현이야. 매일 정확히 같은 시각에 걸려오는 정체불명의 전화를 기다리는 민혜의 심리를 표현하기에 딱 맞는 성어야. (HSK 6급)',
+        '마음(忐)이 위아래로 오르내리는 모양의 4글자 성어',
+        '["忐忑不安", "tǎntè bù''ān", "tǎntè bùān", "tante bu''an", "tante buan", "忐忑"]'
+    ),
+    (
+        34,
+        'ZH',
+        '민혜의 등에 소름이 돋았을 때의 감정으로 가장 알맞은 중국어 표현은?',
+        '["害怕(hàipà)", "难过(nánguò)", "失望(shīwàng)", "后悔(hòuhuǐ)"]',
+        '害怕(hàipà)',
+        '''害怕(hàipà)''는 무섭거나 두려울 때 쓰는 표현이야. 갑자기 떨리는 여자 목소리로 ''도와줘''라는 말을 듣고 소름이 돋은 민혜의 감정과 딱 맞아. (HSK 3급)',
+        'hài로 시작하는 2글자 감정 단어',
+        '[]'
+    ),
+    (
+        35,
+        'ZH',
+        '''소름이 돋다''
+
+听到那个声音，她背上______了。
+(뜻: 그 목소리를 듣고 등에 소름이 돋았다)',
+        '[]',
+        '起鸡皮疙瘩',
+        '''起鸡皮疙瘩(qǐ jīpí gēda)''는 소름이 돋다라는 뜻이야. 직역하면 ''닭 피부 돌기가 일어나다''로, 공포나 전율을 느낄 때 쓰는 표현이야. 민혜가 여자의 떨리는 목소리를 듣고 등에 소름이 돋은 장면과 딱 맞아. (HSK 4급)',
+        'jī로 시작하는 5글자 — 닭(鸡)의 피부(皮)처럼 오돌토돌해지는 느낌',
+        '["起鸡皮疙瘩", "鸡皮疙瘩", "qǐ jīpí gēda", "qi jipi geda", "jīpí gēda", "jipi geda"]'
+    ),
+    (
+        36,
+        'ZH',
+        '민혜가 여자의 떨리는 목소리를 듣고 등에 소름이 돋았다. 이 상황을 가장 잘 표현한 중국어 표현은?',
+        '["惊喜交加(jīngxǐ jiāojiā)", "毛骨悚然(máogǔ sǒngrán)", "心灰意冷(xīn huī yì lěng)", "愕然失色(èrán shīsè)"]',
+        '毛骨悚然(máogǔ sǒngrán)',
+        '''毛骨悚然(máogǔ sǒngrán)''은 소름이 돋고 등골이 오싹해지다는 뜻으로, 공포스러운 순간에 쓰는 성어야. ''心灰意冷''은 완전히 낙담한 상태, ''惊喜交加''는 놀람과 기쁨이 뒤섞인 감정, ''愕然失色''은 놀라서 얼굴빛이 변하다라는 뜻으로 공포보다는 당혹감에 가까워. 떨리는 목소리로 도움을 구하는 소름 끼치는 상황엔 毛骨悚然이 가장 적절해. (HSK 6급)',
+        '등골(脊梁)이 서늘해지는 그 느낌, 4글자',
+        '[]'
+    ),
+    (
+        37,
+        'ZH',
+        '민혜가 갑자기 ''내 뒤에 있어''라는 말을 듣고 당황했을 때, ''당황하다, 어쩔 줄 모르다''를 뜻하는 중국어 표현으로 알맞은 것은?',
+        '["慌张(huāngzhāng)", "失望(shīwàng)", "难过(nánguò)", "后悔(hòuhuǐ)"]',
+        '慌张(huāngzhāng)',
+        '''慌张(huāngzhāng)''는 갑작스러운 상황에 당황해서 어쩔 줄 모르는 상태를 표현해. 한밤중에 정체불명의 전화로 ''지금 네 뒤에 있어''라는 말을 들은 민혜의 심리에 딱 맞는 단어야. (HSK 4급)',
+        '慌으로 끝나는 2글자 단어',
+        '[]'
+    ),
+    (
+        38,
+        'ZH',
+        '突然听到背后有声音，她______了。
+(갑자기 뒤에서 소리가 들려서, 그녀는 당황했다.)',
+        '["失望(shīwàng)", "慌张(huāngzhāng)", "后悔(hòuhuǐ)", "犹豫(yóuyù)"]',
+        '慌张(huāngzhāng)',
+        '''慌张(huāngzhāng)''은 당황하거나 허둥지둥하다는 뜻이야. 민혜가 전화 속 여자가 ''지금 네 뒤에 있어''라고 말하는 순간의 당황스러운 감정에 딱 맞는 표현이지. 失望(실망), 犹豫(망설이다), 后悔(후회하다)와 혼동하지 않도록 주의해. (HSK 4급)',
+        '''慌''은 마음(忄)이 거칠어지는(荒) 모습 — 당황해서 허둥대는 느낌',
+        '[]'
+    ),
+    (
+        39,
+        'ZH',
+        '''(생각이나 소리가) 머릿속에서 맴돌다, 떠나지 않다''
+
+那个女人的声音一直在脑海中______。
+(뜻: 계속 머릿속에서 맴돌며 사라지지 않다)',
+        '[]',
+        '萦绕',
+        '''萦绕(yíngrào)''는 소리나 생각이 머릿속에서 계속 맴돌며 사라지지 않는다는 고급 서면어야. 이 이야기에서 낯선 여자의 목소리가 민혜의 머릿속을 떠나지 않는 상황에 딱 맞는 표현이지. ''回荡(huídàng)''이나 ''回响(huíxiǎng)''도 소리가 울리다/메아리치다는 뜻으로 유사하게 쓰이지만, ''萦绕''가 집착처럼 머릿속에서 지워지지 않는 심리적 뉘앙스를 더 강하게 담고 있어. (HSK 6급)',
+        '메아리처럼 울리다 — ''울릴 명(鸣)'' 또는 ''울릴 萦'' 이 들어가는 표현',
+        '["萦绕", "yíngrào", "yingrào", "yingrao", "萦绕不去", "回荡", "回响"]'
+    ),
+    (
+        40,
+        'ZH',
+        '의자가 아무도 건드리지 않았는데 저절로 움직이는 장면에서 민혜가 느꼈을 감정으로 가장 알맞은 중국어 표현은?',
+        '["失望(shīwàng)", "难过(nánguò)", "奇怪(qíguài)", "后悔(hòuhuǐ)"]',
+        '奇怪(qíguài)',
+        '''奇怪(qíguài)''는 ''이상하다, 기이하다''는 뜻이야. 아무도 없는데 의자가 혼자 움직이는 장면처럼 납득하기 어렵고 이상한 상황에 딱 맞는 표현이지. (HSK 3급)',
+        '뭔가 이상하고 납득이 안 될 때 쓰는 형용사, qí로 시작하는 2글자',
+        '[]'
+    ),
+    (
+        41,
+        'ZH',
+        '''말을 듣지 않다, 통제가 안 되다''
+
+她想放下电话，但手不______使唤。
+(뜻: 전화기를 내려놓으려 했지만 손이 말을 듣지 않았다)',
+        '[]',
+        '听',
+        '''不听使唤(bù tīng shǐhuàn)''은 ''말을 듣지 않다, 마음대로 움직이지 않다''는 뜻의 표현이야. 신체 부위나 사물이 뜻대로 움직이지 않을 때 자주 쓰는 고정 표현이야. (HSK 5급)',
+        '청종하다, 순종하다의 뜻 — ''ting'' 발음으로 시작하는 2글자',
+        '["听", "听使唤", "tīng", "ting", "tīng shǐhuàn", "ting shihuàn", "ting shihuan"]'
+    ),
+    (
+        42,
+        'ZH',
+        '''몸이 말을 듣지 않다, 자기 의지대로 되지 않다''
+
+她想放下电话，却发现自己______，手根本不听使唤。
+(뜻: 몸이 굳어 자기 뜻대로 움직일 수 없는 상태)',
+        '[]',
+        '动弹不得',
+        '''动弹不得(dòngtan bùdé)''는 몸을 전혀 움직일 수 없다는 뜻의 고급 표현이야. 전화기가 귀에 붙어 손이 말을 듣지 않는 이 장면의 공포스럽고 신체적으로 마비된 느낌을 정확하게 표현해. 비슷한 ''束手无策''는 방법이 없어 어찌할 바를 모른다는 의미라 신체 마비보다는 상황적 무력감이고, ''无能为力''는 능력 부족의 뉘앙스라 문맥과 맞지 않아. (HSK 6급)',
+        '동(动)이 안 되고 탄(弹)이 안 된다 — 4글자 성어',
+        '["动弹不得", "dòngtan bùdé", "dongtan bude", "动弹不得(dòngtan bùdé)"]'
+    ),
+    (
+        43,
+        'ZH',
+        '이야기의 마지막, 새벽에 전화벨이 다시 울리기 시작했어. ''(전화벨이) 울리다, 響다''를 뜻하는 중국어 표현으로 알맞은 것은?',
+        '["叫(jiào)", "停(tíng)", "响(xiǎng)", "跑(pǎo)"]',
+        '响(xiǎng)',
+        '''响(xiǎng)''은 소리가 울리다, 소리가 나다라는 뜻이야. 전화벨이 울릴 때 자연스럽게 쓸 수 있는 표현이지. 이야기의 마지막 장면에서 공포가 다시 시작되는 순간을 나타내. (HSK 3급)',
+        'xiǎng으로 시작하는 1글자 동사',
+        '[]'
+    ),
+    (
+        44,
+        'ZH',
+        '凌晨两点四十七分，电话______突然响了。(새벽 2시 47분, 전화벨이 갑자기 울렸다)',
+        '["声音(shēngyīn)", "噪音(zàoyīn)", "铃声(língshēng)", "回声(huíshēng)"]',
+        '铃声(língshēng)',
+        '''铃声(língshēng)''은 벨 소리, 전화벨 소리를 뜻해. ''电话铃声响了''는 전화벨이 울렸다는 자연스러운 표현이야. 声音은 일반적인 소리, 噪音은 소음, 回声은 메아리라서 전화벨과는 맞지 않아. (HSK 4급)',
+        '전화가 ''울리다'' — 铃으로 끝나는 2글자',
+        '[]'
+    ),
+    (
+        45,
+        'ZH',
+        '''(공포나 불길한 예감으로) 등골이 서늘해지다, 소름이 끼치다''
+
+새벽 2시 47분, 전화벨이 울렸다. 새 야간 근무자는 순간 ______，全身僵住了。
+(뜻: 소름이 끼쳐 온몸이 굳어버렸다)',
+        '[]',
+        '背脊发凉',
+        '''背脊发凉(bèijǐ fāliáng)''는 등줄기가 서늘해지다, 즉 공포감에 소름이 끼치는 신체 반응을 표현하는 고급 서면어야. 이야기의 마지막 장면처럼 불길한 전화벨 소리에 새 근무자가 느끼는 깊은 공포감을 가장 정밀하게 표현해. 비슷한 표현으로 ''不寒而栗(bù hán ér lì, 춥지 않은데도 몸이 떨리다)''도 있지만, 신체적 감각을 직접 묘사할 때는 背脊发凉이 더 자연스럽고 문학적이야. (HSK 6급)',
+        '背(등) + 脊(척추) + 发凉(서늘해지다) — 등줄기가 차가워지는 느낌',
+        '["背脊发凉", "背脊发凉(bèijǐ fāliáng)", "bèijǐ fāliáng", "beiji faliang", "脊背发凉", "脊背发凉(jǐbèi fāliáng)", "jǐbèi fāliáng", "jibei faliang"]'
+    ),
+    (
+        46,
+        'ZH',
+        '아무도 없어야 할 새벽 학교에서 뜻밖의 물건을 발견한 상황을 표현할 때, ''뜻밖에, 예상치 못하게''에 해당하는 중국어는?',
+        '["突然(tūrán)", "故意(gùyì)", "居然(jūrán)", "终于(zhōngyú)"]',
+        '居然(jūrán)',
+        '''居然(jūrán)''은 ''뜻밖에도, 예상을 벗어나''라는 뜻의 부사야. 아무도 없어야 할 새벽 학교에서 하이힐 한 짝을 발견한 것처럼, 전혀 예상하지 못한 상황을 강조할 때 써. ''突然(tūrán)''이 갑작스러운 사건 자체에 초점을 둔다면, ''居然''은 그 결과가 믿기 어렵다는 놀라움에 초점을 둔다는 점이 달라. (HSK 4급)',
+        'jū로 시작하는 2글자 부사',
+        '[]'
+    ),
+    (
+        47,
+        'ZH',
+        '她______了四周，走廊和昨晚打扫完时一模一样。(그녀는 주변을 살펴봤다. 복도는 어젯밤 청소 후 그대로였다.)',
+        '["注意(zhùyì)", "查看(chákàn)", "发现(fāxiàn)", "观察(guānchá)"]',
+        '查看(chákàn)',
+        '''查看(chákàn)''는 직접 눈으로 꼼꼼히 살펴보다는 뜻이야. 観察(guānchá)는 더 긴 시간 동안 관찰하는 느낌이고, 注意(zhùyì)는 주의를 기울이다, 发现(fāxiàn)은 발견하다라는 뜻이라 이 맥락엔 어울리지 않아. 미란이 주변을 빠르게 훑어보는 상황엔 查看이 가장 자연스러워. (HSK 4급)',
+        '눈으로 ''빙 둘러보다'' — chá로 시작하는 2글자',
+        '[]'
+    ),
+    (
+        48,
+        'ZH',
+        '''기이하고 불가사의하다, 도무지 이해할 수 없다''
+
+空荡荡的走廊里只有一只红色高跟鞋，这一切实在______，令人不寒而栗。
+(뜻: 상황이 너무 기이하고 이해할 수 없어 소름이 돋다)',
+        '[]',
+        '匪夷所思',
+        '''匪夷所思(fěi yí suǒ sī)''는 보통 사람의 생각으로는 도저히 이해할 수 없을 만큼 기이하다는 뜻의 성어야. 새벽 텅 빈 학교 복도에 출처 불명의 구두 한 짝이 놓여 있는 이 불가사의한 상황을 표현하기에 딱 맞아. 비슷한 표현으로 ''不可思议(bùkě sīyì)''가 있지만, 이쪽은 HSK 5급 수준의 보다 일반적인 표현이고, ''匪夷所思''는 더 문어적이고 강한 뉘앙스를 가져. (HSK 6급)',
+        '匪로 시작하는 4글자 성어, ''이치에 맞지 않는다''는 뜻',
+        '["匪夷所思", "fěi yí suǒ sī", "fei yi suo si", "feiyisuosi"]'
+    ),
+    (
+        49,
+        'ZH',
+        '보안 기록에서 ''이상한 점''을 발견했을 때, ''이상하다, 수상하다''를 뜻하는 중국어 표현으로 가장 알맞은 것은?',
+        '["奇怪(qíguài)", "难过(nánguò)", "失望(shīwàng)", "突然(tūrán)"]',
+        '奇怪(qíguài)',
+        '''奇怪(qíguài)''는 무언가 이상하거나 수상할 때 쓰는 형용사야. 보안 기록에서 나간 기록이 없다는 이상한 점을 발견한 상황에 딱 맞는 표현이지. (HSK 3급)',
+        'qí로 시작하는 2글자 형용사, 뭔가 이상할 때 딱!',
+        '[]'
+    ),
+    (
+        50,
+        'ZH',
+        '''이상한 점, 수상한 점''
+
+保安记录里有______的地方。
+(뜻: 보안 기록에 이상한 점이 있었다)',
+        '[]',
+        '奇怪',
+        '''奇怪(qíguài)''는 ''이상하다, 수상하다''는 뜻의 형용사야. 보안 기록에서 나간 기록이 없다는 이상한 점을 발견한 상황에 딱 맞는 표현이야. ''有奇怪的地方''처럼 ''이상한 점이 있다''는 표현으로 자주 쓰여. (HSK 4급)',
+        'qí로 시작하는 2글자 — 납득이 안 되고 수상할 때 쓰는 형용사',
+        '["奇怪", "qíguài", "qiguai"]'
+    ),
+    (
+        51,
+        'ZH',
+        '보안 기록에는 들어온 흔적만 있고 나간 기록이 없어. 누군가 아직 안에 숨어 있다는 걸 알게 된 이 상황처럼, ''겉으로 드러나지 않고 몰래 숨어 있다''는 뉘앙스를 가장 잘 표현한 단어는?',
+        '["混入(hùnrù)", "隐瞒(yǐnmán)", "潜伏(qiánfú)", "逃脱(táotuō)"]',
+        '潜伏(qiánfú)',
+        '''潜伏(qiánfú)''는 적이나 용의자가 발각되지 않도록 몰래 숨어 있다는 뜻으로, 나간 기록 없이 교내에 숨어 있는 이 상황에 가장 잘 맞는 표현이야. ''隐瞒(yǐnmán)''은 사실을 감추고 숨기다(은폐), ''逃脱(táotuō)''은 도망쳐 빠져나가다, ''混入(hùnrù)''는 몰래 섞여 들어가다로 각각 뉘앙스가 달라. 이 상황은 이미 들어온 후 숨어 있는 것이므로 潜伏이 정답. (HSK 6급)',
+        '潜(qián)으로 시작하는 단어, 물속에 숨듯이 보이지 않게',
+        '[]'
+    ),
+    (
+        52,
+        'ZH',
+        '체육관 안이 ''고요하고 조용한'' 상태를 나타내는 중국어 표현으로 가장 알맞은 것은?',
+        '["热闹(rènao)", "舒服(shūfu)", "轻松(qīngsōng)", "安静(ānjìng)"]',
+        '安静(ānjìng)',
+        '''安静(ānjìng)''은 조용하고 고요한 상태를 나타내는 형용사야. 미란이 전등을 켜기 전, 아무도 없는 듯 고요했던 체육관 분위기를 딱 표현하는 단어지. (HSK 3급)',
+        'ānjìng — ''안정된 고요함''을 떠올려봐',
+        '[]'
+    ),
+    (
+        53,
+        'ZH',
+        '她走进体育馆，打开灯，四周______无声。
+(그녀는 체육관에 들어가 불을 켰고, 사방은 고요하고 아무 소리도 없었다)',
+        '["沉默(chénmò)", "平静(píngjìng)", "寂静(jìjìng)", "安定(āndìng)"]',
+        '寂静(jìjìng)',
+        '''寂静(jìjìng)''은 조용하고 고요한 상태를 묘사하는 형용사야. 安定(안정된), 平静(평온한), 沉默(침묵하는)과 혼동하기 쉽지만, 주변 환경이 쥐 죽은 듯 조용한 분위기엔 寂静이 가장 자연스러워. (HSK 4급)',
+        '고요할 ''寂'', jì로 시작하는 2글자 표현',
+        '[]'
+    ),
+    (
+        54,
+        'ZH',
+        '''쥐 죽은 듯 고요하다, 아무 소리도 없다''
+
+体育馆里______无声，令人不安。
+(뜻: 완전히 고요하여 아무 소리도 들리지 않다)',
+        '[]',
+        '鸦雀无声',
+        '''鸦雀无声(yāquè wúshēng)''은 까마귀나 참새 소리조차 들리지 않을 만큼 완전히 고요하다는 성어야. 단순히 ''안정적이고 평화로운 조용함''이 아니라, 인적 없이 싸늘하게 적막한 분위기를 강조할 때 써. 미란이 혼자 전등을 켜기 전 체육관 안의 불안한 정적을 표현하기에 딱 맞는 표현이야. 비슷한 ''寂静(jìjìng)''은 일반적인 조용함이고, ''悄然(qiǎorán)''은 소리 없이 움직이는 모습에 가까워. (HSK 6급)',
+        '鸦(까마귀)와 관련된 성어 — 까마귀 소리조차 들릴 만큼 조용하다',
+        '["鸦雀无声", "yāquè wúshēng", "yaque wusheng", "yāquèwúshēng"]'
+    ),
+    (
+        55,
+        'ZH',
+        '선생님에게 혼나지 않으려고 맨발로 다닌 여자. 이처럼 ''벌을 피하려고 일부러 어떤 행동을 한다''는 상황에서 ''일부러, 고의로''를 뜻하는 중국어 표현은?',
+        '["突然(tūrán)", "不断(búduàn)", "故意(gùyì)", "终于(zhōngyú)"]',
+        '故意(gùyì)',
+        '''故意(gùyì)''는 ''일부러, 고의로''라는 뜻이야. 여자가 선생님께 혼나지 않으려고 일부러 맨발로 다닌 것처럼, 어떤 목적을 위해 의도적으로 행동할 때 쓰는 단어야. (HSK 4급)',
+        'gù로 시작하는 2글자 부사',
+        '[]'
+    ),
+    (
+        56,
+        'ZH',
+        '''부고, 사망 소식''
+
+她从包里拿出报纸，______栏赫然在目。
+(뜻: 그녀가 가방에서 신문을 꺼냈는데, 부고란이 눈에 띄었다)',
+        '[]',
+        '讣告',
+        '''讣告(fùgào)''는 사람의 죽음을 알리는 부고를 뜻해. 신문의 부고란을 가리킬 때 쓰이는 표현이야. 이야기 속에서 여자가 신문의 부고란을 펼쳐 보인 장면과 연결돼. (HSK 4급)',
+        '죽음을 알리는 난(欄), ''fù''로 시작하는 2글자',
+        '["讣告", "fùgào", "fugao", "fù gào"]'
+    ),
+    (
+        57,
+        'ZH',
+        '여자가 꺼낸 신문에는 누군가의 부고가 실려 있었다. 중국어로 ''부고, 사망 소식을 알리는 글''을 뜻하는 단어는?',
+        '["公告(gōnggào)", "讣告(fùgào)", "启事(qǐshì)", "遗书(yíshū)"]',
+        '讣告(fùgào)',
+        '''讣告(fùgào)''는 사람이 사망했음을 알리는 공식적인 부고문이야. ''公告''는 일반 공지사항, ''启事''는 사람을 찾거나 분실물 등을 알리는 공고, ''遗书''는 유서(죽기 전에 남긴 글)로 부고와는 달라. 신문에 실린 부고란의 내용을 가리키는 표현으로 讣告가 가장 정확해. (HSK 6급)',
+        '''부고''를 한자로 옮기면 죽음(讣)을 알린다(告)는 뜻',
+        '[]'
+    ),
+    (
+        58,
+        'ZH',
+        '미란은 교실로 돌아가 칠판을 지웠어. ''(칠판을) 지우다, 닦다''를 뜻하는 중국어 표현은?',
+        '["关(guān)", "擦(cā)", "画(huà)", "写(xiě)"]',
+        '擦(cā)',
+        '''擦(cā)''는 문지르거나 닦는 동작을 뜻해. 칠판을 지울 때도 쓰고, 눈물을 닦을 때도 써. 이야기의 마지막 장면에서 미란이 칠판을 지우며 모든 걸 마무리하는 느낌을 담고 있어. (HSK 3급)',
+        '손으로 문지르는 동작, ''cā''로 시작하는 한 글자',
+        '[]'
+    ),
+    (
+        59,
+        'ZH',
+        '她回到教室，把黑板上的字______了。(칠판의 글씨를 지웠다)',
+        '["抹(mǒ)", "删(shān)", "涂(tú)", "擦(cā)"]',
+        '擦(cā)',
+        '''擦(cā)''는 문지르다, 닦다, 지우다라는 뜻으로, ''擦黑板(cā hēibǎn)''은 칠판을 지우다라는 뜻의 고정 배합이야. 抹(바르다/닦다)는 주로 표면을 부드럽게 닦을 때, 删(삭제하다)는 텍스트 편집 시, 涂(칠하다)는 뭔가를 덧바를 때 쓰이므로 맥락이 달라. (HSK 4급)',
+        '지우개로 싹 없애는 동작, ''cā''로 시작하는 1글자',
+        '[]'
+    ),
+    (
+        60,
+        'ZH',
+        '''(마음속 감정이나 흔적을) 지우다, 털어내다''
+
+她回到教室，擦掉了黑板上的字，仿佛也想______内心的悲伤。
+(뜻: 슬픔이나 감정을 마음속에서 털어내고 평온을 되찾다)',
+        '[]',
+        '释怀',
+        '''释怀(shìhuái)''는 마음속의 감정이나 근심을 내려놓고 평온을 되찾다라는 뜻이야. 단순히 슬프다는 ''难过''나 ''伤心''과 달리, 감정을 스스로 정리하고 놓아준다는 능동적인 뉘앙스가 있어. 미란이 칠판을 지우는 행동은 이 밤의 모든 일을 마음속으로 정리하는 상징적인 장면이라 ''释怀''가 가장 자연스럽게 맞아. (HSK 6급)',
+        '释 + 두 글자 조합, 마음(心)의 짐을 ''풀어놓다''는 느낌',
+        '["释怀", "shìhuái", "shihuai"]'
+    ),
+    (
+        61,
+        'ZH',
+        '남자친구의 예언이 맞아떨어졌지만 ''그냥 우연이겠지''라고 생각했어요. ''우연히, 뜻밖에''를 뜻하는 중국어 표현으로 알맞은 것은?',
+        '["居然(jūrán)", "偶然(ǒurán)", "突然(tūrán)", "果然(guǒrán)"]',
+        '偶然(ǒurán)',
+        '''偶然(ǒurán)''은 ''우연히, 우연한''이라는 뜻이야. 남자친구의 예언이 딱 맞아떨어졌지만 ''그냥 우연이겠지''라고 넘겼던 상황에 딱 맞는 표현이지. 참고로 ''突然(tūrán)''은 갑자기, ''居然(jūrán)''은 뜻밖에도(놀라움 강조), ''果然(guǒrán)''은 역시나/과연이라는 뜻이야. (HSK 4급)',
+        'ǒu로 시작하는 2글자 단어',
+        '[]'
+    ),
+    (
+        62,
+        'ZH',
+        '我以为只是______，就没放在心上。(우연이겠지 하고 그냥 넘겼다)',
+        '["果然(guǒrán)", "必然(bìrán)", "偶然(ǒurán)", "突然(tūrán)"]',
+        '偶然(ǒurán)',
+        '''偶然(ǒurán)''은 우연히, 뜻밖에라는 의미야. 必然(필연적으로), 果然(과연/역시나), 突然(갑자기)과 헷갈리기 쉬운데, 이 상황에서는 ''우연이겠지''라고 가볍게 넘긴 거니까 偶然이 딱 맞아. (HSK 4급)',
+        '운이 겹친 느낌, ''ǒu''로 시작하는 2글자',
+        '[]'
+    ),
+    (
+        63,
+        'ZH',
+        '''우연히 만나다, 우연히 마주치다''
+
+我们第一次______，他就说我今晚会梦到蓝色蝴蝶。
+(뜻: 우연히 처음 만났을 때)',
+        '[]',
+        '邂逅',
+        '''邂逅(xièhòu)''는 우연히 만나다, 뜻하지 않게 마주치다라는 뜻의 서면어야. 구어에서는 보통 ''偶然遇见''이라고 하는데, ''邂逅''는 한층 문학적이고 운명적인 뉘앙스를 담고 있어. 첫 만남에서 남자친구가 꿈을 예측한 이 상황처럼, 우연하지만 인상적인 만남을 표현할 때 딱 맞는 단어야. (HSK 6급)',
+        'xie로 시작하는 2글자, ''우연한 만남''을 뜻하는 고급 서면어',
+        '["邂逅", "xièhòu", "xiehòu", "xiehou", "邂逅相遇"]'
+    ),
+    (
+        64,
+        'ZH',
+        '남자친구의 꿈 예측이 계속 맞아떨어지자 ''이게 우연일까요?''라고 생각했어요. ''뜻밖에도, 정말로 ~하다니''처럼 놀라움을 나타내는 중국어 부사로 알맞은 것은?',
+        '["居然(jūrán)", "终于(zhōngyú)", "突然(tūrán)", "故意(gùyì)"]',
+        '居然(jūrán)',
+        '''居然(jūrán)''은 예상치 못한 일이 실제로 일어났을 때 놀라움을 표현하는 부사야. 꿈 예측이 계속 맞는 게 믿기 어려울 만큼 놀라운 상황에 딱 맞는 단어지. ''突然(tūrán)''은 갑자기, ''终于(zhōngyú)''는 마침내, ''故意(gùyì)''는 일부러라는 뜻이라 의미가 달라. (HSK 4급)',
+        'jū로 시작하는 2글자 부사, ''뜻밖의 사실에 놀랄 때'' 쓰는 말',
+        '[]'
+    ),
+    (
+        65,
+        'ZH',
+        '''관련된, ~에 관한''
+
+他每天睡前发消息说今天的梦______水。
+(뜻: 오늘 꿈은 물에 관한 것 같다고 매일 자기 전에 메시지를 보낸다)',
+        '[]',
+        '有关',
+        '''有关(yǒuguān)''은 ''~에 관한, ~와 관련된''이라는 뜻의 중급 어휘야. ''물 관련 꿈''처럼 어떤 주제와 연결될 때 자주 쓰여. ''关于(guānyú)''도 비슷한 뜻이지만, ''有关''은 형용사/동사로 더 자연스럽게 쓰여. (HSK 4급)',
+        '''~와 관련 있다''는 표현, yǒu guān으로 시작하는 3글자',
+        '["有关", "yǒuguān", "youguān", "youguan", "有关于", "关于"]'
+    ),
+    (
+        66,
+        'ZH',
+        '남자친구가 매번 꿈 내용을 정확히 맞추는 상황에서, ''이게 우연의 일치일 리 없다''는 느낌을 표현하기에 가장 적절한 성어는?',
+        '["心有灵犀(xīn yǒu língxī)", "冥冥之中(míngmíng zhī zhōng)", "巧合(qiǎohé)", "无独有偶(wúdú yǒu ǒu)"]',
+        '冥冥之中(míngmíng zhī zhōng)',
+        '''冥冥之中(míngmíng zhī zhōng)''는 ''보이지 않는 힘이나 운명 속에서''라는 뜻으로, 우연이라고 보기엔 너무 신기한 일이 반복될 때 쓰는 표현이야. ''无独有偶''는 비슷한 사례가 하나 더 있다는 뜻, ''巧合''은 단순한 우연의 일치, ''心有灵犀''는 서로 마음이 통한다는 뜻이라 맥락과 거리가 있어. 꿈 예측이 반복되는 이 상황엔 운명적·신비로운 뉘앙스의 冥冥之中이 가장 자연스러워. (HSK 6급)',
+        '冥(명) 자가 들어가는 성어, 보이지 않는 힘이 운명을 이어준다는 뜻',
+        '[]'
+    ),
+    (
+        67,
+        'ZH',
+        '처음엔 신기했지만 점점 무서워지기 시작했어요. 이때 ''점점, 갈수록''에 해당하는 중국어 표현으로 알맞은 것은?',
+        '["突然(tūrán)", "越来越(yuè lái yuè)", "终于(zhōngyú)", "慢慢地(màn màn de)"]',
+        '越来越(yuè lái yuè)',
+        '''越来越(yuè lái yuè)''는 ''점점, 갈수록 ~해지다''라는 뜻이야. 처음엔 신기했는데 시간이 지날수록 무서움이 커져가는 상황에 딱 맞는 표현이지. (HSK 4급)',
+        '越로 시작하는 4글자 표현, 뭔가가 계속 커질 때 써',
+        '[]'
+    ),
+    (
+        68,
+        'ZH',
+        '他学过心理学，了解梦境和______意识之间的关系。
+(그는 심리학을 배워서 꿈과 무의식의 관계를 알고 있다)',
+        '["无意识(wúyìshí)", "下意识(xiàyìshí)", "潜意识(qiányìshí)", "集体意识(jítǐ yìshí)"]',
+        '无意识(wúyìshí)',
+        '''无意识(wúyìshí)''는 무의식이라는 뜻이야. ''潜意识(잠재의식)'', ''下意识(무의식적 반응)''과 헷갈릴 수 있지만, 이야기에서 남자친구가 언급한 심리학 개념인 ''무의식(无意识)''이 가장 적합해. (HSK 5급)',
+        '''의식이 없는'' 상태, ''無''의 중국어 표현 + 意识',
+        '[]'
+    ),
+    (
+        69,
+        'ZH',
+        '''처음엔 신기했지만 점점 두려움이 스며드는 감정''을 표현할 때, 뭔가 꺼림칙하고 섬뜩한 느낌을 뜻하는 중국어 단어는?
+
+起初觉得很神奇，但渐渐地心里开始感到______。
+(뜻: 왠지 모르게 무섭고 불안한 느낌)',
+        '[]',
+        '发毛',
+        '''发毛(fā máo)''는 뭔가 불길하고 섬뜩한 느낌이 들다, 소름 끼치다라는 뜻의 구어 표현이야. 단순히 슬프거나 긴장된 게 아니라, 기이한 상황 앞에서 등골이 오싹해지는 감정을 표현할 때 써. 유사 표현으로는 ''毛骨悚然(máogǔ sǒngrán, 소름이 끼치다)''이 있는데 이쪽은 더 문학적이고 강도가 강한 서면어야. 남자친구의 능력이 처음엔 신기했지만 점점 무서워지는 이 장면에 딱 맞는 표현이지. (HSK 6급)',
+        '毛로 끝나는 2글자 표현 — 온몸의 털이 곤두서는 느낌',
+        '["发毛", "fā máo", "fa mao", "fāmáo", "毛骨悚然", "毛骨悚然(máogǔ sǒngrán)", "máogǔ sǒngrán"]'
+    ),
+    (
+        70,
+        'ZH',
+        '남자친구의 노트 마지막 페이지에 ''꿈 조작 실험''이라고 적혀 있었어요. ''실험''을 중국어로 어떻게 표현할까요?',
+        '["试验(shìyàn)", "经验(jīngyàn)", "发现(fāxiàn)", "实验(shíyàn)"]',
+        '实验(shíyàn)',
+        '''实验(shíyàn)''는 ''실험''이라는 뜻으로, 과학적·체계적으로 무언가를 검증하는 행위를 말해. 남자친구가 꿈을 조작하려고 데이터를 모은 행위가 딱 이 단어에 해당하지. 참고로 ''试验(shìyàn)''도 ''시험적으로 해보다''라는 뜻이 있지만, ''꿈 조작 실험''처럼 체계적인 실험에는 ''实验''이 더 자연스러워. (HSK 4급)',
+        'shí로 시작하는 2글자, 과학 시간에 자주 하는 것',
+        '[]'
+    ),
+    (
+        71,
+        'ZH',
+        '''일과, 하루 일정''
+
+笔记本上按日期整理了她每天的______和当晚的梦。
+(뜻: 노트에 날짜별로 그녀의 매일 일과와 그날 밤 꿈이 정리되어 있었다)',
+        '[]',
+        '日常',
+        '''日常(rìcháng)''은 ''일상적인, 매일의''라는 뜻으로, 여기서는 하루 일과를 가리켜. ''日常生活(일상생활)'', ''日常活动(일상 활동)'' 같은 형태로 자주 쓰여. (HSK 4급)',
+        'rì + cháng (2글자, ''날 日'' + ''일상 常'')',
+        '["日常", "rìcháng", "richang"]'
+    ),
+    (
+        72,
+        'ZH',
+        '노트 맨 뒤에 ''꿈 조작 실험''이라는 글자를 발견한 순간, 화자의 심정을 가장 잘 표현한 성어는?',
+        '["恍然大悟(huǎngrán dàwù)", "惆怅若失(chóuchàng ruò shī)", "忐忑不安(tǎntè bù ān)", "瞠目结舌(chēngmù jiéshé)"]',
+        '瞠目结舌(chēngmù jiéshé)',
+        '''瞠目结舌(chēngmù jiéshé)''는 눈을 크게 뜨고 말문이 막히다, 즉 충격으로 할 말을 잃은 상태야. 3개월치 기록과 ''꿈 조작 실험''이라는 글자를 발견한 순간의 충격에 딱 맞는 표현이야. ''惆怅若失''은 무언가 잃은 듯 쓸쓸한 감정, ''忐忑不安''은 두근두근 불안한 상태, ''恍然大悟''는 갑자기 깨달음을 얻는 것으로, 모두 이 상황의 충격 강도와는 거리가 있어. (HSK 6급)',
+        '눈이 휘둥그레지고 말문이 막히는 느낌 — ''목이 뻣뻣해지다''는 뜻의 한자가 포함돼 있어',
+        '[]'
+    ),
+    (
+        73,
+        'ZH',
+        '남자친구는 화자가 스트레스받을 때 ''미리'' 알고 챙겨준다고 해요. ''미리, 사전에''를 뜻하는 중국어 표현은 무엇일까요?',
+        '["已经(yǐjīng)", "提前(tíqián)", "刚才(gāngcái)", "突然(tūrán)"]',
+        '提前(tíqián)',
+        '''提前(tíqián)''은 ''미리, 사전에, 앞당겨서''라는 뜻이야. 남자친구가 스트레스를 미리 알고 챙겨준다는 상황에 딱 맞는 표현이지. (HSK 4급)',
+        '提로 시작하는 2글자, ''앞당긴다''는 느낌',
+        '[]'
+    ),
+    (
+        74,
+        'ZH',
+        '他总是提前知道我______，并好好照顾我。
+(그는 항상 내가 스트레스받는 걸 미리 알고 잘 챙겨준다)',
+        '["给压力(gěi yālì)", "加压力(jiā yālì)", "受压力(shòu yālì)", "有压力(yǒu yālì)"]',
+        '受压力(shòu yālì)',
+        '''受压力(shòu yālì)''는 ''스트레스를 받다''라는 뜻의 고정 배합이야. ''有压力''는 ''압박감이 있다'', ''给压力''는 ''압박을 주다'', ''加压力''는 ''압력을 더하다''라는 의미로 문맥과 맞지 않아. 남자친구가 그녀의 스트레스 상태를 미리 파악하고 챙겨주는 상황에서 딱 맞는 표현이야. (HSK 4급)',
+        '스트레스를 받다 — ''압력''을 ''받는다''는 표현, shòu로 시작해',
+        '[]'
+    ),
+    (
+        75,
+        'ZH',
+        '''(상대방의 상태나 필요를) 미리 헤아려 배려하다''라는 뜻의 중국어 표현을 써 보세요.
+
+他总能______我的状态，提前关心我。
+(뜻: 그는 항상 내 상태를 미리 헤아려 챙겨준다)',
+        '[]',
+        '体谅',
+        '''体谅(tǐliàng)''는 상대방의 처지나 심리를 헤아려 이해하고 배려한다는 뜻이야. 단순히 ''이해하다''인 ''理解(lǐjiě)''나 ''关心(guānxīn, 관심을 갖다)''보다 훨씬 섬세하게 상대의 내면을 미리 파악해 챙긴다는 뉘앙스가 담겨 있어. 남자친구가 스트레스를 받을 때 미리 알고 챙겨주는 이 상황에 딱 맞는 표현이야. (HSK 6급)',
+        '체(体) + 헤아릴 체(谅) — 상대방 입장에서 이해하고 배려하는 것',
+        '["体谅", "tǐliàng", "tiliàng", "tiliang", "体谅(tǐliàng)"]'
+    ),
+    (
+        76,
+        'ZH',
+        '여자친구가 원래 공부 얘기만 하면 짜증을 냈는데, 과외 후 달라진 모습을 보였어. 이때 ''(태도나 분위기가) 갑자기 달라지다, 변하다''를 나타내는 중국어 표현으로 가장 알맞은 것은?',
+        '["变化(biànhuà)", "难过(nánguò)", "习惯(xíguàn)", "失望(shīwàng)"]',
+        '变化(biànhuà)',
+        '''变化(biànhuà)''는 변화, 달라지다라는 뜻이야. 공부를 싫어하던 여자친구가 과외 후 갑자기 밝아지고 태도가 달라진 상황에 딱 맞는 표현이지. (HSK 3급)',
+        'biàn으로 시작하는 2글자 단어',
+        '[]'
+    ),
+    (
+        77,
+        'ZH',
+        '她原来一聊到学习就______，没想到现在变得开朗多了。(원래는 공부 얘기만 하면 짜증을 냈는데, 이렇게 밝아질 줄 몰랐다)',
+        '["难过(nánguò)", "着急(zháojí)", "后悔(hòuhuǐ)", "生气(shēngqì)"]',
+        '生气(shēngqì)',
+        '''生气(shēngqì)''는 화를 내다, 짜증내다라는 뜻의 이합사야. 难过(슬프다), 着急(조급하다), 后悔(후회하다)와는 감정의 종류가 달라. 공부 얘기에 짜증을 내던 상황에 딱 맞는 표현이지. (HSK 4급)',
+        '불만이 폭발하기 직전의 감정, shēng으로 시작하는 이합사',
+        '[]'
+    ),
+    (
+        78,
+        'ZH',
+        '''어떤 계기로 태도나 분위기가 눈에 띄게 달라지다''
+
+她最近好像______了，以前一提到学习就烦，现在却总是笑着说。
+(뜻: 사람이나 분위기가 확 달라지다, 탈바꿈하다)',
+        '[]',
+        '蜕变',
+        '''蜕变(tuìbiàn)''는 허물을 벗듯 이전과 완전히 달라지다, 탈바꿈하다는 뜻의 고급 동사야. 여자친구가 공부 얘기만 하면 짜증내다가 갑자기 밝아진 변화를 포착하는 데 딱 맞는 표현이야. 비슷해 보이는 ''变化(biànhuà)''는 단순히 ''변하다''는 일반 표현이고, ''改变(gǎibiàn)''은 의지적으로 바꾸다는 뉘앙스라 이 맥락과는 달라. ''蜕变''는 내면에서부터 눈에 띄게 달라졌을 때 쓰는 서면어 느낌의 표현이야. (HSK 6급)',
+        '벌레가 허물을 벗고 나비가 되듯 — ''탈바꿈''을 뜻하는 2글자 고급 동사',
+        '["蜕变", "tuìbiàn", "tuibian", "蜕变了"]'
+    ),
+    (
+        79,
+        'ZH',
+        '친구가 뭔가 숨기듯 어색하게 웃으며 화제를 돌리는 상황. ''(화제를) 바꾸다, 돌리다''에 해당하는 중국어 표현은?',
+        '["拒绝(jùjué)", "逃跑(táopǎo)", "转移(zhuǎnyí)", "放弃(fàngqì)"]',
+        '转移(zhuǎnyí)',
+        '''转移(zhuǎnyí)''는 주의나 화제를 다른 곳으로 돌리거나 바꿀 때 쓰는 표현이야. 친구가 불편한 질문을 피하려고 슬쩍 화제를 바꾼 상황에 딱 맞는 단어지. (HSK 4급)',
+        '화제를 ''전환''할 때 쓰는 2글자 단어, zhuǎn으로 시작해',
+        '[]'
+    ),
+    (
+        80,
+        'ZH',
+        '''평소보다'' (평소에 비해)
+
+她______比平时化妆化得更浓了。
+(뜻: 그녀는 평소보다 화장을 더 진하게 했다)',
+        '[]',
+        '平时',
+        '''平时(píngshí)''는 ''평소, 보통 때''라는 뜻이야. 과외가 있는 날 유독 화장을 더 신경 쓴다는 걸 평소와 비교할 때 딱 맞는 표현이지. 비슷해 보이는 ''平常(píngcháng)''도 같은 뜻으로 쓰이지만, ''平时''가 일상 회화에서 더 자주 쓰여. (HSK 4급)',
+        '그날 / 그때라는 뜻 아님 — ''평소, 보통 때''를 가리키는 2글자',
+        '["平时", "píngshí", "pingshi", "平时(píngshí)"]'
+    ),
+    (
+        81,
+        'ZH',
+        '친구가 뭔가 알고 있으면서도 말을 돌리는 상황. ''당사자는 사정을 모르고 옆에서 보는 사람이 더 잘 안다''는 뜻의 속담으로 가장 적절한 것은?',
+        '["一叶障目，不见泰山(yī yè zhàng mù，bù jiàn Tàishān)", "当局者迷，旁观者清(dāngjúzhě mí，pángguānzhě qīng)", "吃一堑，长一智(chī yī qiàn，zhǎng yī zhì)", "欲盖弥彰(yù gài mí zhāng)"]',
+        '当局者迷，旁观者清(dāngjúzhě mí，pángguānzhě qīng)',
+        '''当局者迷，旁观者清''은 ''판 안에 있는 사람은 미혹되고, 옆에서 보는 사람은 맑게 안다''는 속담이야. 친구는 상황을 알면서도 직접 당사자인 화자에게 ''네가 직접 알아봐''라고 한 셈이라 이 맥락에 딱 맞아. ''吃一堑长一智''는 실패에서 교훈을 얻다, ''一叶障目''는 작은 것에 가려 전체를 못 보다, ''欲盖弥彰''는 숨기려다 오히려 드러나다. (HSK 6급)',
+        '局(판) 안에 있는 사람 vs. 清(맑게) 보는 사람 — 대비 구조',
+        '[]'
+    ),
+    (
+        82,
+        'ZH',
+        '여자친구가 늦는 이유로 핑계를 댔어. ''핑계, 구실''을 뜻하는 중국어 단어로 알맞은 것은?',
+        '["原因(yuányīn)", "理由(lǐyóu)", "目的(mùdì)", "借口(jiè kǒu)"]',
+        '借口(jiè kǒu)',
+        '''借口(jiè kǒu)''는 핑계나 구실을 뜻하는 단어야. 여자친구가 ''어려운 문제 풀고 있어서 늦는다''고 둘러댄 것처럼, 실제 이유를 숨기고 꾸며낸 이유를 말할 때 써. (HSK 4급)',
+        '借로 시작하는 2글자 단어, ''빌린다''는 느낌이 있어',
+        '[]'
+    ),
+    (
+        83,
+        'ZH',
+        '她说补习______两个小时，但三个小时过去了还没出来。(보통 2시간 한다고 했는데 3시간이 넘어도 안 나왔다)',
+        '["偶尔(ǒu''ěr)", "通常(tōngcháng)", "反而(fǎn''ér)", "果然(guǒrán)"]',
+        '通常(tōngcháng)',
+        '''通常(tōngcháng)''은 ''보통, 일반적으로''라는 뜻의 부사야. 偶尔(가끔), 果然(과연/역시), 反而(오히려)와 헷갈리지 않도록 주의해. 여자친구가 ''보통 2시간''이라고 했던 상황에 딱 맞는 표현이야. (HSK 4급)',
+        '''일반적으로/보통''을 뜻하는 2글자, ''tōng''으로 시작',
+        '[]'
+    ),
+    (
+        84,
+        'ZH',
+        '''(불길한 것을) 눈치채다, 낌새를 알아채다''
+
+他看到两人有说有笑地走出来，心里已经______到了什么。
+(뜻: 무언가 좋지 않은 상황을 직감적으로 감지하다)',
+        '[]',
+        '察觉',
+        '''察觉(chájué)''는 무언가를 직감적으로 눈치채거나 감지하다는 뜻이야. 단순히 ''보다''인 ''发现(fāxiàn)''과 달리, 아직 명확하지 않은 불길한 낌새를 내면적으로 알아채는 뉘앙스가 강해. 비슷한 ''觉察(juéchá)''는 어순만 바뀐 동의어지만, ''察觉''가 더 자연스러운 구어/서면 양용 표현이야. 이 장면에서 주인공이 멀리서 둘이 웃으며 나오는 걸 보고 뭔가를 직감하는 상황에 딱 맞는 표현이야. (HSK 6급)',
+        '察로 끝나는 2글자 — 속으로 몰래 살피다',
+        '["察觉", "chájué", "chajue", "察觉到", "chájué dào"]'
+    ),
+    (
+        85,
+        'ZH',
+        '여자친구의 목소리가 ''들떠 있었다''고 할 때, 이 상태를 가장 잘 표현하는 중국어 단어는?',
+        '["满意(mǎnyì)", "勇敢(yǒnggǎn)", "兴奋(xīngfèn)", "温柔(wēnróu)"]',
+        '兴奋(xīngfèn)',
+        '''兴奋(xīngfèn)''은 흥분되거나 들떠서 설레는 상태를 나타내는 표현이야. 여자친구가 과외가 어땠냐는 질문에 ''그냥 평소대로''라고 했지만, 목소리는 뭔가 들떠 있었다는 상황에 딱 맞는 단어야. (HSK 4급)',
+        '흥분되거나 설레는 감정, ''xīng''으로 시작하는 2글자',
+        '[]'
+    ),
+    (
+        86,
+        'ZH',
+        '''들뜨다, 흥분되다''
+
+她的声音听起来有些______，不像平时那样平静。
+(뜻: 그녀의 목소리가 평소와 달리 조금 들떠 있었다)',
+        '[]',
+        '兴奋',
+        '''兴奋(xīngfèn)''은 흥분하다, 들뜨다는 뜻이야. 여자친구의 목소리가 평소와 다르게 들떠 있던 상황에 딱 맞는 표현이지. 비슷한 단어 ''激动(jīdòng)''은 감동·격앙의 뉘앙스가 강한 반면, ''兴奋''은 기분 좋게 들뜬 느낌에 가까워. (HSK 4급)',
+        '흥분된 상태를 나타내는 2글자, xīng으로 시작해',
+        '["兴奋", "xīngfèn", "xingfen"]'
+    ),
+    (
+        87,
+        'ZH',
+        '여자친구의 목소리가 ''들떠 있었다''는 상황을 중국어로 가장 자연스럽게 표현한 것은?',
+        '["心平气和(xīnpíng qìhé)", "心灰意冷(xīn huī yì lěng)", "心如刀割(xīn rú dāo gē)", "心神不定(xīnshén bù dìng)"]',
+        '心神不定(xīnshén bù dìng)',
+        '''心神不定(xīnshén bù dìng)''는 마음이 들뜨고 가라앉지 않는 상태로, 뭔가 기대되거나 숨기는 것이 있을 때 자연스럽게 쓰는 표현이야. ''心灰意冷''은 완전히 낙담한 상태, ''心如刀割''은 칼로 베이는 듯한 극한의 슬픔, ''心平气和''는 마음이 평온하고 침착한 상태를 뜻해. 여자친구가 과외 선생님과 만난 뒤 목소리가 들뜬 상황과 가장 잘 맞는 건 心神不定이야. (HSK 6급)',
+        '흥분이나 기대로 마음이 가라앉지 않는 상태, ''안정(定)''이 안 된다는 느낌',
+        '[]'
+    ),
+    (
+        88,
+        'ZH',
+        '이야기 속 화자는 확실한 증거도 없이 의심을 하고 있어. ''의심하다''를 뜻하는 중국어 표현으로 알맞은 것은?',
+        '["担心(dānxīn)", "怀疑(huáiyí)", "误会(wùhuì)", "后悔(hòuhuǐ)"]',
+        '怀疑(huáiyí)',
+        '''怀疑(huáiyí)''는 ''의심하다, 수상히 여기다''라는 뜻이야. 확실한 근거는 없지만 뭔가 이상하다는 느낌에 상대를 의심하는 이 상황에 딱 맞는 표현이지. (HSK 4급)',
+        'huái로 시작하는 2글자 동사',
+        '[]'
+    ),
+    (
+        89,
+        'ZH',
+        '没有______的证据，但总觉得有什么不对劲。
+(확실한 증거는 없지만, 뭔가 이상한 것 같다)',
+        '["准确(zhǔnquè)", "确切(quèqiē)", "确定(quèdìng)", "正确(zhèngquè)"]',
+        '确切(quèqiē)',
+        '''确切(quèqiē)''는 ''확실한, 명확한''이라는 뜻으로, 증거나 정보가 분명하지 않다는 상황에 자연스럽게 어울리는 표현이야. 准确(정확하다), 正确(올바르다), 确定(확정하다)과 뉘앙스를 구별해야 해. (HSK 4급)',
+        '확실하다, qué로 시작하는 2글자',
+        '[]'
+    ),
+    (
+        90,
+        'ZH',
+        '''뭔가 이상한 건 분명한데, 확신은 없어서 마음이 불안하고 의심스럽다''
+
+他的反应让我感到______，虽然没有确凿的证据，但总觉得哪里不对劲。
+(뜻: 의혹이 생겨 마음이 편치 않은 상태)',
+        '[]',
+        '疑惑不解',
+        '''疑惑不解(yíhuò bù jiě)''는 의혹이 생겨 풀리지 않는 상태를 뜻해. 확실한 증거는 없지만 뭔가 이상하다는 걸 느끼면서도 확신하지 못하는 이야기 속 화자의 심리를 잘 담아내는 표현이야. 비슷한 표현으로 ''将信将疑(jiāng xìn jiāng yí)''도 가능한데, 이건 반은 믿고 반은 의심하는 뉘앙스라 살짝 다르고, ''狐疑(húyí)''는 여우처럼 의심이 많다는 문어체 표현이야. (HSK 6급)',
+        '疑(의심 의) 자로 시작하는 4글자 성어, 마음속에 의문이 가득 찬 느낌',
+        '["疑惑不解", "yíhuò bù jiě", "yihuo bu jie", "疑惑", "yíhuò", "yihuo", "将信将疑", "jiāng xìn jiāng yí", "jiang xin jiang yi"]'
     );
 
 -- =============================================
