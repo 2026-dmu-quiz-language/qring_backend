@@ -1,5 +1,11 @@
 package com.qring.qring_backend.auth.service;
 
+import java.util.Map;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.qring.qring_backend.auth.dto.AuthRequest;
 import com.qring.qring_backend.auth.dto.AuthResponse;
 import com.qring.qring_backend.auth.dto.LoginResponse;
@@ -8,13 +14,11 @@ import com.qring.qring_backend.auth.dto.VerifyEmailResponse;
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.auth.security.JwtTokenProvider;
 import com.qring.qring_backend.domain.user.User;
+import com.qring.qring_backend.domain.user.UserLanguageLevel;
+import com.qring.qring_backend.domain.user.UserLanguageLevelRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Map;
 
 /** 인증 도메인의 핵심 비즈니스 로직 (가입·로그인·소셜·토큰 재발급·학습 설정). */
 @Slf4j
@@ -28,6 +32,7 @@ public class AuthService {
     private final EmailService emailService;
     private final OAuthService oAuthService;
     private final DisposableEmailService disposableEmailService;
+    private final UserLanguageLevelRepository userLanguageLevelRepository;
 
     /**
      * Step 1: 미인증 상태로 저장 + 인증 코드 발송.
@@ -97,6 +102,10 @@ public class AuthService {
             .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
         user.setEmailVerified(true);
         userRepository.save(user);
+
+        // 가입 완료(이메일 인증) 시점에 user_language_level 시드 row 생성
+        seedUserLanguageLevel(user);
+
         String at = tokenProvider.generateAccessToken(user.getUserId());
         String rt = tokenProvider.generateRefreshToken(user.getUserId());
         return new VerifyEmailResponse(at, rt, true);
@@ -218,6 +227,9 @@ public class AuthService {
         user.setLanguage(request.getLanguage());
         user.setLevelCode(request.getLevelCode());
         userRepository.save(user);
+
+        // 온보딩 완료(언어/레벨 확정) 시점에 user_language_level 시드 row 생성
+        seedUserLanguageLevel(user);
     }
 
     /** OAuth 응답 조립: 새 토큰 페어 + onboarding 필요 여부(language/levelCode null이면 true). */
@@ -226,5 +238,21 @@ public class AuthService {
         String rt = tokenProvider.generateRefreshToken(user.getUserId());
         boolean isNewUser = user.getLanguage() == null || user.getLevelCode() == null;
         return new AuthResponse(at, rt, isNewUser);
+    }
+
+    /** user_language_level 시드 row 생성: 이미 해당 (user, language) row가 있으면 건너뜀. */
+    private void seedUserLanguageLevel(User user) {
+        if (user.getLanguage() == null || user.getLevelCode() == null) {
+            return;
+        }
+        boolean exists = userLanguageLevelRepository
+            .existsByUserIdAndLanguage(user.getUserId(), user.getLanguage());
+        if (!exists) {
+            UserLanguageLevel ull = new UserLanguageLevel();
+            ull.setUserId(user.getUserId());
+            ull.setLanguage(user.getLanguage());
+            ull.setLevel(user.getLevelCode());
+            userLanguageLevelRepository.save(ull);
+        }
     }
 }
