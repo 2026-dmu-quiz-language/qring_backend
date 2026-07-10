@@ -10,6 +10,8 @@ import com.qring.qring_backend.domain.quiz.QuizDetailRepository;
 import com.qring.qring_backend.domain.quiz.QuizResult;
 import com.qring.qring_backend.domain.quiz.QuizResultRepository;
 import com.qring.qring_backend.domain.quiz.QuizService;
+import com.qring.qring_backend.domain.quiz.StoryProgress;
+import com.qring.qring_backend.domain.quiz.StoryProgressRepository;
 import com.qring.qring_backend.domain.quiz.QuizContent;
 import com.qring.qring_backend.domain.quiz.QuizContentRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswer;
@@ -23,6 +25,8 @@ import com.qring.qring_backend.domain.user.UserprogressRepository;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto.QuizResultDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultResponseDto;
+import com.qring.qring_backend.domain.quiz.StoryProgress;
+import com.qring.qring_backend.domain.quiz.StoryProgressRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +47,7 @@ public class QuestionResultService {
     private final UserStudyLogRepository userStudyLogRepository;
     private final UserprogressRepository userprogressRepository;
     private final UserRepository userRepository;
+    private final StoryProgressRepository storyProgressRepository;
 
     @Transactional
     public QuestionResultResponseDto saveResults(Long userId, QuestionResultRequestDto request) {
@@ -69,15 +74,13 @@ public class QuestionResultService {
                 score = quizService.getCalculatedScore(
                         quizDetail.getDifficulty(),
                         result.getAttemptCount(),
-                        result.isHintUsed()
-                );
+                        result.isHintUsed());
                 correctCount++;
             } else {
                 score = quizService.getCalculatedScore(
                         quizDetail.getDifficulty(),
                         4,
-                        false
-                );
+                        false);
             }
 
             totalScore += score;
@@ -91,6 +94,8 @@ public class QuestionResultService {
                     .attemptCount(result.getAttemptCount())
                     .hintUsed(result.isHintUsed())
                     .score(score)
+                    .langCode(user.getLanguage())
+                    .level(quizDetail.getDifficulty())
                     .build());
 
             // user_study_log 저장
@@ -109,29 +114,47 @@ public class QuestionResultService {
             String userLanguage = user.getLanguage();
             if (userLanguage != null) {
                 quizContentRepository.findByQuizIdAndLangCode(result.getQuizId(), userLanguage)
-                    .ifPresent(quizContent -> {
-                        Long quizContentId = quizContent.getQuizContentId();
-                        if (result.isCorrect()) {
-                            // 정답이면 오답 목록에서 삭제
-                            wrongAnswerRepository.deleteByUserIdAndQuizContentId(userId, quizContentId);
-                        } else {
-                            // 오답이면 wrong_answer에 저장 (이미 있으면 중복 저장 안 함)
-                            boolean alreadyExists = wrongAnswerRepository
-                                .findByUserIdAndQuizContentId(userId, quizContentId)
-                                .isPresent();
-                            if (!alreadyExists) {
-                                WrongAnswer wa = new WrongAnswer();
-                                wa.setUserId(userId);
-                                wa.setQuizContentId(quizContentId);
-                                wa.setLevel(quizDetail.getDifficulty());
-                                wa.setStoryName(quizDetail.getContent().getTitle());
-                                wrongAnswerRepository.save(wa);
+                        .ifPresent(quizContent -> {
+                            Long quizContentId = quizContent.getQuizContentId();
+                            if (result.isCorrect()) {
+                                // 정답이면 오답 목록에서 삭제
+                                wrongAnswerRepository.deleteByUserIdAndQuizContentId(userId, quizContentId);
+                            } else {
+                                // 오답이면 wrong_answer에 저장 (이미 있으면 중복 저장 안 함)
+                                boolean alreadyExists = wrongAnswerRepository
+                                        .findByUserIdAndQuizContentId(userId, quizContentId)
+                                        .isPresent();
+                                if (!alreadyExists) {
+                                    WrongAnswer wa = new WrongAnswer();
+                                    wa.setUserId(userId);
+                                    wa.setQuizContentId(quizContentId);
+                                    wa.setLevel(quizDetail.getDifficulty());
+                                    wa.setStoryName(quizDetail.getContent().getTitle());
+                                    wrongAnswerRepository.save(wa);
+                                }
                             }
-                        }
-                    });
+                        });
             }
         }
-
+        
+        // story_progress 저장 (언어별 스토리 완료 처리)
+        if (content != null && user.getLanguage() != null) {
+            Content finalContent = content;
+            StoryProgress sp = storyProgressRepository
+                    .findByUserIdAndContentIdAndLanguage(userId, finalContent.getContentId(), user.getLanguage())
+                    .orElseGet(() -> {
+                        StoryProgress newSp = new StoryProgress();
+                        newSp.setUserId(userId);
+                        newSp.setContentId(finalContent.getContentId());
+                        newSp.setLanguage(user.getLanguage());
+                        newSp.setLevel(user.getLevelCode());
+                        return newSp;
+                    });
+            sp.setIsCompleted(true);
+            sp.setCompletedAt(LocalDateTime.now());
+            storyProgressRepository.save(sp);
+        }
+        
         // user_progress 저장 (콘텐츠 완료 처리)
         if (content != null) {
             Content finalContent = content;
