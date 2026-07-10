@@ -32,4 +32,7 @@ public class WrongAnswer {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "story_name", nullable = false)
+    private String storyName;
 }
