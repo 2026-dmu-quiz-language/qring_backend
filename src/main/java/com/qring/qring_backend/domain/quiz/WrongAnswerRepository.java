@@ -22,4 +22,12 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
            "WHERE wa.userId = :userId AND qc.langCode = :langCode")
     List<WrongAnswer> findByUserIdAndLangCode(@Param("userId") Long userId,
                                                @Param("langCode") String langCode);
+
+    @Query("SELECT COUNT(wa) > 0 FROM WrongAnswer wa " +
+           "JOIN QuizContent qc ON wa.quizContentId = qc.id " +
+           "WHERE wa.userId = :userId AND qc.langCode = :langCode " +
+           "AND wa.createdAt <= :sevenDaysAgo")
+    boolean existsByUserIdAndLangCodeAndOlderThan(@Param("userId") Long userId,
+                                                  @Param("langCode") String langCode,
+                                                  @Param("sevenDaysAgo") java.time.LocalDateTime sevenDaysAgo);
 }
