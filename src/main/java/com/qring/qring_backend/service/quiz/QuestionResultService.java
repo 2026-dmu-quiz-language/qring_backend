@@ -25,8 +25,6 @@ import com.qring.qring_backend.domain.user.UserprogressRepository;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto.QuizResultDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultResponseDto;
-import com.qring.qring_backend.domain.quiz.StoryProgress;
-import com.qring.qring_backend.domain.quiz.StoryProgressRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,6 +52,8 @@ public class QuestionResultService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        String language = user.getLanguage();
 
         int totalScore = 0;
         int correctCount = 0;
@@ -94,7 +94,7 @@ public class QuestionResultService {
                     .attemptCount(result.getAttemptCount())
                     .hintUsed(result.isHintUsed())
                     .score(score)
-                    .langCode(user.getLanguage())
+                    .langCode(language)
                     .level(quizDetail.getDifficulty())
                     .build());
 
@@ -104,6 +104,7 @@ public class QuestionResultService {
             studyLog.setQuiz(quizDetail);
             studyLog.setUserResponse(result.getLastAnswer());
             studyLog.setIsCorrect(result.isCorrect());
+            studyLog.setLangCode(language);
             userStudyLogRepository.save(studyLog);
 
             // 포인트 적립 (정답: 3점, 오답: 1점)
@@ -111,9 +112,8 @@ public class QuestionResultService {
             userAssetRepository.addPoints(userId, pointsToAdd);
 
             // wrong_answer 처리: 유저 언어 + quizId로 quiz_content_id 조회
-            String userLanguage = user.getLanguage();
-            if (userLanguage != null) {
-                quizContentRepository.findByQuizIdAndLangCode(result.getQuizId(), userLanguage)
+            if (language != null) {
+                quizContentRepository.findByQuizIdAndLangCode(result.getQuizId(), language)
                         .ifPresent(quizContent -> {
                             Long quizContentId = quizContent.getQuizContentId();
                             if (result.isCorrect()) {
@@ -136,17 +136,17 @@ public class QuestionResultService {
                         });
             }
         }
-        
+
         // story_progress 저장 (언어별 스토리 완료 처리)
-        if (content != null && user.getLanguage() != null) {
+        if (content != null && language != null) {
             Content finalContent = content;
             StoryProgress sp = storyProgressRepository
-                    .findByUserIdAndContentIdAndLanguage(userId, finalContent.getContentId(), user.getLanguage())
+                    .findByUserIdAndContentIdAndLanguage(userId, finalContent.getContentId(), language)
                     .orElseGet(() -> {
                         StoryProgress newSp = new StoryProgress();
                         newSp.setUserId(userId);
                         newSp.setContentId(finalContent.getContentId());
-                        newSp.setLanguage(user.getLanguage());
+                        newSp.setLanguage(language);
                         newSp.setLevel(user.getLevelCode());
                         return newSp;
                     });
@@ -154,7 +154,7 @@ public class QuestionResultService {
             sp.setCompletedAt(LocalDateTime.now());
             storyProgressRepository.save(sp);
         }
-        
+
         // user_progress 저장 (콘텐츠 완료 처리)
         if (content != null) {
             Content finalContent = content;

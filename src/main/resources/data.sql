@@ -1167,7 +1167,7 @@ INSERT IGNORE INTO
 VALUES (
         3,
         '끊어진 전화선',
-        3,
+        2,
         'ACTIVE',
         '/images/스릴러_썸네일.png'
     );
@@ -1996,7 +1996,7 @@ INSERT IGNORE INTO
 VALUES (
         4,
         '빨간 구두',
-        4,
+        2,
         'ACTIVE',
         '/images/추리물_썸네일.png'
     );
@@ -2528,7 +2528,7 @@ INSERT IGNORE INTO
 VALUES (
         5,
         '남자친구가 제 꿈을 예측해요',
-        5,
+        1,
         'ACTIVE',
         '/images/특이한연애썰_썸네일.png'
     );
@@ -2979,7 +2979,7 @@ INSERT IGNORE INTO
 VALUES (
         6,
         '수학 과외 선생님과 내 여자친구',
-        6,
+        1,
         'ACTIVE',
         '/images/연애갈등_썸네일.png'
     );
