@@ -57,9 +57,7 @@ public class QuizResult {
     @Column(name = "lang_code", length = 5)
     private String langCode;
 
-    @Column(name = "level")
-    private Integer level;
-
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -75,6 +73,5 @@ public class QuizResult {
         this.hintUsed = hintUsed;
         this.score = score;
         this.langCode = langCode;
-        this.level = level;
     }
 }

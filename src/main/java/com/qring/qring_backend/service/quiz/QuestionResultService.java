@@ -95,7 +95,6 @@ public class QuestionResultService {
                     .hintUsed(result.isHintUsed())
                     .score(score)
                     .langCode(language)
-                    .level(quizDetail.getDifficulty())
                     .build());
 
             // user_study_log 저장
