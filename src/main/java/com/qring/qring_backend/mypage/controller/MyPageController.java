@@ -14,13 +14,13 @@ public class MyPageController {
 
     private final MyPageService myPageService;
 
-    @GetMapping("/mypage")
+    @PostMapping("/mypage")
     public ResponseEntity<MyPageInfoResponse> getMyPage(Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
         return ResponseEntity.ok(myPageService.getMyPageInfo(userId));
     }
 
-    @GetMapping("/mypage/setting")
+    @PostMapping("/mypage/setting")
     public ResponseEntity<MyPageSettingResponse> getMyPageSetting(Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
         return ResponseEntity.ok(myPageService.getMyPageSetting(userId));
@@ -40,7 +40,7 @@ public class MyPageController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/langcheck")
+    @PostMapping("/langcheck")
     public ResponseEntity<Boolean> checkLanguage(Authentication authentication, @RequestParam("lang") String lang) {
         Long userId = (Long) authentication.getPrincipal();
         return ResponseEntity.ok(myPageService.checkLanguage(userId, lang));
