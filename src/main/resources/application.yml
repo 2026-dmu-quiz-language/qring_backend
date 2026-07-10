@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:mysql://qring.c72ooi4qiyuu.ap-northeast-2.rds.amazonaws.com:3306/qring_db
+    url: jdbc:mysql://qring.c72ooi4qiyuu.ap-northeast-2.rds.amazonaws.com:3306/qring_db?serverTimezone=Asia/Seoul&useUnicode=true&characterEncoding=utf8
     username: admin
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
