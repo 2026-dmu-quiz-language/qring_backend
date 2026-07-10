@@ -35,4 +35,7 @@ public class WrongAnswer {
 
     @Column(name = "story_name", nullable = false)
     private String storyName;
+
+    @Column(name = "content_id", nullable = false)
+    private Long contentId;
 }

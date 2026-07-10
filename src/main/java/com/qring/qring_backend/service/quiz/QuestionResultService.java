@@ -130,6 +130,7 @@ public class QuestionResultService {
                                     wa.setQuizContentId(quizContentId);
                                     wa.setLevel(quizDetail.getDifficulty());
                                     wa.setStoryName(quizDetail.getContent().getTitle());
+                                    wa.setContentId(quizDetail.getContent().getContentId());
                                     wrongAnswerRepository.save(wa);
                                 }
                             }
