@@ -33,11 +33,11 @@ public class QuizResult {
     // Users 테이블과의 외래키 연관관계 매핑
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user; 
+    private User user;
 
     // Content 테이블과의 외래키 연관관계 매핑
     @Column(name = "content_id", nullable = false)
-    private Long contentId; 
+    private Long contentId;
 
     @Column(name = "script_id", nullable = false)
     private Long scriptId;
@@ -57,12 +57,14 @@ public class QuizResult {
     @Column(name = "lang_code", length = 5)
     private String langCode;
 
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    public QuizResult(User user, Long contentId, Long scriptId, int difficulty, int attemptCount, boolean hintUsed, int score, String langCode) {
+    public QuizResult(User user, Long contentId, Long scriptId, int difficulty,
+                      int attemptCount, boolean hintUsed, int score, String langCode, Integer level) {
         this.user = user;
         this.contentId = contentId;
         this.scriptId = scriptId;
