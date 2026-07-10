@@ -20,4 +20,5 @@ public class DashboardResponse {
     private Integer levelCode;
     /** 이번 주 월~일 학습 여부. 길이 7, [0]=월 ~ [6]=일. */
     private boolean[] weeklyStudy;
+    private String incorrectAlarm;
 }
