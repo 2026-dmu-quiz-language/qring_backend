@@ -10,7 +10,12 @@ import com.qring.qring_backend.domain.quiz.QuizDetailRepository;
 import com.qring.qring_backend.domain.quiz.QuizResult;
 import com.qring.qring_backend.domain.quiz.QuizResultRepository;
 import com.qring.qring_backend.domain.quiz.QuizService;
+import com.qring.qring_backend.domain.quiz.QuizContent;
+import com.qring.qring_backend.domain.quiz.QuizContentRepository;
+import com.qring.qring_backend.domain.quiz.WrongAnswer;
+import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
+import com.qring.qring_backend.domain.user.UserAssetRepository;
 import com.qring.qring_backend.domain.user.UserStudyLog;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.domain.user.Userprogress;
@@ -20,9 +25,11 @@ import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto.QuizResultDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultResponseDto;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class QuestionResultService {
@@ -30,6 +37,9 @@ public class QuestionResultService {
     private final QuizService quizService;
     private final QuizDetailRepository quizDetailRepository;
     private final QuizResultRepository quizResultRepository;
+    private final QuizContentRepository quizContentRepository;
+    private final WrongAnswerRepository wrongAnswerRepository;
+    private final UserAssetRepository userAssetRepository;
     private final UserStudyLogRepository userStudyLogRepository;
     private final UserprogressRepository userprogressRepository;
     private final UserRepository userRepository;
@@ -94,6 +104,36 @@ public class QuestionResultService {
             studyLog.setIsCorrect(result.isCorrect());
             studyLog.setLangCode(language);
             userStudyLogRepository.save(studyLog);
+
+            // 포인트 적립 (정답: 3점, 오답: 1점)
+            int pointsToAdd = result.isCorrect() ? 3 : 1;
+            userAssetRepository.addPoints(userId, pointsToAdd);
+
+            // wrong_answer 처리: 유저 언어 + quizId로 quiz_content_id 조회
+            String userLanguage = user.getLanguage();
+            if (userLanguage != null) {
+                quizContentRepository.findByQuizIdAndLangCode(result.getQuizId(), userLanguage)
+                    .ifPresent(quizContent -> {
+                        Long quizContentId = quizContent.getQuizContentId();
+                        if (result.isCorrect()) {
+                            // 정답이면 오답 목록에서 삭제
+                            wrongAnswerRepository.deleteByUserIdAndQuizContentId(userId, quizContentId);
+                        } else {
+                            // 오답이면 wrong_answer에 저장 (이미 있으면 중복 저장 안 함)
+                            boolean alreadyExists = wrongAnswerRepository
+                                .findByUserIdAndQuizContentId(userId, quizContentId)
+                                .isPresent();
+                            if (!alreadyExists) {
+                                WrongAnswer wa = new WrongAnswer();
+                                wa.setUserId(userId);
+                                wa.setQuizContentId(quizContentId);
+                                wa.setLevel(quizDetail.getDifficulty());
+                                wa.setStoryName(quizDetail.getContent().getTitle());
+                                wrongAnswerRepository.save(wa);
+                            }
+                        }
+                    });
+            }
         }
 
         // user_progress 저장 (콘텐츠 완료 처리)
