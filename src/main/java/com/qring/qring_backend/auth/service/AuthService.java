@@ -16,6 +16,8 @@ import com.qring.qring_backend.auth.security.JwtTokenProvider;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserLanguageLevel;
 import com.qring.qring_backend.domain.user.UserLanguageLevelRepository;
+import com.qring.qring_backend.domain.user.UserAsset;
+import com.qring.qring_backend.domain.user.UserAssetRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +35,7 @@ public class AuthService {
     private final OAuthService oAuthService;
     private final DisposableEmailService disposableEmailService;
     private final UserLanguageLevelRepository userLanguageLevelRepository;
+    private final UserAssetRepository userAssetRepository;
 
     /**
      * Step 1: 미인증 상태로 저장 + 인증 코드 발송.
@@ -103,8 +106,9 @@ public class AuthService {
         user.setEmailVerified(true);
         userRepository.save(user);
 
-        // 가입 완료(이메일 인증) 시점에 user_language_level 시드 row 생성
+        // 가입 완료(이메일 인증) 시점에 user_language_level 시드 row 생성 및 초기 자산(50포인트) 설정
         seedUserLanguageLevel(user);
+        initUserAsset(user);
 
         String at = tokenProvider.generateAccessToken(user.getUserId());
         String rt = tokenProvider.generateRefreshToken(user.getUserId());
@@ -203,6 +207,8 @@ public class AuthService {
             .socialId(socialId)
             .emailVerified(true)
             .build());
+            
+        initUserAsset(created);
         return buildAuthResponse(created);
     }
 
@@ -253,6 +259,18 @@ public class AuthService {
             ull.setLanguage(user.getLanguage());
             ull.setLevel(user.getLevelCode());
             userLanguageLevelRepository.save(ull);
+        }
+    }
+
+    /** 신규 유저 가입 시 초기 자산(포인트 50점) 설정. 이미 자산이 있다면 건너뜀. */
+    private void initUserAsset(User user) {
+        if (userAssetRepository.findByUserUserId(user.getUserId()).isEmpty()) {
+            UserAsset asset = new UserAsset();
+            asset.setUser(user);
+            asset.setCurrentPoints(50);
+            asset.setTotalExp(0);
+            asset.setStreakDays(0);
+            userAssetRepository.save(asset);
         }
     }
 }

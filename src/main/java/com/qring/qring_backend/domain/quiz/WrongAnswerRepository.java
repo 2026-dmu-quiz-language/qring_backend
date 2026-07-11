@@ -17,6 +17,8 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
     void deleteByUserIdAndQuizContentId(Long userId, Long quizContentId);
 
     List<WrongAnswer> findByUserId(Long userId);
+    
+    long countByUserId(Long userId);
 
     // 대시보드: 특정 언어의 오답 목록 (QuizContent와 JOIN, lang_code로 필터)
     @Query("SELECT wa FROM WrongAnswer wa " +
@@ -42,7 +44,7 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
 
     // contentId로 오답 문제 목록 조회 (quiz_content JOIN)
     @Query("SELECT new com.qring.qring_backend.dto.quiz.IncorrectRetryResponseDto$IncorrectQuizDto(" +
-           "qc.quizContentId, qc.question, qc.options, qc.hint, qc.correctAnswer) " +
+           "qc.quizContentId, qc.question, qc.options, qc.hint, qc.correctAnswer, qc.quizDetail.quizType) " +
            "FROM WrongAnswer wa " +
            "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
            "WHERE wa.userId = :userId AND wa.contentId = :contentId")

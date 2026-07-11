@@ -18,6 +18,9 @@ import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.domain.user.UserprogressRepository;
+import com.qring.qring_backend.domain.user.UserAssetRepository;
+import com.qring.qring_backend.domain.user.UserAsset;
+import com.qring.qring_backend.dto.quiz.IncorrectResponseDto.WrongAnswerSummary;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,8 +37,10 @@ public class DashboardService {
     private final AchievementCommentRepository achievementCommentRepository;
 
     private final WrongAnswerRepository wrongAnswerRepository;
+    private final UserAssetRepository userAssetRepository;
 
     /** 사용자별 대시보드 응답 조립. 평균 진도율은 반올림 정수, 코멘트/레벨 설명은 옵션. */
+    @Transactional
     public DashboardResponse getDashboard(Long userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
@@ -70,6 +75,24 @@ public class DashboardService {
             }
         }
 
+        boolean isConsecutivePointReceived = false;
+        Integer currentPoints = 0;
+        UserAsset asset = userAssetRepository.findByUserUserId(userId).orElse(null);
+        if (asset != null) {
+            currentPoints = asset.getCurrentPoints();
+            if (consecutiveDays > 0 && consecutiveDays % 15 == 0) {
+                if (asset.getStreakDays() == null || asset.getStreakDays() < consecutiveDays) {
+                    userAssetRepository.addPoints(userId, 30);
+                    asset.setStreakDays((int) consecutiveDays);
+                    userAssetRepository.save(asset);
+                    isConsecutivePointReceived = true;
+                    currentPoints += 30;
+                }
+            }
+        }
+
+        int incorrectQuizCount = (int) wrongAnswerRepository.countByUserId(userId);
+
         return DashboardResponse.builder()
             .name(user.getNickname())
             .consecutiveDays(consecutiveDays)
@@ -80,6 +103,9 @@ public class DashboardService {
             .levelCode(levelCode)
             .weeklyStudy(weeklyStudy)
             .incorrectAlarm(incorrectAlarm)
+            .isConsecutivePointReceived(isConsecutivePointReceived)
+            .currentPoints(currentPoints)
+            .incorrectQuizCount(incorrectQuizCount)
             .build();
     }
 
