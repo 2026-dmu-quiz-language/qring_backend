@@ -19,5 +19,6 @@ public class IncorrectRetryResponseDto {
         private String options;
         private String hint;
         private String correctAnswer;
+        private String quizType;
     }
 }
