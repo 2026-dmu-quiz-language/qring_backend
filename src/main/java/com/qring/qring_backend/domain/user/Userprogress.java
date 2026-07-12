@@ -28,6 +28,9 @@ public class Userprogress {
     @Column(name = "progress_rate")
     private Integer progressRate;
 
+    @Column(length = 10)
+    private String language;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }

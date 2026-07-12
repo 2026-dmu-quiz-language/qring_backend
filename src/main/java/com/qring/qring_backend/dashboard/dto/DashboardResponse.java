@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+import com.qring.qring_backend.dto.quiz.IncorrectResponseDto.WrongAnswerSummary;
+
 /** 대시보드 응답 — 닉네임, 연속 학습일, 진도율(%), 성취 코멘트, 완료 스토리 수, 레벨 정보, 주간 학습 현황. */
 @Getter
 @Builder
@@ -20,4 +23,8 @@ public class DashboardResponse {
     private Integer levelCode;
     /** 이번 주 월~일 학습 여부. 길이 7, [0]=월 ~ [6]=일. */
     private boolean[] weeklyStudy;
+    private String incorrectAlarm;
+    private boolean isConsecutivePointReceived;
+    private Integer currentPoints;
+    private int incorrectQuizCount;
 }

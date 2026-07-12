@@ -106,9 +106,8 @@ public class QuestionResultService {
             studyLog.setLangCode(language);
             userStudyLogRepository.save(studyLog);
 
-            // 포인트 적립 (정답: 3점, 오답: 1점)
-            int pointsToAdd = result.isCorrect() ? 3 : 1;
-            userAssetRepository.addPoints(userId, pointsToAdd);
+            // 포인트 적립 (계산된 퀴즈 점수(score)를 그대로 토리로 지급)
+            userAssetRepository.addPoints(userId, score);
 
             // wrong_answer 처리: 유저 언어 + quizId로 quiz_content_id 조회
             if (language != null) {
@@ -164,9 +163,22 @@ public class QuestionResultService {
                         Userprogress p = new Userprogress();
                         p.setUser(user);
                         p.setContent(finalContent);
+                        p.setLanguage(language);
                         return p;
                     });
+                    
+            // 해당 언어의 첫 스토리 완료 시 30점 추가 부여
+            if (progress.getProgressRate() == null || progress.getProgressRate() < 100) {
+                if (language != null) {
+                    long completed = userprogressRepository.countCompletedStories(userId, language);
+                    if (completed == 0) {
+                        userAssetRepository.addPoints(userId, 30);
+                    }
+                }
+            }
+
             progress.setProgressRate(100);
+            progress.setLanguage(language);
             progress.setUpdatedAt(LocalDateTime.now());
             userprogressRepository.save(progress);
         }

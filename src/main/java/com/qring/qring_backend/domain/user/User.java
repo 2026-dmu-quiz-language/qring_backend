@@ -59,4 +59,12 @@ public class User {
     @Column(name = "create_at")
     @Builder.Default
     private LocalDateTime createAt = LocalDateTime.now();
+
+    @Column(name = "bgm_volume")
+    @Builder.Default
+    private Integer bgmVolume = 100;
+
+    @Column(name = "push_enabled")
+    @Builder.Default
+    private Boolean pushEnabled = true;
 }

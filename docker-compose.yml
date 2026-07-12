@@ -1,44 +1,16 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: qring-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: "1234"
-      MYSQL_DATABASE: qring_db
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-    ports:
-      # 호스트 3307 → 컨테이너 3306. 로컬에 설치된 MySQL(3306)과 충돌 피하기 위함.
-      - "3307:3306"
-    volumes:
-      - qring_mysql_data:/var/lib/mysql
-      # SQL 시드가 필요하면 호스트의 sql/ 폴더를 컨테이너에서 수동 실행:
-      #   docker exec -i qring-mysql mysql -uroot -p1234 qring_db < sql/qring_full_v2.sql
-      - ./sql:/sql:ro
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p1234"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: qring-backend
-    depends_on:
-      mysql:
-        condition: service_healthy
+
     env_file:
       # MAIL_USERNAME / MAIL_PASSWORD / OAuth 키 / JWT_SECRET / QRING_EMAIL_DEV_MODE 등 주입
       - .env
-    environment:
-      # application.yml의 localhost:3306 대신 도커 네트워크의 mysql 서비스로 오버라이드
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/qring_db?serverTimezone=Asia/Seoul&useUnicode=true&characterEncoding=utf8
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: "1234"
+
     ports:
       - "8080:8080"
 
@@ -77,5 +49,4 @@ services:
   #   restart: unless-stopped
   # ---------------------------------------------------------------
 
-volumes:
-  qring_mysql_data:
+
