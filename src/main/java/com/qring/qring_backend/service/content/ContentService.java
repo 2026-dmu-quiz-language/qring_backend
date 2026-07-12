@@ -1,14 +1,16 @@
 package com.qring.qring_backend.service.content;
 
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.domain.content.ContentRepository;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.dto.content.ContentListResponseDto;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -27,13 +29,14 @@ public class ContentService {
 
         return contentRepository.findContentListByUserId(userId, language).stream()
                 .map(dto -> new ContentListResponseDto(
+                        dto.getContentId(),
                         dto.getCategoryName(),
                         baseUrl + dto.getThumbnailUrl(),
                         dto.getTitle(),
-                        dto.getContentId(),
                         dto.getQuizCount(),
                         dto.getIsCompleted(),
-                        dto.getStatus()
+                        dto.getStatus(),
+                        dto.getRequiredPoints()
                 ))
                 .toList();
     }

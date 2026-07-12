@@ -7,11 +7,12 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ContentListResponseDto {
 
+    private Long contentId;
     private String categoryName;
     private String thumbnailUrl;
     private String title;
-    private Long contentId;
     private Long quizCount;
     private Boolean isCompleted;
     private String status;
+    private Integer requiredPoints;
 }
