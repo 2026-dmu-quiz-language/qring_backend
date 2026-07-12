@@ -1,29 +1,31 @@
 package com.qring.qring_backend.domain.content;
 
-import com.qring.qring_backend.dto.content.ContentListResponseDto;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
+import com.qring.qring_backend.dto.content.ContentListResponseDto;
 
 public interface ContentRepository extends JpaRepository<Content, Long> {
 
     @Query("""
         SELECT new com.qring.qring_backend.dto.content.ContentListResponseDto(
+            c.contentId,
             c.category.categoryName,
             c.thumbnailUrl,
             c.title,
-            c.contentId,
             COUNT(DISTINCT qc.quizContentId),
-            CASE WHEN COUNT(up.progressId) > 0 THEN true ELSE false END,
-            c.status
+            CASE WHEN COUNT(sp.id) > 0 THEN true ELSE false END,
+            c.status,
+            c.requiredPoints
         )
         FROM Content c
         LEFT JOIN QuizDetail q ON q.content.contentId = c.contentId AND q.difficulty = 1
         LEFT JOIN QuizContent qc ON qc.quizDetail.quizId = q.quizId AND qc.langCode = :language
-        LEFT JOIN Userprogress up ON up.content.contentId = c.contentId AND up.user.userId = :userId
-        GROUP BY c.contentId, c.category.categoryName, c.thumbnailUrl, c.title, c.status
+        LEFT JOIN StoryProgress sp ON sp.contentId = c.contentId AND sp.userId = :userId AND sp.language = :language AND sp.isCompleted = true
+        GROUP BY c.contentId, c.category.categoryName, c.thumbnailUrl, c.title, c.status, c.requiredPoints
     """)
     List<ContentListResponseDto> findContentListByUserId(
             @Param("userId") Long userId,
