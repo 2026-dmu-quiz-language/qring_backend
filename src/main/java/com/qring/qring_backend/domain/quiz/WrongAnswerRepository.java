@@ -19,17 +19,20 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
     List<WrongAnswer> findByUserId(Long userId);
     
     long countByUserId(Long userId);
+    
+    @Query("SELECT COUNT(wa) FROM WrongAnswer wa JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId WHERE wa.userId = :userId AND qc.langCode = :langCode")
+    long countByUserIdAndLangCode(@Param("userId") Long userId, @Param("langCode") String langCode);
 
     // 대시보드: 특정 언어의 오답 목록 (QuizContent와 JOIN, lang_code로 필터)
     @Query("SELECT wa FROM WrongAnswer wa " +
-           "JOIN QuizContent qc ON wa.quizContentId = qc.id " +
+           "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
            "WHERE wa.userId = :userId AND qc.langCode = :langCode")
     List<WrongAnswer> findByUserIdAndLangCode(@Param("userId") Long userId,
                                                @Param("langCode") String langCode);
 
 
     @Query("SELECT COUNT(wa) > 0 FROM WrongAnswer wa " +
-           "JOIN QuizContent qc ON wa.quizContentId = qc.id " +
+           "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
            "WHERE wa.userId = :userId AND qc.langCode = :langCode " +
            "AND wa.createdAt <= :sevenDaysAgo")
     boolean existsByUserIdAndLangCodeAndOlderThan(@Param("userId") Long userId,

@@ -11,6 +11,7 @@ import com.qring.qring_backend.domain.user.UserLanguageLevel;
 import com.qring.qring_backend.domain.user.UserLanguageLevelRepository;
 import com.qring.qring_backend.mypage.dto.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -45,7 +47,7 @@ public class MyPageService {
                     .orElse(null);
         }
 
-        long consecutiveDays = computeConsecutiveDays(userId, user.getLanguage());
+        long consecutiveDays = computeConsecutiveDays(userId);
 
         return MyPageInfoResponse.builder()
                 .nickname(user.getNickname())
@@ -70,19 +72,27 @@ public class MyPageService {
 
     @Transactional
     public void updateMyPage(Long userId, MyPageUpdateRequest request) {
+        log.info("[MyPageService] updateMyPage 시작. userId: {}", userId);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
+                .orElseThrow(() -> {
+                    log.error("[MyPageService] 유저를 찾을 수 없습니다. userId: {}", userId);
+                    return new IllegalArgumentException("USER_NOT_FOUND");
+                });
 
         if (request.getNickname() != null && !request.getNickname().isEmpty()) {
+            log.info("[MyPageService] 닉네임 변경: {} -> {}", user.getNickname(), request.getNickname());
             user.setNickname(request.getNickname());
         }
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+            log.info("[MyPageService] 비밀번호 변경 진행");
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
         if (request.getPushEnabled() != null) {
+            log.info("[MyPageService] 푸시 알림 설정 변경: {} -> {}", user.getPushEnabled(), request.getPushEnabled());
             user.setPushEnabled(request.getPushEnabled());
         }
         userRepository.save(user);
+        log.info("[MyPageService] updateMyPage DB 저장 완료. userId: {}", userId);
     }
 
     @Transactional
@@ -96,15 +106,17 @@ public class MyPageService {
         if (request.getLevelCode() != null) {
             user.setLevelCode(request.getLevelCode());
         }
-        userRepository.save(user);
         
+        String langToUpdate = user.getLanguage();
+        Integer levelToUpdate = user.getLevelCode();
+
         // Update or insert UserLanguageLevel
-        if (request.getLanguage() != null && request.getLevelCode() != null) {
-            UserLanguageLevel ull = userLanguageLevelRepository.findByUserIdAndLanguage(userId, request.getLanguage())
+        if (langToUpdate != null && !langToUpdate.isEmpty() && levelToUpdate != null) {
+            UserLanguageLevel ull = userLanguageLevelRepository.findByUserIdAndLanguage(userId, langToUpdate)
                     .orElse(new UserLanguageLevel());
             ull.setUserId(userId);
-            ull.setLanguage(request.getLanguage());
-            ull.setLevel(request.getLevelCode());
+            ull.setLanguage(langToUpdate);
+            ull.setLevel(levelToUpdate);
             userLanguageLevelRepository.save(ull);
         }
     }
@@ -129,9 +141,12 @@ public class MyPageService {
         }
     }
 
-    private long computeConsecutiveDays(Long userId, String langCode) {
-        if (langCode == null) return 0;
-        List<LocalDate> dates = userStudyLogRepository.findDistinctStudyDatesDesc(userId, langCode);
+    private long computeConsecutiveDays(Long userId) {
+        List<LocalDate> dates = userStudyLogRepository.findDistinctStudyDatesDesc(userId)
+            .stream()
+            .map(java.time.LocalDateTime::toLocalDate)
+            .distinct()
+            .collect(java.util.stream.Collectors.toList());
         if (dates.isEmpty()) return 0;
 
         LocalDate today = LocalDate.now();
