@@ -3,10 +3,12 @@ package com.qring.qring_backend.mypage.controller;
 import com.qring.qring_backend.mypage.dto.*;
 import com.qring.qring_backend.mypage.service.MyPageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -29,7 +31,13 @@ public class MyPageController {
     @PostMapping("/update") // Using /update as requested, though usually /mypage/update is better
     public ResponseEntity<Void> updateMyPage(Authentication authentication, @RequestBody MyPageUpdateRequest request) {
         Long userId = (Long) authentication.getPrincipal();
+        log.info("[MyPageController] /update 호출됨. userId: {}", userId);
+        log.info("[MyPageController] Request Payload - nickname: {}, pushEnabled: {}, passwordIsPresent: {}", 
+                 request.getNickname(), request.getPushEnabled(), (request.getPassword() != null && !request.getPassword().isEmpty()));
+                 
         myPageService.updateMyPage(userId, request);
+        
+        log.info("[MyPageController] /update 성공적으로 완료됨. userId: {}", userId);
         return ResponseEntity.ok().build();
     }
 

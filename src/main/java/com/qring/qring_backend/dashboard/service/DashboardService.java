@@ -2,9 +2,11 @@ package com.qring.qring_backend.dashboard.service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,15 +49,15 @@ public class DashboardService {
             
         String langCode = user.getLanguage();
 
-        int progressRate = computeWeeklyProgressRate(userId, langCode);
+        int progressRate = computeWeeklyProgressRate(userId);
 
         long completedStoryCount = userprogressRepository.countCompletedStories(userId, langCode);
 
         String commentText = achievementCommentRepository.findCommentByRate(progressRate).orElse(null);
 
-        long consecutiveDays = computeConsecutiveDays(userId, langCode);
+        long consecutiveDays = computeConsecutiveDays(userId);
 
-        boolean[] weeklyStudy = computeWeeklyStudy(userId, langCode);
+        boolean[] weeklyStudy = computeWeeklyStudy(userId);
 
         Integer levelCode = user.getLevelCode();
         String levelDesc = null;
@@ -91,7 +93,7 @@ public class DashboardService {
             }
         }
 
-        int incorrectQuizCount = (int) wrongAnswerRepository.countByUserId(userId);
+        int incorrectQuizCount = (int) wrongAnswerRepository.countByUserIdAndLangCode(userId, langCode);
 
         return DashboardResponse.builder()
             .name(user.getNickname())
@@ -110,12 +112,16 @@ public class DashboardService {
     }
 
     /** 이번 주 성취도: 월~금 학습 시 +10%, 토~일 +25%. 매주 월요일 자동 초기화. */
-    private int computeWeeklyProgressRate(Long userId, String langCode) {
-        if (langCode == null) return 0;
+    private int computeWeeklyProgressRate(Long userId) {
         LocalDate monday = LocalDate.now().with(DayOfWeek.MONDAY);
-        Set<LocalDate> studied = new HashSet<>(
-            userStudyLogRepository.findStudyDatesBetween(userId, langCode, monday, monday.plusDays(6))
-        );
+        LocalDateTime startOfWeek = monday.atStartOfDay();
+        LocalDateTime endOfWeek = monday.plusDays(7).atStartOfDay();
+        
+        Set<LocalDate> studied = userStudyLogRepository.findStudyDatesBetween(userId, startOfWeek, endOfWeek)
+            .stream()
+            .map(LocalDateTime::toLocalDate)
+            .collect(Collectors.toSet());
+            
         int rate = 0;
         for (int i = 0; i < 7; i++) {
             LocalDate day = monday.plusDays(i);
@@ -128,14 +134,18 @@ public class DashboardService {
     }
 
     /** 이번 주 월~일 학습 여부 배열. 인덱스 0=월, 6=일. */
-    private boolean[] computeWeeklyStudy(Long userId, String langCode) {
+    private boolean[] computeWeeklyStudy(Long userId) {
         boolean[] result = new boolean[7];
-        if (langCode == null) return result;
         
         LocalDate monday = LocalDate.now().with(DayOfWeek.MONDAY);
-        Set<LocalDate> studied = new HashSet<>(
-            userStudyLogRepository.findStudyDatesBetween(userId, langCode, monday, monday.plusDays(6))
-        );
+        LocalDateTime startOfWeek = monday.atStartOfDay();
+        LocalDateTime endOfWeek = monday.plusDays(7).atStartOfDay();
+        
+        Set<LocalDate> studied = userStudyLogRepository.findStudyDatesBetween(userId, startOfWeek, endOfWeek)
+            .stream()
+            .map(LocalDateTime::toLocalDate)
+            .collect(Collectors.toSet());
+            
         for (int i = 0; i < 7; i++) {
             result[i] = studied.contains(monday.plusDays(i));
         }
@@ -143,9 +153,13 @@ public class DashboardService {
     }
 
     /** 가장 최근 학습일이 오늘 또는 어제일 때만 연속일 카운트. 그 이전에 끊겼으면 0. */
-    private long computeConsecutiveDays(Long userId, String langCode) {
-        if (langCode == null) return 0;
-        List<LocalDate> dates = userStudyLogRepository.findDistinctStudyDatesDesc(userId, langCode);
+    private long computeConsecutiveDays(Long userId) {
+        List<LocalDate> dates = userStudyLogRepository.findDistinctStudyDatesDesc(userId)
+            .stream()
+            .map(LocalDateTime::toLocalDate)
+            .distinct()
+            .collect(Collectors.toList());
+            
         if (dates.isEmpty()) return 0;
 
         LocalDate today = LocalDate.now();

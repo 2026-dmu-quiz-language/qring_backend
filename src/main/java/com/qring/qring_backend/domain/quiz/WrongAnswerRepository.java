@@ -19,17 +19,20 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
     List<WrongAnswer> findByUserId(Long userId);
     
     long countByUserId(Long userId);
+    
+    @Query("SELECT COUNT(wa) FROM WrongAnswer wa JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId WHERE wa.userId = :userId AND qc.langCode = :langCode")
+    long countByUserIdAndLangCode(@Param("userId") Long userId, @Param("langCode") String langCode);
 
     // 대시보드: 특정 언어의 오답 목록 (QuizContent와 JOIN, lang_code로 필터)
     @Query("SELECT wa FROM WrongAnswer wa " +
-           "JOIN QuizContent qc ON wa.quizContentId = qc.id " +
+           "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
            "WHERE wa.userId = :userId AND qc.langCode = :langCode")
     List<WrongAnswer> findByUserIdAndLangCode(@Param("userId") Long userId,
                                                @Param("langCode") String langCode);
 
 
     @Query("SELECT COUNT(wa) > 0 FROM WrongAnswer wa " +
-           "JOIN QuizContent qc ON wa.quizContentId = qc.id " +
+           "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
            "WHERE wa.userId = :userId AND qc.langCode = :langCode " +
            "AND wa.createdAt <= :sevenDaysAgo")
     boolean existsByUserIdAndLangCodeAndOlderThan(@Param("userId") Long userId,
@@ -37,10 +40,14 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
                                                   @Param("sevenDaysAgo") java.time.LocalDateTime sevenDaysAgo);
 
 
-    // 오답 목록에서 contentId + storyName 중복 없이 조회
+    // 오답 목록에서 contentId + storyName 중복 없이 조회 (현재 언어에 해당하는 오답만)
     @Query("SELECT DISTINCT new com.qring.qring_backend.dto.quiz.IncorrectResponseDto$WrongAnswerSummary(wa.contentId, wa.storyName) " +
-           "FROM WrongAnswer wa WHERE wa.userId = :userId")
-    List<IncorrectResponseDto.WrongAnswerSummary> findWrongAnswerSummaryByUserId(@Param("userId") Long userId);
+           "FROM WrongAnswer wa " +
+           "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
+           "WHERE wa.userId = :userId AND qc.langCode = :langCode")
+    List<IncorrectResponseDto.WrongAnswerSummary> findWrongAnswerSummaryByUserIdAndLangCode(
+            @Param("userId") Long userId,
+            @Param("langCode") String langCode);
 
     // contentId로 오답 문제 목록 조회 (quiz_content JOIN)
     @Query("SELECT new com.qring.qring_backend.dto.quiz.IncorrectRetryResponseDto$IncorrectQuizDto(" +
