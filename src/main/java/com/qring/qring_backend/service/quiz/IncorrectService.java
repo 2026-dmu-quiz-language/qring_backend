@@ -1,6 +1,8 @@
 package com.qring.qring_backend.service.quiz;
 
+import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
+import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserAssetRepository;
 import com.qring.qring_backend.dto.quiz.IncorrectResponseDto;
 import com.qring.qring_backend.dto.quiz.IncorrectResultRequestDto;
@@ -21,10 +23,15 @@ public class IncorrectService {
 
     private final WrongAnswerRepository wrongAnswerRepository;
     private final UserAssetRepository userAssetRepository;
+    private final UserRepository userRepository;
 
     public IncorrectResponseDto getWrongAnswers(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
+        String langCode = user.getLanguage();
+
         List<IncorrectResponseDto.WrongAnswerSummary> list = wrongAnswerRepository
-                .findWrongAnswerSummaryByUserId(userId);
+                .findWrongAnswerSummaryByUserIdAndLangCode(userId, langCode);
         return new IncorrectResponseDto(list);
     }
     
