@@ -26,8 +26,9 @@ public class ContentService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
         String language = user.getLanguage();
+        Integer level = user.getLevelCode();
 
-        return contentRepository.findContentListByUserId(userId, language).stream()
+        return contentRepository.findContentListByUserId(userId, language, level).stream()
                 .map(dto -> new ContentListResponseDto(
                         dto.getContentId(),
                         dto.getCategoryName(),

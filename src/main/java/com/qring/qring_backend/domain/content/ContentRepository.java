@@ -22,12 +22,13 @@ public interface ContentRepository extends JpaRepository<Content, Long> {
             c.requiredPoints
         )
         FROM Content c
-        LEFT JOIN QuizDetail q ON q.content.contentId = c.contentId AND q.difficulty = 1
+        LEFT JOIN QuizDetail q ON q.content.contentId = c.contentId AND q.difficulty = :level
         LEFT JOIN QuizContent qc ON qc.quizDetail.quizId = q.quizId AND qc.langCode = :language
         LEFT JOIN StoryProgress sp ON sp.contentId = c.contentId AND sp.userId = :userId AND sp.language = :language AND sp.isCompleted = true
         GROUP BY c.contentId, c.category.categoryName, c.thumbnailUrl, c.title, c.status, c.requiredPoints
     """)
     List<ContentListResponseDto> findContentListByUserId(
             @Param("userId") Long userId,
-            @Param("language") String language);
+            @Param("language") String language,
+            @Param("level") Integer level);
 }
