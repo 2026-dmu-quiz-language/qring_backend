@@ -18,7 +18,6 @@ public class ContentController {
     @PostMapping("/contentList")
     public ResponseEntity<List<ContentListResponseDto>> getContentList(Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
-        List<ContentListResponseDto> contentList = contentService.getContentList(userId);
-        return ResponseEntity.ok(contentList);
+        return ResponseEntity.ok(contentService.getContentList(userId));
     }
 }
