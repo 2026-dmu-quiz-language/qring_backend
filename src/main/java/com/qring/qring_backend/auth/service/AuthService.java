@@ -202,7 +202,7 @@ public class AuthService {
 
         User created = userRepository.save(User.builder()
             .email(resolvedEmail)
-            .nickname(nickname)
+            .nickname(resolveUniqueNickname(nickname))
             .authProvider(provider)
             .socialId(socialId)
             .emailVerified(true)
@@ -210,6 +210,17 @@ public class AuthService {
             
         initUserAsset(created);
         return buildAuthResponse(created);
+    }
+
+    /** 소셜 프로필 닉네임이 없거나 중복이면 숫자 접미사를 붙여 유일한 닉네임을 만든다. */
+    private String resolveUniqueNickname(String nickname) {
+        String base = (nickname == null || nickname.isBlank()) ? "user" : nickname;
+        if (!userRepository.existsByNickname(base)) return base;
+        for (int i = 1; i < 1000; i++) {
+            String candidate = base + i;
+            if (!userRepository.existsByNickname(candidate)) return candidate;
+        }
+        throw new IllegalArgumentException("SOCIAL_LOGIN_FAILED");
     }
 
     /** 리프레시 토큰 검증 후 동일 사용자에 대해 새 토큰 페어 발급. */
