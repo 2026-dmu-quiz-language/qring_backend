@@ -98,6 +98,34 @@ public class CompetitionMatchService {
         return new BotLevelDto.Response(match.getMatchId(), questions, balanceAfter);
     }
 
+    /**
+     * 매치 일시정지/재개 토글. 유저당 진행 중인 매치는 1개라고 보고 status로 찾음.
+     * 일시정지는 포인트 변동 없음 (결정사항).
+     */
+    @Transactional
+    public CompetitionMatch togglePause(Long userId, boolean pause) {
+        List<CompetitionMatch> activeMatches = competitionMatchRepository.findAllByUserIdAndStatusIn(
+                userId,
+                List.of(CompetitionMatch.MatchStatus.IN_PROGRESS, CompetitionMatch.MatchStatus.PAUSED));
+
+        if (activeMatches.isEmpty()) {
+            throw new IllegalArgumentException("진행 중인 매치가 없습니다.");
+        }
+
+        CompetitionMatch match = activeMatches.get(0);
+
+        if (pause && match.getStatus() == CompetitionMatch.MatchStatus.IN_PROGRESS) {
+            match.setStatus(CompetitionMatch.MatchStatus.PAUSED);
+            match.setPausedAt(LocalDateTime.now());
+        } else if (!pause && match.getStatus() == CompetitionMatch.MatchStatus.PAUSED) {
+            match.setStatus(CompetitionMatch.MatchStatus.IN_PROGRESS);
+            match.setPausedAt(null);
+        }
+        // 이미 같은 상태면 그대로 idempotent 처리
+
+        return competitionMatchRepository.save(match);
+    }
+
     private int mapBotLevelToInt(String botLevel) {
         return switch (botLevel) {
             case "하" -> 1;
