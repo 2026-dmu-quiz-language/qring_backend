@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.qring.qring_backend.domain.competition.CompetitionMatch;
 import com.qring.qring_backend.dto.competition.BotLevelDto;
 import com.qring.qring_backend.dto.competition.BotPauseResponseDto;
+import com.qring.qring_backend.dto.competition.BotResultDto;
 import com.qring.qring_backend.service.competition.CompetitionMatchService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,5 +45,16 @@ public class CompetitionMatchController {
         Long userId = (Long) authentication.getPrincipal();
         CompetitionMatch match = competitionMatchService.togglePause(userId, botPause);
         return ResponseEntity.ok(new BotPauseResponseDto(match.getMatchId(), match.getStatus().name()));
+    }
+
+    @Operation(summary = "봇 컴피티션 결과 저장 - 정답/오답 정보 저장 후 점수/포인트 계산")
+    @PostMapping("/bot/result")
+    public ResponseEntity<BotResultDto.Response> saveResult(
+            Authentication authentication,
+            @RequestBody BotResultDto.Request request) {
+
+        Long userId = (Long) authentication.getPrincipal();
+        BotResultDto.Response response = competitionMatchService.saveResult(userId, request);
+        return ResponseEntity.ok(response);
     }
 }
