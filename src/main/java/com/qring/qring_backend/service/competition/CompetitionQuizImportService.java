@@ -25,7 +25,7 @@ public class CompetitionQuizImportService {
 
     private final CompetitionQuizDetailRepository quizDetailRepository;
     private final CompetitionQuizContentRepository quizContentRepository;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * json 하나(언어 1개, 레벨 여러 개)를 통째로 받아 저장.
