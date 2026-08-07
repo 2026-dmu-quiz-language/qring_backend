@@ -15,13 +15,19 @@ import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.domain.competition.CompetitionBotProfile;
 import com.qring.qring_backend.domain.competition.CompetitionBotProfileRepository;
 import com.qring.qring_backend.domain.competition.CompetitionMatch;
+import com.qring.qring_backend.domain.competition.CompetitionMatchAnswer;
+import com.qring.qring_backend.domain.competition.CompetitionMatchAnswerRepository;
 import com.qring.qring_backend.domain.competition.CompetitionMatchRepository;
 import com.qring.qring_backend.domain.competition.CompetitionQuizContent;
 import com.qring.qring_backend.domain.competition.CompetitionQuizContentRepository;
+import com.qring.qring_backend.domain.competition.CompetitionWrongAnswer;
+import com.qring.qring_backend.domain.competition.CompetitionWrongAnswerRepository;
 import com.qring.qring_backend.domain.quiz.QuizContentRepository;
 import com.qring.qring_backend.domain.quiz.QuizDetail;
 import com.qring.qring_backend.domain.quiz.QuizDetailRepository;
 import com.qring.qring_backend.domain.quiz.QuizContent;
+import com.qring.qring_backend.domain.quiz.WrongAnswer;
+import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserAsset;
 import com.qring.qring_backend.domain.user.UserAssetHistory;
@@ -29,6 +35,7 @@ import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
 import com.qring.qring_backend.domain.user.UserAssetHistoryRepository;
 import com.qring.qring_backend.domain.user.UserAssetRepository;
 import com.qring.qring_backend.dto.competition.BotLevelDto;
+import com.qring.qring_backend.dto.competition.BotResultDto;
 import com.qring.qring_backend.dto.competition.CompetitionQuizItemDto;
 
 import lombok.RequiredArgsConstructor;
@@ -43,14 +50,20 @@ public class CompetitionMatchService {
     private static final int QUESTIONS_PER_TYPE = 7;
     private static final int STORY_QUESTION_COUNT = 4;
 
+    // 레벨별 기본 보상 (상/중/하)
+    private static final Map<Integer, Integer> BASE_REWARD = Map.of(1, 100, 2, 140, 3, 200);
+
     private final UserRepository userRepository;
     private final UserAssetRepository userAssetRepository;
     private final UserAssetHistoryRepository userAssetHistoryRepository;
     private final CompetitionMatchRepository competitionMatchRepository;
+    private final CompetitionMatchAnswerRepository competitionMatchAnswerRepository;
     private final CompetitionQuizContentRepository competitionQuizContentRepository;
     private final CompetitionBotProfileRepository competitionBotProfileRepository;
+    private final CompetitionWrongAnswerRepository competitionWrongAnswerRepository;
     private final QuizDetailRepository quizDetailRepository;
     private final QuizContentRepository quizContentRepository;
+    private final WrongAnswerRepository wrongAnswerRepository;
 
     @Transactional
     public BotLevelDto.Response startMatch(Long userId, BotLevelDto.Request request) {
@@ -124,6 +137,133 @@ public class CompetitionMatchService {
         // 이미 같은 상태면 그대로 idempotent 처리
 
         return competitionMatchRepository.save(match);
+    }
+
+    /**
+     * 매치 결과 저장 + 점수/포인트 계산.
+     * 프론트가 판정한 정답 여부를 그대로 신뢰하고 저장 (재검증 없음).
+     */
+    @Transactional
+    public BotResultDto.Response saveResult(Long userId, BotResultDto.Request request) {
+
+        List<CompetitionMatch> activeMatches = competitionMatchRepository.findAllByUserIdAndStatusIn(
+                userId,
+                List.of(CompetitionMatch.MatchStatus.IN_PROGRESS, CompetitionMatch.MatchStatus.PAUSED));
+
+        if (activeMatches.isEmpty()) {
+            throw new IllegalArgumentException("진행 중인 매치가 없습니다.");
+        }
+        CompetitionMatch match = activeMatches.get(0);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+        String langCode = user.getLanguage();
+
+        int correctCount = 0;
+
+        for (BotResultDto.AnswerItem item : request.getAnswers()) {
+
+            String roundWinner;
+            if (item.isUserIsCorrect() && !item.isBotIsCorrect()) {
+                roundWinner = "USER";
+            } else if (!item.isUserIsCorrect() && item.isBotIsCorrect()) {
+                roundWinner = "BOT";
+            } else {
+                roundWinner = "DRAW";
+            }
+
+            CompetitionMatchAnswer answer = new CompetitionMatchAnswer();
+            answer.setMatch(match);
+            answer.setSourceQuizContentId(item.getSourceQuizContentId());
+            answer.setSourceType(CompetitionMatchAnswer.SourceType.valueOf(item.getSourceType()));
+            answer.setRoundNo(item.getRoundNo());
+            answer.setUserAnswer(item.getUserAnswer());
+            answer.setUserIsCorrect(item.isUserIsCorrect());
+            answer.setBotIsCorrect(item.isBotIsCorrect());
+            answer.setRoundWinner(CompetitionMatchAnswer.RoundWinner.valueOf(roundWinner));
+            competitionMatchAnswerRepository.save(answer);
+
+            if (item.isUserIsCorrect()) {
+                correctCount++;
+                continue;
+            }
+
+            // 오답 저장 (출처별로 다른 테이블)
+            if ("STORY".equals(item.getSourceType())) {
+                saveStoryWrongAnswer(userId, item.getSourceQuizContentId());
+            } else {
+                saveCompetitionWrongAnswer(userId, item.getSourceQuizContentId(), match.getLevel(), langCode);
+            }
+        }
+
+        int wrongCount = request.getAnswers().size() - correctCount;
+
+        // 보상 계산: 기본 보상 + 스트릭 보너스 (최고 구간만 적용)
+        int baseReward = BASE_REWARD.getOrDefault(match.getLevel(), 0);
+        int streakBonus = calculateStreakBonus(request.getStreakCount() == null ? 0 : request.getStreakCount());
+        int rewardPoint = baseReward + streakBonus;
+
+        match.setStatus(CompetitionMatch.MatchStatus.COMPLETED);
+        match.setCorrectCount(correctCount);
+        match.setRewardPoint(rewardPoint);
+        match.setCompletedAt(LocalDateTime.now());
+        competitionMatchRepository.save(match);
+
+        // 보상 지급 + 이력 기록
+        UserAsset asset = userAssetRepository.findByUserUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저 자산 정보를 찾을 수 없습니다."));
+        userAssetRepository.addPoints(userId, rewardPoint);
+        int balanceAfter = asset.getCurrentPoints() + rewardPoint;
+
+        UserAssetHistory history = new UserAssetHistory();
+        history.setUserId(userId);
+        history.setChangeAmount(rewardPoint);
+        history.setBalanceAfter(balanceAfter);
+        history.setSourceType(SourceType.COMPETITION_REWARD);
+        history.setReferenceId(match.getMatchId());
+        userAssetHistoryRepository.save(history);
+
+        return new BotResultDto.Response(match.getMatchId(), correctCount, wrongCount, rewardPoint, balanceAfter);
+    }
+
+    private int calculateStreakBonus(int streakCount) {
+        if (streakCount >= TOTAL_QUESTIONS) return 30; // 21문제 올백
+        if (streakCount >= 14) return 20;
+        if (streakCount >= 7) return 10;
+        return 0;
+    }
+
+    private void saveStoryWrongAnswer(Long userId, Long quizContentId) {
+        boolean alreadyExists = wrongAnswerRepository.findByUserIdAndQuizContentId(userId, quizContentId).isPresent();
+        if (alreadyExists) return;
+
+        QuizContent quizContent = quizContentRepository.findById(quizContentId)
+                .orElseThrow(() -> new IllegalArgumentException("스토리 문제를 찾을 수 없습니다: " + quizContentId));
+        QuizDetail quizDetail = quizContent.getQuizDetail();
+
+        WrongAnswer wa = new WrongAnswer();
+        wa.setUserId(userId);
+        wa.setQuizContentId(quizContentId);
+        wa.setLevel(quizDetail.getDifficulty());
+        wa.setStoryName(quizDetail.getContent().getTitle());
+        wa.setContentId(quizDetail.getContent().getContentId());
+        wrongAnswerRepository.save(wa);
+    }
+
+    private void saveCompetitionWrongAnswer(Long userId, Long quizContentId, Integer level, String langCode) {
+        boolean alreadyExists = competitionWrongAnswerRepository
+                .findByUserIdAndQuizContentId(userId, quizContentId).isPresent();
+        if (alreadyExists) return;
+
+        CompetitionQuizContent quizContent = competitionQuizContentRepository.findById(quizContentId)
+                .orElseThrow(() -> new IllegalArgumentException("컴피티션 문제를 찾을 수 없습니다: " + quizContentId));
+
+        CompetitionWrongAnswer wa = new CompetitionWrongAnswer();
+        wa.setUserId(userId);
+        wa.setQuizContent(quizContent);
+        wa.setLevel(level);
+        wa.setLangCode(langCode);
+        competitionWrongAnswerRepository.save(wa);
     }
 
     private int mapBotLevelToInt(String botLevel) {
