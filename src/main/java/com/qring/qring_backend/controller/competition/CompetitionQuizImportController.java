@@ -24,10 +24,10 @@ import lombok.RequiredArgsConstructor;
 public class CompetitionQuizImportController {
 
     private final CompetitionQuizImportService importService;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Operation(summary = "봇 컴피티션 문제 json 업로드 (언어별)")
-    @PostMapping("/import")
+    @PostMapping(value = "/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ImportResult> importQuizSet(@RequestParam("file") MultipartFile file) throws Exception {
         CompetitionQuizImportDto dto = objectMapper.readValue(file.getInputStream(), CompetitionQuizImportDto.class);
         ImportResult result = importService.importQuizSet(dto);
