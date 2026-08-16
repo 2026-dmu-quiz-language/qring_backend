@@ -43,7 +43,7 @@ public class AuthRequest {
         private Integer levelCode;
     }
 
-    /** 학습 설정(언어/레벨) 업데이트 요청. */
+    /** 학습 설정(언어/레벨/닉네임) 업데이트 요청. */
     @Data
     public static class UpdatePreferences {
         @NotBlank
@@ -53,6 +53,14 @@ public class AuthRequest {
         @NotNull
         @Min(1) @Max(3)
         private Integer levelCode;
+
+        // 선택: 소셜 가입 온보딩에서 닉네임 확정 (없으면 기존 닉네임 유지)
+        @Size(min = 2, max = 16)
+        @Pattern(
+            regexp = "^[a-zA-Z0-9가-힣_]+$",
+            message = "Nickname can only contain letters, numbers, Korean characters, and underscores"
+        )
+        private String nickname;
     }
 
     /** 이메일 인증 코드 검증 요청. */
