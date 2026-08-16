@@ -118,7 +118,7 @@ public class AuthController {
 
     /* ---------- 학습 설정 (Onboarding) ---------- */
 
-    /** 학습 설정(언어/레벨) 업데이트. 소셜 가입 직후 OnboardingScreen에서 호출. */
+    /** 학습 설정(언어/레벨)과 닉네임(선택) 업데이트. 소셜 가입 직후 OnboardingScreen에서 호출. */
     @PutMapping("/preferences")
     public ResponseEntity<Map<String, Boolean>> updatePreferences(
         Authentication authentication,

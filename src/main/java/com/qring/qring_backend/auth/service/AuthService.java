@@ -156,7 +156,7 @@ public class AuthService {
     @Transactional
     public AuthResponse googleLogin(AuthRequest.SocialLogin request) {
         Map<String, Object> u = oAuthService.verifyGoogleToken(request.getToken());
-        return socialLogin("GOOGLE", (String) u.get("sub"), (String) u.get("email"), (String) u.get("name"));
+        return socialLogin("GOOGLE", (String) u.get("sub"), (String) u.get("email"));
     }
 
     /** Kakao 인가 코드 → 사용자 프로필 → 내부 사용자로 매핑/생성. */
@@ -166,24 +166,22 @@ public class AuthService {
         Map<String, Object> u = oAuthService.verifyKakaoCode(request.getToken(), request.getRedirectUri());
         String socialId = String.valueOf(u.get("id"));
         Map<String, Object> account = (Map<String, Object>) u.get("kakao_account");
-        Map<String, Object> profile = account != null ? (Map<String, Object>) account.get("profile") : null;
         String email = account != null ? (String) account.get("email") : null;
-        String nickname = profile != null ? (String) profile.get("nickname") : null;
-        return socialLogin("KAKAO", socialId, email, nickname);
+        return socialLogin("KAKAO", socialId, email);
     }
 
     /** LINE 인가 코드 → 사용자 프로필 → 내부 사용자로 매핑/생성. */
     @Transactional
     public AuthResponse lineLogin(AuthRequest.SocialLogin request) {
         Map<String, Object> p = oAuthService.verifyLineCode(request.getToken(), request.getRedirectUri());
-        return socialLogin("LINE", (String) p.get("userId"), null, (String) p.get("displayName"));
+        return socialLogin("LINE", (String) p.get("userId"), null);
     }
 
     /**
      * 소셜 사용자 매핑 공통 로직: (provider, socialId) 매칭 → 이메일 충돌 검사 → 신규 생성.
      * 호출자(googleLogin/kakaoLogin/lineLogin)의 트랜잭션 안에서 동작한다.
      */
-    private AuthResponse socialLogin(String provider, String socialId, String email, String nickname) {
+    private AuthResponse socialLogin(String provider, String socialId, String email) {
         var existing = userRepository.findByAuthProviderAndSocialId(provider, socialId);
         if (existing.isPresent()) {
             return buildAuthResponse(existing.get());
@@ -202,7 +200,7 @@ public class AuthService {
 
         User created = userRepository.save(User.builder()
             .email(resolvedEmail)
-            .nickname(resolveUniqueNickname(nickname))
+            .nickname(tempNickname(socialId))
             .authProvider(provider)
             .socialId(socialId)
             .emailVerified(true)
@@ -212,9 +210,10 @@ public class AuthService {
         return buildAuthResponse(created);
     }
 
-    /** 소셜 프로필 닉네임이 없거나 중복이면 숫자 접미사를 붙여 유일한 닉네임을 만든다. */
-    private String resolveUniqueNickname(String nickname) {
-        String base = (nickname == null || nickname.isBlank()) ? "user" : nickname;
+    /** 온보딩에서 닉네임을 확정하기 전까지 쓸 임시 닉네임 생성 (user_ + socialId 뒷자리, 중복 시 숫자 접미사). */
+    private String tempNickname(String socialId) {
+        String tail = socialId.length() > 8 ? socialId.substring(socialId.length() - 8) : socialId;
+        String base = "user_" + tail;
         if (!userRepository.existsByNickname(base)) return base;
         for (int i = 1; i < 1000; i++) {
             String candidate = base + i;
@@ -236,11 +235,21 @@ public class AuthService {
         return new LoginResponse(at, rt);
     }
 
-    /** 학습 설정 업데이트 (소셜 가입 후 OnboardingScreen에서 호출). */
+    /** 학습 설정 업데이트 (소셜 가입 후 OnboardingScreen에서 호출). 닉네임이 오면 중복 검사 후 함께 확정한다. */
     @Transactional
     public void updatePreferences(Long userId, AuthRequest.UpdatePreferences request) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
+
+        // 닉네임 확정: 본인 현재 닉네임과 같으면 그대로 두고, 타인이 사용 중이면 거부
+        String nickname = request.getNickname();
+        if (nickname != null && !nickname.equals(user.getNickname())) {
+            if (userRepository.existsByNickname(nickname)) {
+                throw new IllegalArgumentException("NICKNAME_ALREADY_EXISTS");
+            }
+            user.setNickname(nickname);
+        }
+
         user.setLanguage(request.getLanguage());
         user.setLevelCode(request.getLevelCode());
         userRepository.save(user);
