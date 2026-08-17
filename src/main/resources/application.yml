@@ -44,6 +44,9 @@ qring:
   email:
     # true 이면 실제 메일 전송 없이 로그에만 인증 코드를 출력 (로컬/데모용)
     dev-mode: ${QRING_EMAIL_DEV_MODE:false}
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:gpt-4o-mini}
 
 oauth:
   google:
