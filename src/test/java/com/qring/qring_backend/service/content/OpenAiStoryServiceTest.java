@@ -76,6 +76,24 @@ class OpenAiStoryServiceTest {
     }
 
     @Test
+    @DisplayName("correct_answer 가 없는 주관식 퀴즈도 정답을 (unknown) 으로 알려주지 않는다")
+    void subjectiveQuizWithoutCorrectAnswerStillShowsAnAnswer() {
+        StorySession session = newSession();
+        session.recordQuiz(Map.of(
+                "quiz_type", "subjective",
+                "question", "'초콜릿 케이크'를 영어로 표현해 보세요.",
+                "acceptable_answers", List.of("chocolate cake", "a chocolate cake")));
+        session.incrementTurnsSinceLastQuiz();
+
+        String prompt = service.buildTurnSystemPrompt(session, "chocolate cake");
+
+        assertFalse(prompt.contains("Correct answer: (unknown)"),
+                "허용 답안이 있는데 정답을 (unknown) 으로 넘기면 모델이 채점을 포기한다");
+        assertTrue(prompt.contains("Correct answer: chocolate cake"));
+        assertTrue(prompt.contains("chocolate cake | a chocolate cake"));
+    }
+
+    @Test
     @DisplayName("퀴즈 채점이 끝나면 다시 채점 지시가 사라진다")
     void gradingDirectiveClearsAfterQuizResolved() {
         StorySession session = newSession();
