@@ -139,25 +139,35 @@ public class InteractiveStoryService {
 
         // 3. 퀴즈 채택 여부는 서버가 최종 결정한다.
         //    (모델이 is_quiz=true 를 주고도 quiz 를 빠뜨리거나, 5개 상한을 넘겨 출제하는 경우 방지)
-        boolean isQuiz = toBoolean(turnResponse.get("is_quiz"))
-                && quiz != null
+        Map<String, Object> pendingQuiz = session.getPendingQuiz();
+        boolean modelWantsQuiz = toBoolean(turnResponse.get("is_quiz")) && quiz != null;
+
+        // 오답 후 같은 문제를 다시 낸 재시도는 새 퀴즈가 아니다. 5개 한도를 소모해서는 안 된다.
+        boolean isRetry = modelWantsQuiz && isSameQuestion(pendingQuiz, quiz);
+        boolean isNewQuiz = modelWantsQuiz && !isRetry
                 && session.getQuizCount() < OpenAiStoryService.MAX_QUIZ_COUNT;
+
+        boolean isQuiz = isRetry || isNewQuiz;
         if (!isQuiz) {
             quiz = null;
         }
 
         // 4. 직전 퀴즈에 대한 채점 결과 (대기 중인 퀴즈가 없었다면 항상 none)
-        String answerResult = session.getPendingQuiz() != null
+        String answerResult = pendingQuiz != null
                 ? normalizeAnswerResult(turnResponse.get("answer_result"))
                 : "none";
 
-        if (isQuiz) {
+        if (isNewQuiz) {
             String subject = textOrDefault(quiz.get("correct_answer"), null);
             if (subject == null) {
                 subject = textOrDefault(quiz.get("question"), null);
             }
             session.addTestedQuizSubject(subject);
             session.recordQuiz(quiz);
+        } else if (isRetry) {
+            session.repeatPendingQuiz();
+            log.info("[InteractiveStory] 세션 {} 오답 재시도 - 퀴즈 한도 미소모 (누적 {}개)",
+                    sessionId, session.getQuizCount());
         } else {
             session.clearPendingQuiz();
         }
@@ -180,6 +190,20 @@ public class InteractiveStoryService {
                 .currentQuizCount(session.getQuizCount())
                 .isCompleted(session.isCompleted())
                 .build();
+    }
+
+    /** 직전에 출제된 퀴즈와 같은 문제인지 (오답 재시도 판별). */
+    static boolean isSameQuestion(Map<String, Object> pendingQuiz, Map<String, Object> newQuiz) {
+        if (pendingQuiz == null || newQuiz == null) {
+            return false;
+        }
+        String before = normalizeQuestion(pendingQuiz.get("question"));
+        String after = normalizeQuestion(newQuiz.get("question"));
+        return !before.isEmpty() && before.equals(after);
+    }
+
+    private static String normalizeQuestion(Object value) {
+        return value == null ? "" : String.valueOf(value).replaceAll("\\s+", " ").trim().toLowerCase();
     }
 
     /** OpenAI 응답 필드가 없거나 null 인 경우까지 안전하게 문자열로 변환. */

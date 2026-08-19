@@ -76,6 +76,14 @@ public class StorySession {
         this.pendingQuiz = null;
     }
 
+    /**
+     * 오답 후 같은 문제를 다시 제시한 재시도.
+     * 새 퀴즈가 아니므로 quizCount 는 늘리지 않고, 대기 중인 퀴즈만 유지한다.
+     */
+    public void repeatPendingQuiz() {
+        this.turnsSinceLastQuiz = 0;
+    }
+
     public void incrementTurnsSinceLastQuiz() {
         this.turnsSinceLastQuiz++;
     }
