@@ -16,7 +16,7 @@ import java.util.Map;
 @Schema(description = "실시간 턴 바이 턴 메시지/퀴즈 응답 DTO")
 public class StoryChatResponse {
 
-    @Schema(description = "세션 ID", example = "sess-8a7b9c6d")
+    @Schema(description = "세션 ID", example = "sess-8a7b9c6d-1e2f-4a3b-9c8d-7e6f5a4b3c2d")
     @JsonProperty("session_id")
     private String sessionId;
 
@@ -33,6 +33,11 @@ public class StoryChatResponse {
 
     @Schema(description = "출제된 퀴즈 객체 (is_quiz = true일 때만 노출)")
     private Map<String, Object> quiz;
+
+    @Schema(description = "직전 턴에 출제된 퀴즈에 대한 채점 결과. 대기 중인 퀴즈가 없던 턴은 항상 none",
+            example = "none", allowableValues = {"correct", "incorrect", "none"})
+    @JsonProperty("answer_result")
+    private String answerResult;
 
     @Schema(description = "현재까지 출제된 누적 퀴즈 개수 (총 5개 중)", example = "1")
     @JsonProperty("current_quiz_count")

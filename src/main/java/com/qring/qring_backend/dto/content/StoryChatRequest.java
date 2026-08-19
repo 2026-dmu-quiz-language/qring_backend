@@ -15,7 +15,7 @@ import lombok.Setter;
 @Schema(description = "실시간 턴 바이 턴 메시지/퀴즈 제출 요청 DTO")
 public class StoryChatRequest {
 
-    @Schema(description = "세션 ID", example = "sess-8a7b9c6d")
+    @Schema(description = "세션 ID", example = "sess-8a7b9c6d-1e2f-4a3b-9c8d-7e6f5a4b3c2d")
     @JsonProperty("session_id")
     @NotBlank(message = "세션 ID가 필요합니다.")
     private String sessionId;
