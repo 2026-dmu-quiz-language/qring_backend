@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class OpenAiStoryService {
@@ -290,12 +289,22 @@ public class OpenAiStoryService {
         }
 
         String question = asText(pendingQuiz.get("question"));
-        String correctAnswer = asText(pendingQuiz.get("correct_answer"));
         String quizType = asText(pendingQuiz.get("quiz_type"));
-        Object acceptable = pendingQuiz.get("acceptable_answers");
-        String acceptableAnswers = (acceptable instanceof List<?> list && !list.isEmpty())
-                ? list.stream().map(String::valueOf).collect(Collectors.joining(" | "))
-                : correctAnswer;
+
+        // subjective 퀴즈는 correct_answer 없이 acceptable_answers 만 오는 경우가 많다.
+        // 이때 "정답: (unknown)" 이라고 알려주면 모델이 채점을 포기하므로, 허용 답안에서 대표값을 뽑는다.
+        List<String> acceptableList = pendingQuiz.get("acceptable_answers") instanceof List<?> list
+                ? list.stream().map(String::valueOf).filter(s -> !s.isBlank()).toList()
+                : List.of();
+
+        String correctAnswer = pendingQuiz.get("correct_answer") != null
+                        && !String.valueOf(pendingQuiz.get("correct_answer")).isBlank()
+                ? String.valueOf(pendingQuiz.get("correct_answer"))
+                : (acceptableList.isEmpty() ? "(unknown)" : acceptableList.get(0));
+
+        String acceptableAnswers = acceptableList.isEmpty()
+                ? correctAnswer
+                : String.join(" | ", acceptableList);
 
         return String.format("""
                QUIZ ANSWER GRADING (a quiz IS pending):
