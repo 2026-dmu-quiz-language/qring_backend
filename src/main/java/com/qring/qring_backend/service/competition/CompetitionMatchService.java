@@ -198,9 +198,9 @@ public class CompetitionMatchService {
 
         int wrongCount = request.getAnswers().size() - correctCount;
 
-        // 보상 계산: 기본 보상 + 스트릭 보너스 (최고 구간만 적용)
+        // 보상 계산: 기본 보상 + 스트릭 보너스 (연속구간마다 계산해서 합산 - 옵션 B)
         int baseReward = BASE_REWARD.getOrDefault(match.getLevel(), 0);
-        int streakBonus = calculateStreakBonus(request.getStreakCount() == null ? 0 : request.getStreakCount());
+        int streakBonus = calculateStreakBonusFromAnswers(request.getAnswers());
         int rewardPoint = baseReward + streakBonus;
 
         match.setStatus(CompetitionMatch.MatchStatus.COMPLETED);
@@ -226,10 +226,36 @@ public class CompetitionMatchService {
         return new BotResultDto.Response(match.getMatchId(), correctCount, wrongCount, rewardPoint, balanceAfter);
     }
 
-    private int calculateStreakBonus(int streakCount) {
-        if (streakCount >= TOTAL_QUESTIONS) return 30; // 21문제 올백
-        if (streakCount >= 14) return 20;
-        if (streakCount >= 7) return 10;
+    /**
+     * 21문제(roundNo 순서)를 훑어서 끊기지 않는 연속 정답 구간(run)을 찾고,
+     * 구간마다 도달한 최고 티어 보너스를 각각 계산해서 합산.
+     * 예: 7연속 -> 오답 -> 7연속 이면 +10 + +10 = +20
+     */
+    private int calculateStreakBonusFromAnswers(List<BotResultDto.AnswerItem> answers) {
+        List<BotResultDto.AnswerItem> sorted = answers.stream()
+                .sorted((a, b) -> Integer.compare(a.getRoundNo(), b.getRoundNo()))
+                .collect(Collectors.toList());
+
+        int totalBonus = 0;
+        int currentRun = 0;
+
+        for (BotResultDto.AnswerItem item : sorted) {
+            if (item.isUserIsCorrect()) {
+                currentRun++;
+            } else {
+                totalBonus += streakTierBonus(currentRun);
+                currentRun = 0;
+            }
+        }
+        totalBonus += streakTierBonus(currentRun); // 마지막 구간 처리
+
+        return totalBonus;
+    }
+
+    private int streakTierBonus(int runLength) {
+        if (runLength >= TOTAL_QUESTIONS) return 35; // 21문제 올백
+        if (runLength >= 14) return 25;
+        if (runLength >= 7) return 10;
         return 0;
     }
 
