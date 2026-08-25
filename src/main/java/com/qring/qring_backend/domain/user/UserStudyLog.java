@@ -1,13 +1,27 @@
 package com.qring.qring_backend.domain.user;
 
+import java.time.LocalDateTime;
+
 import com.qring.qring_backend.domain.quiz.QuizDetail;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import java.time.LocalDateTime;
 
-/** 사용자 퀴즈 풀이 로그 — 사용자·퀴즈별 응답과 정답 여부, 발생 시각 기록. */
+/**
+ * 사용자 학습 로그 - 사용자·퀴즈별 응답과 정답 여부, 발생 시각 기록.
+ * quiz는 스토리 문제 풀이일 때만 채워짐. 봇 컴피티션처럼 스토리 문제와 무관한
+ * 활동은 quiz=null로 "이 날짜에 활동했다"는 기록만 남김 (연속 학습일수 계산용).
+ */
 @Entity
 @Table(name = "User_Study_Log")
 @Getter @Setter @NoArgsConstructor
@@ -23,7 +37,7 @@ public class UserStudyLog {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "quiz_id", nullable = false)
+    @JoinColumn(name = "quiz_id", nullable = true)
     private QuizDetail quiz;
 
     @Column(name = "user_response", columnDefinition = "TEXT")

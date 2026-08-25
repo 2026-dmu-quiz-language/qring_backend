@@ -22,10 +22,10 @@ import com.qring.qring_backend.domain.competition.CompetitionQuizContent;
 import com.qring.qring_backend.domain.competition.CompetitionQuizContentRepository;
 import com.qring.qring_backend.domain.competition.CompetitionWrongAnswer;
 import com.qring.qring_backend.domain.competition.CompetitionWrongAnswerRepository;
+import com.qring.qring_backend.domain.quiz.QuizContent;
 import com.qring.qring_backend.domain.quiz.QuizContentRepository;
 import com.qring.qring_backend.domain.quiz.QuizDetail;
 import com.qring.qring_backend.domain.quiz.QuizDetailRepository;
-import com.qring.qring_backend.domain.quiz.QuizContent;
 import com.qring.qring_backend.domain.quiz.WrongAnswer;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
@@ -34,6 +34,8 @@ import com.qring.qring_backend.domain.user.UserAssetHistory;
 import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
 import com.qring.qring_backend.domain.user.UserAssetHistoryRepository;
 import com.qring.qring_backend.domain.user.UserAssetRepository;
+import com.qring.qring_backend.domain.user.UserStudyLog;
+import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.dto.competition.BotLevelDto;
 import com.qring.qring_backend.dto.competition.BotResultDto;
 import com.qring.qring_backend.dto.competition.CompetitionQuizItemDto;
@@ -64,6 +66,7 @@ public class CompetitionMatchService {
     private final QuizDetailRepository quizDetailRepository;
     private final QuizContentRepository quizContentRepository;
     private final WrongAnswerRepository wrongAnswerRepository;
+    private final UserStudyLogRepository userStudyLogRepository;
 
     @Transactional
     public BotLevelDto.Response startMatch(Long userId, BotLevelDto.Request request) {
@@ -208,6 +211,13 @@ public class CompetitionMatchService {
         match.setRewardPoint(rewardPoint);
         match.setCompletedAt(LocalDateTime.now());
         competitionMatchRepository.save(match);
+
+        // 매치 완료 시 학습 로그 1줄 저장 (연속 학습일수 계산이 user_study_log 날짜 기준이라 필요)
+        UserStudyLog studyLog = new UserStudyLog();
+        studyLog.setUser(user);
+        studyLog.setQuiz(null); // 스토리 문제와 무관한 활동이라 quiz 연결 없음
+        studyLog.setLangCode(langCode);
+        userStudyLogRepository.save(studyLog);
 
         // 보상 지급 + 이력 기록
         UserAsset asset = userAssetRepository.findByUserUserId(userId)
