@@ -57,6 +57,30 @@ class InteractiveStoryServiceTest {
     }
 
     @Test
+    @DisplayName("퀴즈 5개를 모두 채점하면 서버가 세션 종료를 확정한다")
+    void forcesCompletionAfterAllQuizzesGraded() {
+        StorySession session = StorySession.builder()
+                .sessionId("s").userId(1L).characterName("지민")
+                .situationDescription("카페").tone("다정하게")
+                .targetLanguage("English").levelCode(1).build();
+
+        for (int i = 0; i < OpenAiStoryService.MAX_QUIZ_COUNT - 1; i++) {
+            session.recordQuiz(quiz("문제 " + i));
+            session.clearPendingQuiz();
+        }
+        assertFalse(InteractiveStoryService.shouldForceComplete(session),
+                "퀴즈가 남아 있으면 강제 종료하면 안 된다");
+
+        session.recordQuiz(quiz("마지막 문제"));
+        assertFalse(InteractiveStoryService.shouldForceComplete(session),
+                "마지막 퀴즈가 채점 대기 중이면 아직 종료하면 안 된다");
+
+        session.clearPendingQuiz();
+        assertTrue(InteractiveStoryService.shouldForceComplete(session),
+                "5개 모두 채점이 끝나면 서버가 종료를 확정해야 한다");
+    }
+
+    @Test
     @DisplayName("새 퀴즈는 정상적으로 카운트를 늘린다")
     void newQuizConsumesBudget() {
         StorySession session = StorySession.builder()

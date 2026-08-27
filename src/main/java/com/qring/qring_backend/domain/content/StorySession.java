@@ -64,11 +64,18 @@ public class StorySession {
         }
     }
 
+    /** 세션에서 이미 출제된 퀴즈 유형들 (유형 쏠림 방지용). */
+    @Builder.Default
+    private List<String> usedQuizTypes = new ArrayList<>();
+
     /** 이번 턴에 퀴즈가 출제됨: 카운트 증가 후 다음 턴을 채점 대기 상태로 전환. */
     public void recordQuiz(Map<String, Object> quiz) {
         this.quizCount++;
         this.turnsSinceLastQuiz = 0;
         this.pendingQuiz = quiz;
+        if (quiz != null && quiz.get("quiz_type") != null) {
+            usedQuizTypes.add(String.valueOf(quiz.get("quiz_type")));
+        }
     }
 
     /** 채점이 끝나 더 이상 대기 중인 퀴즈가 없음. */

@@ -391,6 +391,10 @@ TONE & SPEECH-LEVEL RULES:
 
 ### (B) 대기 중인 퀴즈가 있을 때 — 원문
 
+**채점의 1차 판정은 이제 서버가 합니다** (`OpenAiStoryService.gradeAnswer`). 객관식·단어배열은 서버가 정답 문자열 비교로 확정하고(대소문자·앞뒤 공백·끝 문장부호·연속 공백 무시, 단어배열은 어순까지 일치해야 정답), 주관식은 허용 답안과 일치할 때만 확정합니다. 판정 결과에 따라 아래 공통 헤더 뒤에 세 가지 중 하나의 지시 블록이 붙습니다.
+
+**공통 헤더:**
+
 ```text
 QUIZ ANSWER GRADING (a quiz IS pending):
 - The quiz presented in the immediately preceding turn was:
@@ -400,85 +404,107 @@ QUIZ ANSWER GRADING (a quiz IS pending):
     Accepted answers: {{acceptable_answers}}
 - The user's latest input ("{{userMessage}}") is BOTH their answer to that quiz AND their reply in the
   story. Treat it as both.
-- Grade it silently first: compare with the accepted answers above, ignoring letter case,
-  surrounding whitespace and trailing punctuation.
-- HOW STRICT TO BE, BY QUIZ TYPE:
-  * "word_arrange": WORD ORDER IS THE ENTIRE POINT OF THIS QUIZ TYPE. Only an exact word
-    sequence match counts as correct. The right words in the WRONG ORDER is INCORRECT -
-    never accept it, and never silently reorder their words for them. If the order is
-    wrong, say what they built and show the correct order
-    (e.g. they sent "window the by sit Let's":
-     "음, 순서가 좀 섞였어! 'Let's sit by the window'가 맞는 순서야.").
-  * "multiple_choice": the answer must be the correct option. Any other option, even a
-    plausible-sounding one, is INCORRECT.
-  * "subjective": accept any of the accepted answers, including obvious spelling slips of
-    them. Anything else is INCORRECT.
-  * MATCHES -> set "answer_result": "correct".
-    React to WHAT THEY SAID, not to the fact that they were right. Accept their answer as
-    their actual choice in the scene and move the story forward with it. A light
-    confirmation woven into the sentence is good
-    (e.g. "Green tea it is! 녹차 좋지. 따뜻한 걸로 줄까?").
-    DO NOT open with a bare verdict like "정답이야!" / "Correct!", and DO NOT ask again
-    the question they have just answered.
-  * NO MATCH -> set "answer_result": "incorrect".
-    React to what they ACTUALLY said, not to what they meant to say. Stay in character
-    and let the mistake surface naturally inside the scene:
-      1. If their answer is a real expression with a DIFFERENT meaning, respond to that
-         meaning first so the mismatch becomes obvious by itself
-         (e.g. target was 녹차 but they answered "black coffee":
-          "Black coffee? 그건 블랙커피잖아! 녹차는 'green tea'라고 해.").
-      2. If their answer is not a usable expression here, say so plainly but kindly
-         (e.g. "음, 여기서는 그렇게 말하진 않아!").
-    Then give the correct expression and one short Korean sentence explaining it.
-    Close by letting them carry on naturally: invite them to say it again, or offer the
-    corrected option back to them (e.g. "그럼 green tea로 할까?").
-    NEVER pretend they said the correct expression, NEVER quietly skip past the mistake,
-    NEVER praise a wrong answer, and NEVER call it correct.
+```
+
+**(B-1) 서버 판정 = 정답:**
+
+```text
+- SERVER GRADING RESULT: the server has ALREADY graded this answer as CORRECT.
+  You MUST set "answer_result": "correct". Do NOT overturn this verdict.
+- React to WHAT THEY SAID, not to the fact that they were right. Accept their answer as
+  their actual choice in the scene and move the story forward with it. A light
+  confirmation woven into the sentence is good
+  (e.g. "Green tea it is! 녹차 좋지. 따뜻한 걸로 줄까?").
+  DO NOT open with a bare verdict like "정답이야!" / "Correct!", and DO NOT ask again
+  the question they have just answered.
+```
+
+**(B-2) 서버 판정 = 오답:**
+
+```text
+- SERVER GRADING RESULT: the server has ALREADY graded this answer as INCORRECT, even if
+  it looks close or plausible. (For word_arrange, word order is part of the answer; for
+  multiple_choice, only the correct option counts.)
+  You MUST set "answer_result": "incorrect". Do NOT overturn this verdict.
+- React to what they ACTUALLY said, not to what they meant to say. Stay in character
+  and let the mistake surface naturally inside the scene:
+    1. If their answer is a real expression with a DIFFERENT meaning, respond to that
+       meaning first so the mismatch becomes obvious by itself
+       (e.g. target was 녹차 but they answered "black coffee":
+        "Black coffee? 그건 블랙커피잖아! 녹차는 'green tea'라고 해.").
+    2. If their answer is not a usable expression here, say so plainly but kindly
+       (e.g. "음, 여기서는 그렇게 말하진 않아!").
+  Then give the correct expression and one short Korean sentence explaining it.
+  Close by letting them carry on naturally: invite them to say it again, or offer the
+  corrected option back to them (e.g. "그럼 green tea로 할까?").
+  NEVER pretend they said the correct expression, NEVER quietly skip past the mistake,
+  NEVER praise a wrong answer, and NEVER call it correct.
+```
+
+**(B-3) 서버 판정 불가 (주관식 목록 밖 답안) — 모델에 위임:**
+
+```text
+- The server could not grade this automatically (subjective answer outside the accepted
+  list). YOU must grade it: accept any of the accepted answers above, including obvious
+  spelling slips of them; anything else is INCORRECT.
+  * If correct -> set "answer_result": "correct", then: [(B-1)의 반응 규칙]
+  * If incorrect -> set "answer_result": "incorrect", then: [(B-2)의 반응 규칙]
+```
+
+**공통 마무리:**
+
+```text
 - Either way your reply must read as ONE natural utterance in the scene, never as
   "verdict first, unrelated roleplay after".
 ```
+
+서버 판정이 있는 경우(B-1/B-2), 응답의 `answer_result` 는 모델이 무엇을 반환하든 **서버 판정으로 덮어써서** 클라이언트에 전달됩니다.
 
 `Accepted answers`는 퀴즈에 `acceptable_answers` 배열이 있으면 ` | `로 이어 붙이고, 없으면 `correct_answer`를 그대로 씁니다.
 
 ### (B) 대기 중인 퀴즈가 있을 때 — 번역
 
 ```text
+[공통 헤더]
 퀴즈 답안 채점 (대기 중인 퀴즈가 있음):
 - 바로 직전 턴에 출제된 퀴즈는 다음과 같다:
-    퀴즈 유형: {{퀴즈유형}}
-    문제: {{문제}}
-    정답: {{정답}}
-    허용 답안: {{허용답안}}
+    퀴즈 유형: {{퀴즈유형}} / 문제: {{문제}} / 정답: {{정답}} / 허용 답안: {{허용답안}}
 - 사용자의 최신 입력("{{사용자메시지}}")은 그 퀴즈의 답안인 동시에 이야기 속 답변이다.
   둘 다로 취급하라.
-- 먼저 속으로 채점하라: 위 허용 답안과 비교하되, 대소문자, 앞뒤 공백, 끝의 문장부호는 무시하라.
-- 퀴즈 유형별 채점 엄격도:
-  * "word_arrange": 이 유형은 단어 순서가 전부다. 정확한 단어 순서가 일치할 때만 정답이다.
-    맞는 단어들이 틀린 순서로 있으면 오답이다. 절대 받아들이지 말고, 사용자의 단어를 임의로
-    재배열해 주지도 마라. 순서가 틀렸다면 사용자가 만든 문장을 짚어주고 올바른 순서를 보여줘라
-    (예: "window the by sit Let's"를 보냈다면:
-     "음, 순서가 좀 섞였어! 'Let's sit by the window'가 맞는 순서야.").
-  * "multiple_choice": 정답 선택지여야만 정답이다. 그럴듯해 보이는 다른 선택지도 모두 오답이다.
-  * "subjective": 허용 답안 중 하나면 정답으로 인정하고, 명백한 철자 실수도 인정한다.
-    그 외에는 모두 오답이다.
-  * 일치함 -> "answer_result"를 "correct"로 설정하라.
-    맞혔다는 사실이 아니라 그들이 말한 내용에 반응하라. 그 답을 장면 속에서의 실제 선택으로
-    받아들이고, 그것을 가지고 이야기를 앞으로 진행시켜라. 가벼운 확인을 문장 안에 자연스럽게
-    녹이는 것은 좋다 (예: "Green tea it is! 녹차 좋지. 따뜻한 걸로 줄까?").
-    "정답이야!" / "Correct!" 같은 판정을 앞세우지 말고, 방금 답한 질문을 다시 묻지 마라.
-  * 불일치 -> "answer_result"를 "incorrect"로 설정하라.
-    그들이 말하려던 것이 아니라 실제로 말한 것에 반응하라. 캐릭터를 유지한 채, 실수가 장면
-    안에서 자연스럽게 드러나게 하라:
-      1. 답이 다른 뜻을 가진 실제 표현이라면, 먼저 그 뜻에 반응해서 어긋남이 스스로 드러나게 하라
-         (예: 목표가 녹차인데 "black coffee"라고 답한 경우:
-          "Black coffee? 그건 블랙커피잖아! 녹차는 'green tea'라고 해.").
-      2. 답이 여기서 쓸 수 없는 표현이라면, 부드럽지만 분명하게 그렇다고 말하라
-         (예: "음, 여기서는 그렇게 말하진 않아!").
-    그다음 올바른 표현을 알려주고 짧은 한국어 한 문장으로 설명하라.
-    마무리는 자연스럽게 이어가게 하라: 다시 말해보라고 권하거나, 고쳐진 선택지를 되돌려 제안하라
-    (예: "그럼 green tea로 할까?").
-    그들이 올바른 표현을 말한 것처럼 꾸미지 말고, 실수를 조용히 넘어가지 말고,
-    오답을 칭찬하지 말고, 절대 정답이라고 하지 마라.
+
+[(B-1) 서버 판정 = 정답]
+- 서버 채점 결과: 서버가 이 답안을 이미 정답으로 채점했다.
+  반드시 "answer_result"를 "correct"로 설정하라. 이 판정을 뒤집지 마라.
+- 맞혔다는 사실이 아니라 그들이 말한 내용에 반응하라. 그 답을 장면 속에서의 실제 선택으로
+  받아들이고, 그것을 가지고 이야기를 앞으로 진행시켜라. 가벼운 확인을 문장 안에 자연스럽게
+  녹이는 것은 좋다 (예: "Green tea it is! 녹차 좋지. 따뜻한 걸로 줄까?").
+  "정답이야!" / "Correct!" 같은 판정을 앞세우지 말고, 방금 답한 질문을 다시 묻지 마라.
+
+[(B-2) 서버 판정 = 오답]
+- 서버 채점 결과: 서버가 이 답안을 이미 오답으로 채점했다. 그럴듯해 보이더라도 마찬가지다.
+  (word_arrange 는 어순도 답의 일부이고, multiple_choice 는 정답 선택지만 인정된다.)
+  반드시 "answer_result"를 "incorrect"로 설정하라. 이 판정을 뒤집지 마라.
+- 그들이 말하려던 것이 아니라 실제로 말한 것에 반응하라. 캐릭터를 유지한 채, 실수가 장면
+  안에서 자연스럽게 드러나게 하라:
+    1. 답이 다른 뜻을 가진 실제 표현이라면, 먼저 그 뜻에 반응해서 어긋남이 스스로 드러나게 하라
+       (예: 목표가 녹차인데 "black coffee"라고 답한 경우:
+        "Black coffee? 그건 블랙커피잖아! 녹차는 'green tea'라고 해.").
+    2. 답이 여기서 쓸 수 없는 표현이라면, 부드럽지만 분명하게 그렇다고 말하라
+       (예: "음, 여기서는 그렇게 말하진 않아!").
+  그다음 올바른 표현을 알려주고 짧은 한국어 한 문장으로 설명하라.
+  마무리는 자연스럽게 이어가게 하라: 다시 말해보라고 권하거나, 고쳐진 선택지를 되돌려 제안하라
+  (예: "그럼 green tea로 할까?").
+  그들이 올바른 표현을 말한 것처럼 꾸미지 말고, 실수를 조용히 넘어가지 말고,
+  오답을 칭찬하지 말고, 절대 정답이라고 하지 마라.
+
+[(B-3) 서버 판정 불가 — 모델 위임 (주관식 목록 밖 답안)]
+- 서버가 자동으로 채점하지 못했다 (허용 답안 목록 밖의 주관식 답안).
+  네가 채점하라: 위 허용 답안 중 하나면 정답으로 인정하고, 명백한 철자 실수도 인정하라.
+  그 외에는 모두 오답이다.
+  * 정답이면 -> "answer_result": "correct" 설정 후 (B-1)의 반응 규칙을 따르라.
+  * 오답이면 -> "answer_result": "incorrect" 설정 후 (B-2)의 반응 규칙을 따르라.
+
+[공통 마무리]
 - 어느 쪽이든 네 답변은 장면 속의 하나의 자연스러운 발화로 읽혀야 하며,
   "판정 먼저, 그다음 별개의 역할극"처럼 읽혀서는 안 된다.
 ```
@@ -490,12 +516,14 @@ QUIZ ANSWER GRADING (a quiz IS pending):
 ### (A) 마지막 퀴즈 이후 2턴 이상 경과 & 퀴즈 5개 미만
 
 ```text
-PACING RULE: Sufficient dialogue turns have passed ({{n}} turns since last quiz). You SHOULD now present a relevant quiz moment matching the recent context by setting `is_quiz: true`.
+PACING RULE: Sufficient dialogue turns have passed ({{n}} turns since last quiz). You SHOULD now present a relevant quiz moment matching the recent context by setting `is_quiz: true`. REQUIRED QUIZ TYPE FOR THIS QUIZ: "{{유형}}" - set `quiz_type` to exactly this value and design the quiz in that format.
 ```
 
 ```text
-페이싱 규칙: 충분한 대화 턴이 지났다(마지막 퀴즈 이후 {{n}}턴). 이제 `is_quiz: true`로 설정하여 최근 맥락에 맞는 퀴즈를 출제해야 한다.
+페이싱 규칙: 충분한 대화 턴이 지났다(마지막 퀴즈 이후 {{n}}턴). 이제 `is_quiz: true`로 설정하여 최근 맥락에 맞는 퀴즈를 출제해야 한다. 이번 퀴즈의 필수 유형: "{{유형}}" — `quiz_type`을 정확히 이 값으로 설정하고 그 형식으로 퀴즈를 설계하라.
 ```
+
+`{{유형}}` 은 세션에서 아직 덜 쓰인 유형을 서버가 골라 지정합니다 (동률이면 `multiple_choice` → `word_arrange` → `subjective` 순). 유형 쏠림을 막기 위한 장치입니다.
 
 ### (B) 퀴즈 5개를 모두 소진
 

@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -152,13 +153,22 @@ public class InteractiveStoryService {
             quiz = null;
         }
 
-        // 4. 직전 퀴즈에 대한 채점 결과 (대기 중인 퀴즈가 없었다면 항상 none)
-        String answerResult = pendingQuiz != null
-                ? normalizeAnswerResult(turnResponse.get("answer_result"))
-                : "none";
+        // 4. 직전 퀴즈 채점: 서버가 확정할 수 있으면 서버 판정이 최종이고,
+        //    확정 불가한 경우(주관식 목록 밖 답안)에만 모델 판정을 쓴다.
+        String answerResult = "none";
+        if (pendingQuiz != null) {
+            String serverVerdict = OpenAiStoryService.gradeAnswer(pendingQuiz, request.getUserMessage());
+            answerResult = serverVerdict != null
+                    ? serverVerdict
+                    : normalizeAnswerResult(turnResponse.get("answer_result"));
+        }
 
         if (isNewQuiz) {
+            // 기출 금지 목록에는 짧은 핵심 표현을 담는다 (question 전문이 들어가면 모델이 인식하지 못함)
             String subject = textOrDefault(quiz.get("correct_answer"), null);
+            if (subject == null && quiz.get("acceptable_answers") instanceof List<?> l && !l.isEmpty()) {
+                subject = textOrDefault(l.get(0), null);
+            }
             if (subject == null) {
                 subject = textOrDefault(quiz.get("question"), null);
             }
@@ -172,7 +182,14 @@ public class InteractiveStoryService {
             session.clearPendingQuiz();
         }
 
-        // 5. AI 대사 히스토리에 추가
+        // 5. 퀴즈를 모두 소진하고 마지막 채점까지 끝나면 서버가 종료를 확정한다.
+        //    (모델이 is_completed 지시를 장기간 무시하는 사례가 실측에서 확인됨)
+        if (!isCompleted && shouldForceComplete(session)) {
+            isCompleted = true;
+            log.info("[InteractiveStory] 세션 {} 서버 강제 완결 (퀴즈 {}개 채점 완료)", sessionId, session.getQuizCount());
+        }
+
+        // 6. AI 대사 히스토리에 추가
         session.addMessage("assistant", aiMsg);
 
         if (isCompleted) {
@@ -190,6 +207,12 @@ public class InteractiveStoryService {
                 .currentQuizCount(session.getQuizCount())
                 .isCompleted(session.isCompleted())
                 .build();
+    }
+
+    /** 퀴즈를 모두 소진했고 마지막 퀴즈의 채점까지 끝났는지 (서버 강제 종료 조건). */
+    static boolean shouldForceComplete(StorySession session) {
+        return session.getQuizCount() >= OpenAiStoryService.MAX_QUIZ_COUNT
+                && session.getPendingQuiz() == null;
     }
 
     /** 직전에 출제된 퀴즈와 같은 문제인지 (오답 재시도 판별). */

@@ -7,7 +7,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** 턴 프롬프트 조립 로직 검증 (네트워크 호출 없음). */
@@ -72,7 +74,8 @@ class OpenAiStoryServiceTest {
         assertTrue(prompt.contains("QUIZ ANSWER GRADING"));
         assertTrue(prompt.contains("Correct answer: dessert"));
         assertTrue(prompt.contains("dessert | sweets"));
-        assertTrue(prompt.contains("NEVER praise a wrong answer"));
+        assertTrue(prompt.contains("ALREADY graded this answer as CORRECT"),
+                "정답 제출 시 서버 판정 결과가 프롬프트에 통보되어야 한다");
     }
 
     @Test
@@ -160,11 +163,48 @@ class OpenAiStoryServiceTest {
         String prompt = service.buildTurnSystemPrompt(session, "black coffee");
 
         assertTrue(prompt.contains("React to what they ACTUALLY said"));
-        assertTrue(prompt.contains("respond to that\n                        meaning first")
-                        || prompt.contains("respond to that"),
+        assertTrue(prompt.contains("respond to that"),
                 "다른 뜻의 표현이면 그 뜻에 반응하라는 지시가 있어야 한다");
         assertTrue(prompt.contains("NEVER pretend they said the correct expression"));
         assertTrue(prompt.contains("NEVER quietly skip past the mistake"));
+        assertTrue(prompt.contains("ALREADY graded this answer as INCORRECT"),
+                "오답 제출 시 서버 판정 결과가 프롬프트에 통보되어야 한다");
+    }
+
+    @Test
+    @DisplayName("서버 채점: 객관식·단어배열은 확정하고, 주관식 목록 밖 답안은 모델에 위임한다")
+    void serverGradesDeterministically() {
+        Map<String, Object> mc = Map.of("quiz_type", "multiple_choice", "correct_answer", "green tea");
+        assertEquals("correct", OpenAiStoryService.gradeAnswer(mc, "  Green Tea. "));
+        assertEquals("incorrect", OpenAiStoryService.gradeAnswer(mc, "black coffee"));
+
+        Map<String, Object> wa = Map.of("quiz_type", "word_arrange", "correct_answer", "Let's sit by the window");
+        assertEquals("correct", OpenAiStoryService.gradeAnswer(wa, "let's  sit by the window!"));
+        assertEquals("incorrect", OpenAiStoryService.gradeAnswer(wa, "window the by sit Let's"),
+                "단어 배열은 어순이 틀리면 서버가 오답으로 확정해야 한다");
+
+        Map<String, Object> subj = Map.of("quiz_type", "subjective",
+                "acceptable_answers", List.of("nervous", "I'm nervous"));
+        assertEquals("correct", OpenAiStoryService.gradeAnswer(subj, "I'm nervous"));
+        assertNull(OpenAiStoryService.gradeAnswer(subj, "nervus"),
+                "목록 밖 주관식 답안은 모델 위임(null)이어야 한다");
+    }
+
+    @Test
+    @DisplayName("퀴즈 출제 턴에는 덜 쓰인 유형이 프롬프트에 지정된다")
+    void quizTypeIsSteeredTowardsUnusedTypes() {
+        assertEquals("multiple_choice", OpenAiStoryService.pickNextQuizType(List.of()));
+        assertEquals("word_arrange", OpenAiStoryService.pickNextQuizType(List.of("multiple_choice")));
+        assertEquals("subjective", OpenAiStoryService.pickNextQuizType(List.of("multiple_choice", "word_arrange")));
+        assertEquals("multiple_choice",
+                OpenAiStoryService.pickNextQuizType(List.of("multiple_choice", "word_arrange", "subjective")));
+
+        StorySession session = newSession();
+        session.incrementTurnsSinceLastQuiz();
+        session.incrementTurnsSinceLastQuiz();
+
+        String prompt = service.buildTurnSystemPrompt(session, "Sounds good!");
+        assertTrue(prompt.contains("REQUIRED QUIZ TYPE FOR THIS QUIZ: \"multiple_choice\""));
     }
 
     @Test
