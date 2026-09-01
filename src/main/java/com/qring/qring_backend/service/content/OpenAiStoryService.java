@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -146,7 +147,8 @@ public class OpenAiStoryService {
 
         String pacingDirective;
         if (allowQuiz) {
-            pacingDirective = String.format("PACING RULE: Sufficient dialogue turns have passed (%d turns since last quiz). You SHOULD now present a relevant quiz moment matching the recent context by setting `is_quiz: true`.", turnsSinceLastQuiz);
+            String requiredType = pickNextQuizType(session.getUsedQuizTypes());
+            pacingDirective = String.format("PACING RULE: Sufficient dialogue turns have passed (%d turns since last quiz). You SHOULD now present a relevant quiz moment matching the recent context by setting `is_quiz: true`. REQUIRED QUIZ TYPE FOR THIS QUIZ: \"%s\" - set `quiz_type` to exactly this value and design the quiz in that format.", turnsSinceLastQuiz, requiredType);
         } else if (!quizBudgetLeft) {
             pacingDirective = String.format("QUIZ BUDGET EXHAUSTED: All %d quizzes for this session have already been given. YOU MUST SET `is_quiz: false`. Wrap the scenario up naturally and set `is_completed: true`.", MAX_QUIZ_COUNT);
         } else {
@@ -306,6 +308,31 @@ public class OpenAiStoryService {
                 ? correctAnswer
                 : String.join(" | ", acceptableList);
 
+        String outcomeDirective;
+        String serverVerdict = gradeAnswer(pendingQuiz, userMessage);
+        if ("correct".equals(serverVerdict)) {
+            outcomeDirective = """
+               - SERVER GRADING RESULT: the server has ALREADY graded this answer as CORRECT.
+                 You MUST set "answer_result": "correct". Do NOT overturn this verdict.
+               """ + CORRECT_REACTION;
+        } else if ("incorrect".equals(serverVerdict)) {
+            outcomeDirective = """
+               - SERVER GRADING RESULT: the server has ALREADY graded this answer as INCORRECT, even if
+                 it looks close or plausible. (For word_arrange, word order is part of the answer; for
+                 multiple_choice, only the correct option counts.)
+                 You MUST set "answer_result": "incorrect". Do NOT overturn this verdict.
+               """ + INCORRECT_REACTION;
+        } else {
+            outcomeDirective = """
+               - The server could not grade this automatically (subjective answer outside the accepted
+                 list). YOU must grade it: accept any of the accepted answers above, including obvious
+                 spelling slips of them; anything else is INCORRECT.
+                 * If correct -> set "answer_result": "correct", then:
+               """ + CORRECT_REACTION + """
+                 * If incorrect -> set "answer_result": "incorrect", then:
+               """ + INCORRECT_REACTION;
+        }
+
         return String.format("""
                QUIZ ANSWER GRADING (a quiz IS pending):
                - The quiz presented in the immediately preceding turn was:
@@ -315,43 +342,92 @@ public class OpenAiStoryService {
                    Accepted answers: %s
                - The user's latest input ("%s") is BOTH their answer to that quiz AND their reply in the
                  story. Treat it as both.
-               - Grade it silently first: compare with the accepted answers above, ignoring letter case,
-                 surrounding whitespace and trailing punctuation.
-               - HOW STRICT TO BE, BY QUIZ TYPE:
-                 * "word_arrange": WORD ORDER IS THE ENTIRE POINT OF THIS QUIZ TYPE. Only an exact word
-                   sequence match counts as correct. The right words in the WRONG ORDER is INCORRECT -
-                   never accept it, and never silently reorder their words for them. If the order is
-                   wrong, say what they built and show the correct order
-                   (e.g. they sent "window the by sit Let's":
-                    "음, 순서가 좀 섞였어! 'Let's sit by the window'가 맞는 순서야.").
-                 * "multiple_choice": the answer must be the correct option. Any other option, even a
-                   plausible-sounding one, is INCORRECT.
-                 * "subjective": accept any of the accepted answers, including obvious spelling slips of
-                   them. Anything else is INCORRECT.
-                 * MATCHES -> set "answer_result": "correct".
-                   React to WHAT THEY SAID, not to the fact that they were right. Accept their answer as
-                   their actual choice in the scene and move the story forward with it. A light
-                   confirmation woven into the sentence is good
-                   (e.g. "Green tea it is! 녹차 좋지. 따뜻한 걸로 줄까?").
-                   DO NOT open with a bare verdict like "정답이야!" / "Correct!", and DO NOT ask again
-                   the question they have just answered.
-                 * NO MATCH -> set "answer_result": "incorrect".
-                   React to what they ACTUALLY said, not to what they meant to say. Stay in character
-                   and let the mistake surface naturally inside the scene:
-                     1. If their answer is a real expression with a DIFFERENT meaning, respond to that
-                        meaning first so the mismatch becomes obvious by itself
-                        (e.g. target was 녹차 but they answered "black coffee":
-                         "Black coffee? 그건 블랙커피잖아! 녹차는 'green tea'라고 해.").
-                     2. If their answer is not a usable expression here, say so plainly but kindly
-                        (e.g. "음, 여기서는 그렇게 말하진 않아!").
-                   Then give the correct expression and one short Korean sentence explaining it.
-                   Close by letting them carry on naturally: invite them to say it again, or offer the
-                   corrected option back to them (e.g. "그럼 green tea로 할까?").
-                   NEVER pretend they said the correct expression, NEVER quietly skip past the mistake,
-                   NEVER praise a wrong answer, and NEVER call it correct.
-               - Either way your reply must read as ONE natural utterance in the scene, never as
+               %s- Either way your reply must read as ONE natural utterance in the scene, never as
                  "verdict first, unrelated roleplay after".
-               """, quizType, question, correctAnswer, acceptableAnswers, userMessage);
+               """, quizType, question, correctAnswer, acceptableAnswers, userMessage, outcomeDirective);
+    }
+
+    private static final String CORRECT_REACTION = """
+               - React to WHAT THEY SAID, not to the fact that they were right. Accept their answer as
+                 their actual choice in the scene and move the story forward with it. A light
+                 confirmation woven into the sentence is good
+                 (e.g. "Green tea it is! 녹차 좋지. 따뜻한 걸로 줄까?").
+                 DO NOT open with a bare verdict like "정답이야!" / "Correct!", and DO NOT ask again
+                 the question they have just answered.
+               """;
+
+    private static final String INCORRECT_REACTION = """
+               - React to what they ACTUALLY said, not to what they meant to say. Stay in character
+                 and let the mistake surface naturally inside the scene:
+                   1. If their answer is a real expression with a DIFFERENT meaning, respond to that
+                      meaning first so the mismatch becomes obvious by itself
+                      (e.g. target was 녹차 but they answered "black coffee":
+                       "Black coffee? 그건 블랙커피잖아! 녹차는 'green tea'라고 해.").
+                   2. If their answer is not a usable expression here, say so plainly but kindly
+                      (e.g. "음, 여기서는 그렇게 말하진 않아!").
+                 Then give the correct expression and one short Korean sentence explaining it.
+                 Close by letting them carry on naturally: invite them to say it again, or offer the
+                 corrected option back to them (e.g. "그럼 green tea로 할까?").
+                 NEVER pretend they said the correct expression, NEVER quietly skip past the mistake,
+                 NEVER praise a wrong answer, and NEVER call it correct.
+               """;
+
+    /**
+     * 서버 측 결정론적 채점. 객관식/단어배열은 여기서 확정한다.
+     * 주관식은 허용 답안과 일치할 때만 확정하고, 목록 밖 답안(오타 등)은 null 을 반환해 모델에 위임한다.
+     * 대소문자, 앞뒤 공백, 끝 문장부호, 연속 공백 차이는 무시한다.
+     */
+    static String gradeAnswer(Map<String, Object> quiz, String userMessage) {
+        if (quiz == null) {
+            return null;
+        }
+        List<String> accepted = new ArrayList<>();
+        Object correct = quiz.get("correct_answer");
+        if (correct != null && !String.valueOf(correct).isBlank()) {
+            accepted.add(String.valueOf(correct));
+        }
+        if (quiz.get("acceptable_answers") instanceof List<?> list) {
+            for (Object o : list) {
+                String s = String.valueOf(o);
+                if (!s.isBlank()) {
+                    accepted.add(s);
+                }
+            }
+        }
+        if (accepted.isEmpty()) {
+            return null; // 채점 기준이 없으면 모델에 위임
+        }
+        String user = normalizeForGrading(userMessage);
+        if (user.isEmpty()) {
+            return "incorrect";
+        }
+        boolean matches = accepted.stream().anyMatch(a -> normalizeForGrading(a).equals(user));
+        if (matches) {
+            return "correct";
+        }
+        // 주관식은 철자 실수 같은 유연한 판정의 여지를 모델에 남긴다
+        return "subjective".equals(String.valueOf(quiz.get("quiz_type"))) ? null : "incorrect";
+    }
+
+    private static String normalizeForGrading(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toLowerCase().replaceAll("[.,!?]+$", "").replaceAll("\\s+", " ").trim();
+    }
+
+    /** 아직 덜 쓰인 퀴즈 유형을 골라 유형 쏠림을 막는다 (동률이면 목록 순서 우선). */
+    static String pickNextQuizType(List<String> usedTypes) {
+        String best = "multiple_choice";
+        int bestCount = Integer.MAX_VALUE;
+        for (String type : List.of("multiple_choice", "word_arrange", "subjective")) {
+            int count = Collections.frequency(usedTypes, type);
+            if (count < bestCount) {
+                best = type;
+                bestCount = count;
+            }
+        }
+        return best;
     }
 
     private static String asText(Object value) {
