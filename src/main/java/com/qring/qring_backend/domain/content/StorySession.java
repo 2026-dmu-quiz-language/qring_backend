@@ -47,7 +47,41 @@ public class StorySession {
     /** 직전 AI 턴에 출제되어 아직 채점되지 않은 퀴즈. 없으면 null. */
     private Map<String, Object> pendingQuiz;
 
+    /**
+     * 대화·퀴즈·채점 결과가 실제로 일어난 순서 그대로 쌓이는 열람용 통합 타임라인.
+     * chatHistory(프롬프트용, 40개 제한)와 달리 절대 잘리지 않으며, 보관 시 이대로 저장된다.
+     * 이벤트 형태:
+     *   {"type":"message","role":"user","content":...}
+     *   {"type":"message","role":"assistant","content":...,"translation":...}
+     *   {"type":"quiz","quiz":{...}}                              — 직전 assistant 메시지와 함께 출제됨
+     *   {"type":"quiz_result","quiz_number":n,"user_answer":...,"result":...} — 직전 user 메시지가 답안
+     */
+    @Builder.Default
+    private List<Map<String, Object>> timeline = new ArrayList<>();
+
     public void addMessage(String role, String content) {
+        appendPromptHistory(role, content);
+
+        Map<String, Object> event = new HashMap<>();
+        event.put("type", "message");
+        event.put("role", role);
+        event.put("content", content != null ? content : "");
+        timeline.add(event);
+    }
+
+    /** AI 대사는 한국어 번역까지 타임라인에 남긴다 (프롬프트 히스토리에는 원문만 들어간다). */
+    public void addAssistantMessage(String content, String translation) {
+        appendPromptHistory("assistant", content);
+
+        Map<String, Object> event = new HashMap<>();
+        event.put("type", "message");
+        event.put("role", "assistant");
+        event.put("content", content != null ? content : "");
+        event.put("translation", translation != null ? translation : "");
+        timeline.add(event);
+    }
+
+    private void appendPromptHistory(String role, String content) {
         Map<String, String> message = new HashMap<>();
         message.put("role", role);
         message.put("content", content != null ? content : "");
@@ -67,6 +101,24 @@ public class StorySession {
     /** 세션에서 이미 출제된 퀴즈 유형들 (유형 쏠림 방지용). */
     @Builder.Default
     private List<String> usedQuizTypes = new ArrayList<>();
+
+    /** 퀴즈 출제 이벤트를 타임라인에 기록 (직전 assistant 메시지에 붙는 퀴즈). */
+    public void addQuizPresented(Map<String, Object> quiz) {
+        Map<String, Object> event = new HashMap<>();
+        event.put("type", "quiz");
+        event.put("quiz", quiz);
+        timeline.add(event);
+    }
+
+    /** 채점 결과 이벤트를 타임라인에 기록 (직전 user 메시지가 제출한 답안). */
+    public void addQuizResult(Map<String, Object> quiz, String userAnswer, String result) {
+        Map<String, Object> event = new HashMap<>();
+        event.put("type", "quiz_result");
+        event.put("quiz_number", quiz != null ? quiz.get("quiz_number") : null);
+        event.put("user_answer", userAnswer != null ? userAnswer : "");
+        event.put("result", result);
+        timeline.add(event);
+    }
 
     /** 이번 턴에 퀴즈가 출제됨: 카운트 증가 후 다음 턴을 채점 대기 상태로 전환. */
     public void recordQuiz(Map<String, Object> quiz) {
@@ -101,6 +153,13 @@ public class StorySession {
             int lastIndex = chatHistory.size() - 1;
             if ("user".equals(chatHistory.get(lastIndex).get("role"))) {
                 chatHistory.remove(lastIndex);
+            }
+        }
+        if (!timeline.isEmpty()) {
+            int lastIndex = timeline.size() - 1;
+            Map<String, Object> last = timeline.get(lastIndex);
+            if ("message".equals(last.get("type")) && "user".equals(last.get("role"))) {
+                timeline.remove(lastIndex);
             }
         }
         if (turnsSinceLastQuiz > 0) {
