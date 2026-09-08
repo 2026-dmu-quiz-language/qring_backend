@@ -51,7 +51,18 @@ public class StorySessionMapper {
         runtime.put("usedQuizTypes", session.getUsedQuizTypes());
         entity.setRuntimeState(writeJson(runtime));
 
+        // 턴이 정상 처리되어 전체 상태를 저장하는 시점에는 응답 대기 중인 메시지가 없다
+        entity.setPendingUserMessage(null);
+
         entity.setUpdatedAt(LocalDateTime.now());
+    }
+
+    /** OpenAI 호출 직전 pending_user_message 에 기록할 JSON. */
+    public String toPendingMessageJson(String userMessage) {
+        Map<String, Object> pending = new HashMap<>();
+        pending.put("content", userMessage != null ? userMessage : "");
+        pending.put("sent_at", LocalDateTime.now().toString());
+        return writeJson(pending);
     }
 
     /** DB 레코드에서 메모리 세션 복원 (서버 재시작 후 이어하기). */

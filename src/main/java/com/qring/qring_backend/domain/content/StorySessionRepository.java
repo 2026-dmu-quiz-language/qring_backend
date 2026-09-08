@@ -14,6 +14,9 @@ public interface StorySessionRepository extends JpaRepository<StorySessionEntity
 
     Optional<StorySessionEntity> findBySessionIdAndUserId(String sessionId, Long userId);
 
+    /** 사용자의 가장 최근 진행 중 세션 (앱 재실행 후 이어하기용). */
+    Optional<StorySessionEntity> findFirstByUserIdAndStatusOrderByUpdatedAtDesc(Long userId, String status);
+
     List<StorySessionEntity> findByUserIdAndStatusOrderByArchivedAtDesc(Long userId, String status);
 
     /** TTL 을 넘긴 미보관(진행 중/미결제) 세션 정리. ARCHIVED 는 건드리지 않는다. */
