@@ -6,6 +6,7 @@ import com.qring.qring_backend.dto.content.StoryArchiveRequest;
 import com.qring.qring_backend.dto.content.StoryArchiveResponse;
 import com.qring.qring_backend.dto.content.StoryChatRequest;
 import com.qring.qring_backend.dto.content.StoryChatResponse;
+import com.qring.qring_backend.dto.content.StoryResumeResponse;
 import com.qring.qring_backend.dto.content.StoryStartRequest;
 import com.qring.qring_backend.dto.content.StoryStartResponse;
 import com.qring.qring_backend.service.content.InteractiveStoryService;
@@ -98,6 +99,17 @@ public class InteractiveStoryController {
         log.info("[InteractiveStoryController] 스토리 삭제 요청 - userId: {}, sessionId: {}", userId, request.getSessionId());
         interactiveStoryService.discardStory(userId, request.getSessionId());
         return ResponseEntity.ok(Map.of("success", true, "message", "스토리가 삭제되었습니다."));
+    }
+
+    @Operation(
+            summary = "진행 중 스토리 이어하기 (앱 재실행 후 복구)",
+            description = "가장 최근 진행 중 세션의 전체 타임라인을 반환합니다. 없으면 has_session=false. 완결됐지만 보관/삭제 선택 전인 세션도 반환됩니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @PostMapping("/resume")
+    public ResponseEntity<StoryResumeResponse> resumeStory(Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        return ResponseEntity.ok(interactiveStoryService.resumeStory(userId));
     }
 
     @Operation(

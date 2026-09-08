@@ -15,15 +15,11 @@ import java.time.LocalDateTime;
  * 인터랙티브 스토리 세션의 DB 영속 레코드.
  *
  * ==================================================================================
- * !! 테이블명과 모든 컬럼명은 백엔드에서 임시로 붙인 "제안값"입니다 !!
- * 실제 이름은 DB 담당 팀원이 테이블을 설계하면서 자유롭게 확정/변경하면 됩니다.
- *
- * 이름 변경 방법 (이 파일만 고치면 됩니다):
- *   - 테이블명: 아래 TABLE_NAME 상수 하나만 변경
- *     (자동 생성 제외 필터 StorySchemaFilterProvider 도 이 상수를 참조하므로 함께 따라갑니다)
- *   - 컬럼명:  각 필드의 @Column(name = "...") 값만 변경
- *     (Repository 는 JPQL/파생 쿼리라 자바 필드명 기준으로 동작 — 다른 코드는 영향 없음)
- *   - 인덱스명/구성: @Table 의 @Index 값 변경
+ * 2026-09-02: DB 담당 팀원이 확정·생성한 실제 테이블과 연결됨.
+ * 이 테이블은 자동 스키마 생성(ddl-auto)에서 제외되어 있으므로(StorySchemaFilterProvider),
+ * 스키마 변경은 DB 담당자가 실제 테이블에 먼저 반영한 뒤 이 파일을 맞추는 순서로 진행할 것.
+ *   - 테이블명 변경 시: 아래 TABLE_NAME 상수 (필터도 이 상수를 따라감)
+ *   - 컬럼명 변경 시:  각 필드의 @Column(name = "...")
  * ==================================================================================
  *
  * 수명 주기:
@@ -33,13 +29,13 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = StorySessionEntity.TABLE_NAME,
-       indexes = @Index(name = "idx_story_session_user_status", columnList = "user_id, status"))
+       indexes = @Index(name = "idx_user_status", columnList = "user_id, status"))
 @Getter
 @Setter
 @NoArgsConstructor
 public class StorySessionEntity {
 
-    /** [제안값] 테이블명 — DB 담당자가 확정하면 이 상수만 바꾸면 된다. */
+    /** DB 담당자가 확정한 테이블명. */
     public static final String TABLE_NAME = "story_session";
 
     public static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
@@ -90,6 +86,14 @@ public class StorySessionEntity {
     /** 세션 복원용 진행 상태: {"turnsSinceLastQuiz":n,"pendingQuiz":{...}|null,"testedQuizSubjects":[...],"usedQuizTypes":[...]} */
     @Column(name = "runtime_state", columnDefinition = "JSON", nullable = false)
     private String runtimeState;
+
+    /**
+     * AI 응답 대기 중인 유저 메시지 임시 저장: {"content":"...","sent_at":"..."}.
+     * OpenAI 호출 직전에 기록하고 응답을 정상 처리하면 NULL 로 초기화한다.
+     * NULL 이 아닌 채로 세션이 복원되면 "AI 응답을 받지 못하고 끊겼다"는 뜻이며 복구 로직이 감지해 정리한다.
+     */
+    @Column(name = "pending_user_message", columnDefinition = "JSON")
+    private String pendingUserMessage;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

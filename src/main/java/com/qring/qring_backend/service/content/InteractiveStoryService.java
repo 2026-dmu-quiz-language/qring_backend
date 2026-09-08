@@ -9,6 +9,7 @@ import com.qring.qring_backend.dto.content.StoryArchiveDetailResponse;
 import com.qring.qring_backend.dto.content.StoryArchiveListResponse;
 import com.qring.qring_backend.dto.content.StoryArchiveResponse;
 import com.qring.qring_backend.dto.content.StoryChatRequest;
+import com.qring.qring_backend.dto.content.StoryResumeResponse;
 import com.qring.qring_backend.dto.content.StoryChatResponse;
 import com.qring.qring_backend.dto.content.StoryStartRequest;
 import com.qring.qring_backend.dto.content.StoryStartResponse;
@@ -132,6 +133,9 @@ public class InteractiveStoryService {
         session.addMessage("user", request.getUserMessage());
         session.incrementTurnsSinceLastQuiz();
 
+        // 1-2. AI 응답 대기 중임을 DB 에 표시 — 응답 전에 서버가 죽으면 복원 시 이 표시로 감지한다
+        markPendingUserMessage(sessionId, request.getUserMessage());
+
         // 2. OpenAI 턴 응답 생성 (트랜잭션 밖 — DB 커넥션 미점유)
         //    호출이 실패하면 이번 턴에 반영한 상태를 되돌려 재시도해도 진행도가 어긋나지 않게 한다.
         Map<String, Object> turnResponse;
@@ -139,6 +143,7 @@ public class InteractiveStoryService {
             turnResponse = openAiStoryService.generateTurnResponse(session, request.getUserMessage());
         } catch (RuntimeException e) {
             session.rollbackUserTurn();
+            clearPendingUserMessage(sessionId); // 실패를 인지하고 응답했으므로 "끊김"이 아니다
             throw e;
         }
 
@@ -319,12 +324,61 @@ public class InteractiveStoryService {
                 .build();
     }
 
+    /**
+     * 앱 재실행 후 이어하기: 사용자의 가장 최근 진행 중 세션과 전체 타임라인을 반환한다.
+     * 세션을 메모리 캐시에 올려두므로 곧바로 이어지는 /story/chat 이 정상 동작한다.
+     * 완결됐지만 아직 보관/삭제를 선택하지 않은 세션도 반환된다 (is_completed 로 구분).
+     */
+    public StoryResumeResponse resumeStory(Long userId) {
+        return storySessionRepository
+                .findFirstByUserIdAndStatusOrderByUpdatedAtDesc(userId, StorySessionEntity.STATUS_IN_PROGRESS)
+                .map(entity -> {
+                    // AI 응답을 받지 못하고 끊긴 턴이 있으면 정리 (해당 메시지는 기록에 없으므로 재전송하면 됨)
+                    if (entity.getPendingUserMessage() != null) {
+                        log.warn("[InteractiveStory] 세션 {} - AI 응답을 받지 못하고 끊긴 메시지 감지, 대기 표시 정리: {}",
+                                entity.getSessionId(), entity.getPendingUserMessage());
+                        entity.setPendingUserMessage(null);
+                        storySessionRepository.save(entity);
+                    }
+
+                    // 메모리에 살아있는 세션이 있으면 그쪽이 최신이다 (DB 저장이 한 턴 뒤처졌을 수 있음)
+                    StorySession session = sessionStore.get(entity.getSessionId());
+                    if (session == null) {
+                        session = sessionMapper.toDomain(entity);
+                        sessionStore.put(entity.getSessionId(), session);
+                        log.info("[InteractiveStory] 세션 {} 이어하기 - DB 에서 복원", entity.getSessionId());
+                    }
+
+                    return StoryResumeResponse.builder()
+                            .hasSession(true)
+                            .sessionId(session.getSessionId())
+                            .characterName(session.getCharacterName())
+                            .situation(session.getSituationDescription())
+                            .tone(session.getTone())
+                            .targetLanguage(session.getTargetLanguage())
+                            .currentQuizCount(session.getQuizCount())
+                            .isCompleted(session.isCompleted())
+                            .timeline(session.getTimeline())
+                            .build();
+                })
+                .orElseGet(() -> StoryResumeResponse.builder().hasSession(false).build());
+    }
+
     /** 메모리에 없는 세션을 DB 에서 복원 (서버 재시작 후 이어하기). */
     private StorySession restoreSessionFromDb(String sessionId) {
         try {
             return storySessionRepository.findById(sessionId)
                     .filter(e -> StorySessionEntity.STATUS_IN_PROGRESS.equals(e.getStatus()))
                     .map(entity -> {
+                        // AI 응답을 받지 못한 채 끊긴 턴 감지: 해당 사용자 메시지는 저장된 대화에 없으므로
+                        // 표시만 정리하고, 사용자가 같은 메시지를 다시 보내면 정상 턴으로 처리된다.
+                        if (entity.getPendingUserMessage() != null) {
+                            log.warn("[InteractiveStory] 세션 {} - AI 응답을 받지 못하고 끊긴 메시지 감지, 대기 표시 정리: {}",
+                                    sessionId, entity.getPendingUserMessage());
+                            entity.setPendingUserMessage(null);
+                            storySessionRepository.save(entity);
+                        }
+
                         StorySession restored = sessionMapper.toDomain(entity);
                         sessionStore.put(sessionId, restored);
                         log.info("[InteractiveStory] 세션 {} DB 에서 복원 (서버 재시작 후 이어하기)", sessionId);
@@ -334,6 +388,32 @@ public class InteractiveStoryService {
         } catch (Exception e) {
             log.warn("[InteractiveStory] 세션 복원 실패 - sessionId: {}, error: {}", sessionId, e.getMessage());
             return null;
+        }
+    }
+
+    /** AI 응답 대기 중인 사용자 메시지를 DB 에 표시. 실패해도 턴 진행에는 영향 없음. */
+    private void markPendingUserMessage(String sessionId, String userMessage) {
+        try {
+            storySessionRepository.findById(sessionId).ifPresent(entity -> {
+                entity.setPendingUserMessage(sessionMapper.toPendingMessageJson(userMessage));
+                storySessionRepository.save(entity);
+            });
+        } catch (Exception e) {
+            log.debug("[InteractiveStory] pending_user_message 기록 생략 - sessionId: {}, error: {}", sessionId, e.getMessage());
+        }
+    }
+
+    /** AI 응답 대기 표시 해제 (호출 실패를 인지하고 사용자에게 응답한 경우). */
+    private void clearPendingUserMessage(String sessionId) {
+        try {
+            storySessionRepository.findById(sessionId).ifPresent(entity -> {
+                if (entity.getPendingUserMessage() != null) {
+                    entity.setPendingUserMessage(null);
+                    storySessionRepository.save(entity);
+                }
+            });
+        } catch (Exception e) {
+            log.debug("[InteractiveStory] pending_user_message 해제 생략 - sessionId: {}, error: {}", sessionId, e.getMessage());
         }
     }
 
