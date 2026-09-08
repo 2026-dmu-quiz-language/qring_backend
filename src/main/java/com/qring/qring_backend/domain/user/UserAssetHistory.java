@@ -58,6 +58,7 @@ public class UserAssetHistory {
         STORY_QUIZ_CORRECT,
         STORY_QUIZ_WRONG,
         STORY_COMPLETE_BONUS,
-        INTERACTIVE_STORY_CREATE
+        INTERACTIVE_STORY_CREATE,
+        CONTENT_UNLOCK
     }
 }

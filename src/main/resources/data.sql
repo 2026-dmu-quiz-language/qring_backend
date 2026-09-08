@@ -43,14 +43,12 @@ INSERT IGNORE INTO
         content_id,
         title,
         category_id,
-        status,
         thumbnail_url
     )
 VALUES (
         1,
         '도서관 좌석번호 64번',
         1,
-        'ACTIVE',
         '/images/짝사랑_썸네일.png'
     );
 
@@ -584,14 +582,12 @@ INSERT IGNORE INTO
         content_id,
         title,
         category_id,
-        status,
         thumbnail_url
     )
 VALUES (
         2,
         '3번 관람석',
         2,
-        'ACTIVE',
         '/images/드라마_썸네일.png'
     );
 
@@ -1161,14 +1157,12 @@ INSERT IGNORE INTO
         content_id,
         title,
         category_id,
-        status,
         thumbnail_url
     )
 VALUES (
         3,
         '끊어진 전화선',
         2,
-        'ACTIVE',
         '/images/스릴러_썸네일.png'
     );
 
@@ -1990,14 +1984,12 @@ INSERT IGNORE INTO
         content_id,
         title,
         category_id,
-        status,
         thumbnail_url
     )
 VALUES (
         4,
         '빨간 구두',
         2,
-        'ACTIVE',
         '/images/추리물_썸네일.png'
     );
 
@@ -2522,14 +2514,12 @@ INSERT IGNORE INTO
         content_id,
         title,
         category_id,
-        status,
         thumbnail_url
     )
 VALUES (
         5,
         '남자친구가 제 꿈을 예측해요',
         1,
-        'ACTIVE',
         '/images/특이한연애썰_썸네일.png'
     );
 
@@ -2973,14 +2963,12 @@ INSERT IGNORE INTO
         content_id,
         title,
         category_id,
-        status,
         thumbnail_url
     )
 VALUES (
         6,
         '수학 과외 선생님과 내 여자친구',
         1,
-        'ACTIVE',
         '/images/연애갈등_썸네일.png'
     );
 
