@@ -55,6 +55,10 @@ public class CompetitionMatchService {
     // 레벨별 기본 보상 (상/중/하)
     private static final Map<Integer, Integer> BASE_REWARD = Map.of(1, 100, 2, 140, 3, 200);
 
+    // 레벨별 입장 비용 — 반드시 서버가 결정한다.
+    // (기존에는 프론트가 보낸 entryCost 를 그대로 차감해서 0/음수 조작으로 무료 입장·포인트 증식이 가능했음)
+    private static final Map<Integer, Integer> ENTRY_COST = Map.of(1, 50, 2, 70, 3, 100);
+
     private final UserRepository userRepository;
     private final UserAssetRepository userAssetRepository;
     private final UserAssetHistoryRepository userAssetHistoryRepository;
@@ -72,7 +76,12 @@ public class CompetitionMatchService {
     public BotLevelDto.Response startMatch(Long userId, BotLevelDto.Request request) {
 
         int level = mapBotLevelToInt(request.getBotLevel());
-        int entryCost = request.getEntryCost();
+        // 입장 비용은 서버가 레벨로 결정한다. 요청의 entryCost 는 신뢰하지 않는다 (위조 방지).
+        int entryCost = ENTRY_COST.get(level);
+        if (request.getEntryCost() != null && request.getEntryCost() != entryCost) {
+            log.warn("[Competition] 프론트 entryCost({})와 서버 기준({}) 불일치 - 서버 값으로 차감. userId: {}",
+                    request.getEntryCost(), entryCost, userId);
+        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
@@ -80,10 +89,6 @@ public class CompetitionMatchService {
 
         UserAsset asset = userAssetRepository.findByUserUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저 자산 정보를 찾을 수 없습니다."));
-
-        if (asset.getCurrentPoints() < entryCost) {
-            throw new IllegalArgumentException("포인트가 부족합니다.");
-        }
 
         // 1. 문제 선정: 스토리 4문제 + 신규 17문제 (유형별 정확히 7개씩)
         List<CompetitionQuizItemDto> questions = selectQuestions(level, langCode);
@@ -99,8 +104,11 @@ public class CompetitionMatchService {
         match.setStartedAt(LocalDateTime.now());
         competitionMatchRepository.save(match);
 
-        // 3. entry_cost 차감 + 이력 기록
-        userAssetRepository.addPoints(userId, -entryCost);
+        // 3. entry_cost 차감 (원자적 — 잔액 부족/동시 요청 시 여기서 거절) + 이력 기록
+        int deducted = userAssetRepository.tryDeductPoints(userId, entryCost);
+        if (deducted == 0) {
+            throw new IllegalArgumentException("포인트가 부족합니다.");
+        }
         int balanceAfter = asset.getCurrentPoints() - entryCost;
 
         UserAssetHistory history = new UserAssetHistory();

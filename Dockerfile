@@ -19,4 +19,5 @@ WORKDIR /app
 COPY --from=builder /workspace/build/libs/*.jar /app/app.jar
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# 서버 기준 시간대 고정 — 연속 학습일/주간 통계가 LocalDate.now() 기반이라 UTC 로 돌면 KST 와 9시간 어긋남
+ENTRYPOINT ["java", "-Duser.timezone=Asia/Seoul", "-jar", "/app/app.jar"]
