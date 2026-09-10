@@ -24,8 +24,8 @@ public class OpenAiStoryService {
 
     private static final Logger log = LoggerFactory.getLogger(OpenAiStoryService.class);
 
-    /** 한 세션에서 출제하는 총 퀴즈 개수. */
-    public static final int MAX_QUIZ_COUNT = 5;
+    /** 세션의 기본 퀴즈 개수 (이어하기 시 세션별 한도 quizLimit 가 늘어난다). */
+    public static final int MAX_QUIZ_COUNT = com.qring.qring_backend.domain.content.StorySession.DEFAULT_QUIZ_LIMIT;
 
     @Value("${qring.openai.api-key:}")
     private String apiKey;
@@ -118,6 +118,63 @@ public class OpenAiStoryService {
     }
 
     /**
+     * 이어하기: 마무리 인사로 끝난 장면을 자연스럽게 다시 열어 대화를 계속하게 하는 연결 대사 생성.
+     */
+    public Map<String, Object> generateContinuation(StorySession session) {
+        validateApiKey();
+
+        String systemPrompt = buildContinuationSystemPrompt(session);
+
+        try {
+            List<Map<String, String>> fullMessages = new ArrayList<>();
+            fullMessages.add(Map.of("role", "system", "content", systemPrompt));
+            fullMessages.addAll(session.getChatHistory());
+            // 히스토리가 작별 인사로 끝나 있으므로, 이 호출에만 쓰는 합성 user 턴으로 흐름을 꺾는다
+            // (세션 기록에는 저장되지 않는다)
+            fullMessages.add(Map.of("role", "user", "content",
+                    "(The learner tapped 'continue the story' - they don't want it to end yet. "
+                    + "Reopen the scene now as instructed, without repeating your goodbye.)"));
+
+            return callOpenAiJson(fullMessages);
+        } catch (Exception e) {
+            log.error("[OpenAI API 호출 오류] 이어하기 대사 생성 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("OpenAI API 호출 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /** 이어하기용 시스템 프롬프트 조립 (네트워크 호출과 분리되어 단위 테스트 가능). */
+    String buildContinuationSystemPrompt(StorySession session) {
+        return String.format("""
+            You are AI Partner "%s", an adaptive conversation partner in a language-learning app.
+            Situation: %s
+            Requested Mood/Tone: %s
+            Target Language: %s
+
+            %s
+
+            THE LEARNER CHOSE TO CONTINUE THE STORY.
+            Your previous message wrapped the scene up with a goodbye, but they want to keep
+            spending time together. The goodbye is CANCELLED - the scene is NOT over.
+            - Do NOT repeat or paraphrase your goodbye. Do NOT say farewell phrases like
+              "다음에 또 보자", "즐거웠어" again.
+            - Instead, naturally REOPEN or extend the scene in character: suggest another round,
+              the next thing that would really happen in this situation, or a smooth follow-on
+              beat of the SAME story
+              (e.g. "잠깐, 가기 전에 디저트 하나만 더 먹고 갈까?", "어, 비 오네. 조금만 더 있다 갈래?").
+            - Do NOT restart the story, do NOT repeat earlier topics, and do NOT mention quizzes,
+              points, or the app itself.
+            - End with ONE concrete question the learner can answer. Do not quiz them yet.
+            You MUST return your response formatted strictly as a valid json object with the following fields:
+            {
+              "ai_message": "Continuation line in the target language",
+              "translation": "Korean translation at the same speech level as ai_message"
+            }
+            """, session.getCharacterName(), session.getSituationDescription(), session.getTone(),
+                session.getTargetLanguage(),
+                buildSpeechStyleDirective(session.getTone(), session.getSituationDescription()));
+    }
+
+    /**
      * 2단계: 턴 바이 턴 대화 - 사용자의 대답을 받아 OpenAI(ChatGPT)로 100% 실시간 대화 반응 및 퀴즈 생성
      */
     public Map<String, Object> generateTurnResponse(StorySession session, String userMessage) {
@@ -141,25 +198,35 @@ public class OpenAiStoryService {
     /** 턴 대화용 시스템 프롬프트 조립 (네트워크 호출과 분리되어 단위 테스트 가능). */
     String buildTurnSystemPrompt(StorySession session, String userMessage) {
         int currentQuizCount = session.getQuizCount();
+        int quizLimit = session.getQuizLimit() > 0 ? session.getQuizLimit() : MAX_QUIZ_COUNT;
         int turnsSinceLastQuiz = session.getTurnsSinceLastQuiz();
-        boolean quizBudgetLeft = currentQuizCount < MAX_QUIZ_COUNT;
+        boolean quizBudgetLeft = currentQuizCount < quizLimit;
         boolean allowQuiz = turnsSinceLastQuiz >= 2 && quizBudgetLeft;
+
+        // 한도의 마지막 퀴즈를 채점하는 턴인지 — 정답이면 이 턴이 스토리의 마지막 대사가 된다
+        boolean gradingFinalQuiz = session.getPendingQuiz() != null
+                && currentQuizCount >= quizLimit;
 
         String pacingDirective;
         if (allowQuiz) {
             String requiredType = pickNextQuizType(session.getUsedQuizTypes());
             pacingDirective = String.format("PACING RULE: Sufficient dialogue turns have passed (%d turns since last quiz). You SHOULD now present a relevant quiz moment matching the recent context by setting `is_quiz: true`. REQUIRED QUIZ TYPE FOR THIS QUIZ: \"%s\" - set `quiz_type` to exactly this value and design the quiz in that format.", turnsSinceLastQuiz, requiredType);
+        } else if (gradingFinalQuiz) {
+            // 마지막 퀴즈 채점 중에는 채점 지시문(정답→마무리, 오답→재시도)이 우선한다
+            pacingDirective = String.format("All %d quizzes have been presented. Follow the FINAL QUIZ rules in section 1 above: close the story only when this final answer is graded correct; if it is incorrect, re-present the quiz and do not close yet.", quizLimit);
         } else if (!quizBudgetLeft) {
-            pacingDirective = String.format("QUIZ BUDGET EXHAUSTED: All %d quizzes for this session have already been given. YOU MUST SET `is_quiz: false`. Wrap the scenario up naturally and set `is_completed: true`.", MAX_QUIZ_COUNT);
+            pacingDirective = String.format("QUIZ BUDGET EXHAUSTED: All %d quizzes for this session have already been given. YOU MUST SET `is_quiz: false`. Wrap the scenario up naturally with a warm closing (no new questions) and set `is_completed: true`.", quizLimit);
         } else {
             pacingDirective = String.format("STRICT PACING RULE: ONLY %d dialogue turn(s) passed since last quiz/start. YOU MUST SET `is_quiz: false` FOR THIS TURN! Do NOT output a quiz yet. Continue the natural dialogue (A-B-A-B dialogue turn) and ask an engaging follow-up question.", turnsSinceLastQuiz);
         }
 
         String testedSubjectsDirective = session.getTestedQuizSubjects().isEmpty()
                 ? "No quiz topics have been tested yet."
-                : "FORBIDDEN ALREADY-TESTED QUIZ TOPICS/WORDS (NEVER TEST OR FOCUS ON ANY OF THESE AGAIN): " + String.join(", ", session.getTestedQuizSubjects());
+                : "FORBIDDEN ALREADY-TESTED QUIZ TOPICS/WORDS (NEVER TEST OR FOCUS ON ANY OF THESE AGAIN): "
+                  + String.join(", ", session.getTestedQuizSubjects())
+                  + ". A quiz whose answer repeats ANY of these will be REJECTED by the server and the turn is wasted - always pick a brand-new expression.";
 
-        String quizContextDirective = buildQuizGradingDirective(session.getPendingQuiz(), userMessage);
+        String quizContextDirective = buildQuizGradingDirective(session.getPendingQuiz(), userMessage, gradingFinalQuiz);
 
         return String.format("""
             You are AI Partner "%s", an adaptive conversation partner in a language-learning app.
@@ -271,16 +338,16 @@ public class OpenAiStoryService {
             - "none": every other turn — normal roleplay dialogue, or no quiz was pending. This is the default.
             """, session.getCharacterName(), session.getSituationDescription(), session.getTone(), session.getTargetLanguage(),
                 buildSpeechStyleDirective(session.getTone(), session.getSituationDescription()),
-                quizContextDirective, userMessage, pacingDirective, currentQuizCount, MAX_QUIZ_COUNT, MAX_QUIZ_COUNT,
+                quizContextDirective, userMessage, pacingDirective, currentQuizCount, quizLimit, quizLimit,
                 session.getTargetLanguage(), session.getTargetLanguage(), session.getTargetLanguage(), session.getTargetLanguage(),
-                testedSubjectsDirective, MAX_QUIZ_COUNT);
+                testedSubjectsDirective, quizLimit);
     }
 
     /**
      * 직전 턴에 출제된 퀴즈가 있을 때만 "이번 사용자 입력 = 퀴즈 답안" 채점 지시문을 만든다.
      * 대기 중인 퀴즈가 없으면(예: 첫 인사말에 대한 답장) 절대 채점하지 말라고 명시한다.
      */
-    private String buildQuizGradingDirective(Map<String, Object> pendingQuiz, String userMessage) {
+    private String buildQuizGradingDirective(Map<String, Object> pendingQuiz, String userMessage, boolean finalQuiz) {
         if (pendingQuiz == null) {
             return """
                    - NO quiz is pending. The user's latest message is a NORMAL roleplay reply, NOT a quiz answer.
@@ -333,6 +400,18 @@ public class OpenAiStoryService {
                """ + INCORRECT_REACTION;
         }
 
+        String closingDirective = !finalQuiz ? "" : """
+               - THIS IS THE FINAL QUIZ OF THE SESSION. If "answer_result" is "correct",
+                 the story ENDS with this very message:
+                 * After reacting to their answer, bring the situation to a warm, natural conclusion
+                   IN THE SAME MESSAGE - wrap up the scene the way it would really end (the order
+                   arrives and you enjoy it together, you pay and head out, you say goodbye and part
+                   ways), and add one short closing sentiment (e.g. "오늘 진짜 즐거웠어, 다음에 또 보자!").
+                 * Do NOT ask any new question, do NOT open a new topic, do NOT leave the scene hanging.
+                 * Set "is_completed": true.
+                 If "answer_result" is "incorrect" and you re-present the quiz, do not close the story yet.
+               """;
+
         return String.format("""
                QUIZ ANSWER GRADING (a quiz IS pending):
                - The quiz presented in the immediately preceding turn was:
@@ -342,9 +421,9 @@ public class OpenAiStoryService {
                    Accepted answers: %s
                - The user's latest input ("%s") is BOTH their answer to that quiz AND their reply in the
                  story. Treat it as both.
-               %s- Either way your reply must read as ONE natural utterance in the scene, never as
+               %s%s- Either way your reply must read as ONE natural utterance in the scene, never as
                  "verdict first, unrelated roleplay after".
-               """, quizType, question, correctAnswer, acceptableAnswers, userMessage, outcomeDirective);
+               """, quizType, question, correctAnswer, acceptableAnswers, userMessage, outcomeDirective, closingDirective);
     }
 
     private static final String CORRECT_REACTION = """

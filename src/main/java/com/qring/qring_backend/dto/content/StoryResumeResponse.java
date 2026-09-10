@@ -37,6 +37,12 @@ public class StoryResumeResponse {
     @JsonProperty("current_quiz_count")
     private Integer currentQuizCount;
 
+    @JsonProperty("quiz_limit")
+    private Integer quizLimit;
+
+    @JsonProperty("can_extend")
+    private Boolean canExtend;
+
     @Schema(description = "true 면 대화는 끝났고 보관/삭제 선택만 남은 상태")
     @JsonProperty("is_completed")
     private Boolean isCompleted;

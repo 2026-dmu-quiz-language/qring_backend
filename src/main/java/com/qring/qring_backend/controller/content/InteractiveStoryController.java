@@ -6,6 +6,7 @@ import com.qring.qring_backend.dto.content.StoryArchiveRequest;
 import com.qring.qring_backend.dto.content.StoryArchiveResponse;
 import com.qring.qring_backend.dto.content.StoryChatRequest;
 import com.qring.qring_backend.dto.content.StoryChatResponse;
+import com.qring.qring_backend.dto.content.StoryExtendResponse;
 import com.qring.qring_backend.dto.content.StoryResumeResponse;
 import com.qring.qring_backend.dto.content.StoryStartRequest;
 import com.qring.qring_backend.dto.content.StoryStartResponse;
@@ -68,6 +69,21 @@ public class InteractiveStoryController {
 
         StoryChatResponse response = interactiveStoryService.processChatTurn(userId, request);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "3단계: 스토리 이어하기 (완결된 스토리에 퀴즈 5개 추가 연장)",
+            description = "완결된 스토리의 마무리된 장면을 자연스럽게 다시 열고 퀴즈 한도를 5개 늘립니다. 응답의 ai_message 를 채팅에 이어 붙이고 대화를 계속하면 됩니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @PostMapping("/extend")
+    public ResponseEntity<StoryExtendResponse> extendStory(
+            Authentication authentication,
+            @Valid @RequestBody StoryArchiveRequest request
+    ) {
+        Long userId = (Long) authentication.getPrincipal();
+        log.info("[InteractiveStoryController] 스토리 이어하기 요청 - userId: {}, sessionId: {}", userId, request.getSessionId());
+        return ResponseEntity.ok(interactiveStoryService.extendStory(userId, request.getSessionId()));
     }
 
     @Operation(
