@@ -79,7 +79,12 @@ public class MyPageService {
                     return new IllegalArgumentException("USER_NOT_FOUND");
                 });
 
-        if (request.getNickname() != null && !request.getNickname().isEmpty()) {
+        if (request.getNickname() != null && !request.getNickname().isEmpty()
+                && !request.getNickname().equals(user.getNickname())) {
+            // 가입/소셜 온보딩과 동일하게 중복 검사 (기존에는 검사 없이 저장되어 중복 닉네임 허용 버그)
+            if (userRepository.existsByNickname(request.getNickname())) {
+                throw new IllegalArgumentException("NICKNAME_ALREADY_EXISTS");
+            }
             log.info("[MyPageService] 닉네임 변경: {} -> {}", user.getNickname(), request.getNickname());
             user.setNickname(request.getNickname());
         }

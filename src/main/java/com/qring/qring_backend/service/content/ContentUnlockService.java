@@ -46,11 +46,11 @@ public class ContentUnlockService {
         UserAsset asset = userAssetRepository.findByUserUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저 자산 정보를 찾을 수 없습니다."));
 
-        if (asset.getCurrentPoints() < requiredPoints) {
+        // 원자적 차감 — 잔액 검사와 차감이 분리되어 동시 요청 시 음수 잔액이 가능하던 문제 방지
+        int deducted = userAssetRepository.tryDeductPoints(userId, requiredPoints);
+        if (deducted == 0) {
             throw new IllegalArgumentException("포인트가 부족합니다.");
         }
-
-        userAssetRepository.addPoints(userId, -requiredPoints);
         int balanceAfter = asset.getCurrentPoints() - requiredPoints;
 
         UserContentUnlock unlock = new UserContentUnlock();

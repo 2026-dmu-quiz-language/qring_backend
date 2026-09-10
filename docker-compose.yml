@@ -11,6 +11,10 @@ services:
       # MAIL_USERNAME / MAIL_PASSWORD / OAuth 키 / JWT_SECRET / QRING_EMAIL_DEV_MODE 등 주입
       - .env
 
+    environment:
+      # JVM 이 UTC 로 돌면 연속 학습일·주간 통계가 한국 시간과 9시간 어긋난다 (LocalDate.now() 기준)
+      - TZ=Asia/Seoul
+
     ports:
       - "8080:8080"
 
