@@ -15,8 +15,12 @@ import java.util.Map;
 @Builder
 public class StorySession {
 
-    /** OpenAI에 함께 보낼 최대 대화 메시지 수 (초과 시 오래된 메시지부터 제거). */
-    private static final int MAX_HISTORY_MESSAGES = 40;
+    /**
+     * OpenAI에 함께 보낼 최대 대화 메시지 수 (초과 시 오래된 메시지부터 제거).
+     * 2026-09-09 팀 결정으로 40 → 80 확장 (이어하기로 길어진 세션의 맥락 유지).
+     * 실측 기준 턴당 입력 토큰 상한이 약 3.3k → 5.3k 로 늘지만 비용 영향은 턴당 1원 미만.
+     */
+    private static final int MAX_HISTORY_MESSAGES = 80;
 
     private String sessionId;
     private Long userId;
@@ -26,8 +30,15 @@ public class StorySession {
     private String targetLanguage;
     private int levelCode;
 
+    /** 기본 퀴즈 한도 (이어하기 1회당 이만큼씩 늘어난다). */
+    public static final int DEFAULT_QUIZ_LIMIT = 5;
+
     @Builder.Default
     private int quizCount = 0;
+
+    /** 이 세션의 퀴즈 한도. 이어하기(연장)할 때마다 늘어난다. */
+    @Builder.Default
+    private int quizLimit = DEFAULT_QUIZ_LIMIT;
 
     @Builder.Default
     private int turnsSinceLastQuiz = 0;
@@ -145,6 +156,24 @@ public class StorySession {
 
     public void incrementTurnsSinceLastQuiz() {
         this.turnsSinceLastQuiz++;
+    }
+
+    /**
+     * 이어하기(연장): 퀴즈 한도를 늘리고 완결 상태를 해제해 같은 상황의 대화를 계속한다.
+     * 페이싱도 초기화해 연장 직후엔 잠시 대화가 이어진 뒤 퀴즈가 나온다.
+     */
+    public void extendQuizLimit(int additionalQuizzes) {
+        this.quizLimit += additionalQuizzes;
+        this.isCompleted = false;
+        this.turnsSinceLastQuiz = 0;
+    }
+
+    /** 이어하기 시점을 타임라인에 표시 (프론트가 구분선 등으로 렌더링 가능). */
+    public void addExtensionMarker() {
+        Map<String, Object> event = new HashMap<>();
+        event.put("type", "extension");
+        event.put("quiz_limit", quizLimit);
+        timeline.add(event);
     }
 
     /** OpenAI 호출 실패 시 이번 턴에 반영한 사용자 입력/카운터를 되돌린다. */

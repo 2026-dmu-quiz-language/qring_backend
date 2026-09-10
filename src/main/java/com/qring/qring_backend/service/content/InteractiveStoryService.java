@@ -9,6 +9,7 @@ import com.qring.qring_backend.dto.content.StoryArchiveDetailResponse;
 import com.qring.qring_backend.dto.content.StoryArchiveListResponse;
 import com.qring.qring_backend.dto.content.StoryArchiveResponse;
 import com.qring.qring_backend.dto.content.StoryChatRequest;
+import com.qring.qring_backend.dto.content.StoryExtendResponse;
 import com.qring.qring_backend.dto.content.StoryResumeResponse;
 import com.qring.qring_backend.dto.content.StoryChatResponse;
 import com.qring.qring_backend.dto.content.StoryStartRequest;
@@ -39,6 +40,23 @@ public class InteractiveStoryService {
 
     /** 완결된 스토리를 영구 보관하는 추가 비용. 팀에서 금액 확정 전까지 0. */
     public static final int STORY_ARCHIVE_COST = 0;
+
+    /** 이어하기(연장) 1회 비용. */
+    public static final int STORY_EXTEND_COST = 100;
+
+    /** 이어하기 1회당 추가되는 퀴즈 개수. */
+    public static final int EXTEND_QUIZ_COUNT = 5;
+
+    /**
+     * 이어하기 최대 횟수. AI 컨텍스트가 80메시지이고 5퀴즈 구간이 실측 약 25메시지이므로,
+     * 2회 연장(총 퀴즈 15개 ≈ 77메시지)까지는 AI가 이야기 전체를 기억하지만 3회부터는
+     * 첫 구간이 통째로 컨텍스트 밖으로 밀려난다.
+     */
+    public static final int MAX_EXTEND_COUNT = 2;
+
+    /** 세션이 가질 수 있는 최대 퀴즈 한도 (기본 5 + 연장 2회 x 5 = 15). */
+    public static final int MAX_QUIZ_LIMIT =
+            StorySession.DEFAULT_QUIZ_LIMIT + EXTEND_QUIZ_COUNT * MAX_EXTEND_COUNT;
 
     /** 미보관 세션의 만료 기준. 경과 시 메모리와 DB 양쪽에서 제거된다. */
     private static final Duration SESSION_TTL = Duration.ofHours(3);
@@ -163,8 +181,17 @@ public class InteractiveStoryService {
 
         // 오답 후 같은 문제를 다시 낸 재시도는 새 퀴즈가 아니다. 5개 한도를 소모해서는 안 된다.
         boolean isRetry = modelWantsQuiz && isSameQuestion(pendingQuiz, quiz);
-        boolean isNewQuiz = modelWantsQuiz && !isRetry
-                && session.getQuizCount() < OpenAiStoryService.MAX_QUIZ_COUNT;
+
+        // 이미 다뤘던 표현을 형식만 바꿔 다시 낸 퀴즈는 서버가 걸러낸다 (프롬프트 금지 지시를 모델이 어긴 경우)
+        boolean isDuplicate = modelWantsQuiz && !isRetry
+                && isDuplicateQuizSubject(session.getTestedQuizSubjects(), quiz);
+        if (isDuplicate) {
+            log.warn("[InteractiveStory] 세션 {} 중복 주제 퀴즈 차단 - 한도 미소모, 다음 턴에 재출제 유도: {}",
+                    sessionId, quiz.get("question"));
+        }
+
+        boolean isNewQuiz = modelWantsQuiz && !isRetry && !isDuplicate
+                && session.getQuizCount() < session.getQuizLimit();
 
         boolean isQuiz = isRetry || isNewQuiz;
         if (!isQuiz) {
@@ -184,15 +211,26 @@ public class InteractiveStoryService {
         }
 
         if (isNewQuiz) {
-            // 기출 금지 목록에는 짧은 핵심 표현을 담는다 (question 전문이 들어가면 모델이 인식하지 못함)
-            String subject = textOrDefault(quiz.get("correct_answer"), null);
-            if (subject == null && quiz.get("acceptable_answers") instanceof List<?> l && !l.isEmpty()) {
-                subject = textOrDefault(l.get(0), null);
+            // 기출 금지 목록에는 정답과 허용 답안 전부를 담는다
+            // (question 전문 대신 짧은 핵심 표현 — 형식만 바꾼 재출제도 답안이 겹치면 잡힌다)
+            boolean recorded = false;
+            String correctAnswer = textOrDefault(quiz.get("correct_answer"), null);
+            if (correctAnswer != null) {
+                session.addTestedQuizSubject(correctAnswer);
+                recorded = true;
             }
-            if (subject == null) {
-                subject = textOrDefault(quiz.get("question"), null);
+            if (quiz.get("acceptable_answers") instanceof List<?> l) {
+                for (Object o : l) {
+                    String acceptable = textOrDefault(o, null);
+                    if (acceptable != null) {
+                        session.addTestedQuizSubject(acceptable);
+                        recorded = true;
+                    }
+                }
             }
-            session.addTestedQuizSubject(subject);
+            if (!recorded) {
+                session.addTestedQuizSubject(textOrDefault(quiz.get("question"), null));
+            }
             session.recordQuiz(quiz);
         } else if (isRetry) {
             session.repeatPendingQuiz();
@@ -202,8 +240,12 @@ public class InteractiveStoryService {
             session.clearPendingQuiz();
         }
 
-        // 5. 퀴즈를 모두 소진하고 마지막 채점까지 끝나면 서버가 종료를 확정한다.
-        //    (모델이 is_completed 지시를 장기간 무시하는 사례가 실측에서 확인됨)
+        // 5. 종료 확정은 서버가 한다.
+        //    재시도로 퀴즈를 다시 낸 턴에는 종료 불가 (마지막 퀴즈를 틀렸는데 모델이 마무리해버리는 경우 방지)
+        if (isRetry) {
+            isCompleted = false;
+        }
+        //    퀴즈를 모두 소진하고 마지막 채점까지 끝나면 강제 종료 (모델이 지시를 무시하는 사례 실측 확인)
         if (!isCompleted && shouldForceComplete(session)) {
             isCompleted = true;
             log.info("[InteractiveStory] 세션 {} 서버 강제 완결 (퀴즈 {}개 채점 완료)", sessionId, session.getQuizCount());
@@ -232,7 +274,68 @@ public class InteractiveStoryService {
                 .quiz(quiz)
                 .answerResult(answerResult)
                 .currentQuizCount(session.getQuizCount())
+                .quizLimit(session.getQuizLimit())
+                .canExtend(canExtend(session))
                 .isCompleted(session.isCompleted())
+                .build();
+    }
+
+    /**
+     * 이어하기(연장): 완결된 스토리의 퀴즈 한도를 늘리고, 마무리된 장면을 자연스럽게 다시 열어
+     * 같은 상황의 대화를 계속한다. 트랜잭션 구조는 세션 시작과 동일 (선 차감 → OpenAI → 실패 시 환불).
+     */
+    public StoryExtendResponse extendStory(Long userId, String sessionId) {
+        StorySession session = sessionStore.get(sessionId);
+        if (session == null) {
+            session = restoreSessionFromDb(sessionId);
+        }
+        if (session == null) {
+            throw new IllegalArgumentException("이어할 스토리 세션을 찾을 수 없습니다. (sessionId: " + sessionId + ")");
+        }
+        if (!session.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("해당 스토리 세션에 접근할 권한이 없습니다.");
+        }
+        if (!session.isCompleted()) {
+            throw new IllegalStateException("진행 중인 스토리는 그대로 대화를 계속하면 됩니다. 이어하기는 완결된 스토리에서만 가능합니다.");
+        }
+        if (!canExtend(session)) {
+            throw new IllegalStateException(String.format(
+                    "이어하기는 최대 %d회까지 가능합니다. 이 스토리는 이미 한도(퀴즈 %d개)에 도달했습니다.",
+                    MAX_EXTEND_COUNT, MAX_QUIZ_LIMIT));
+        }
+
+        // 1. 연장 비용 선 차감 (짧은 트랜잭션, 원자적 — 잔액 부족 시 여기서 거절)
+        int remainingPoints = pointManager.deduct(userId, STORY_EXTEND_COST);
+
+        // 2. 마무리된 장면을 다시 여는 연결 대사 생성 — 트랜잭션 밖. 실패 시 환불, 세션은 완결 상태 그대로
+        Map<String, Object> continuation;
+        try {
+            continuation = openAiStoryService.generateContinuation(session);
+        } catch (RuntimeException e) {
+            refundSafely(userId, STORY_EXTEND_COST, sessionId, "이어하기 대사 생성 실패");
+            throw e;
+        }
+
+        // 3. 한도 확장 + 완결 해제 + 연결 대사 기록
+        session.extendQuizLimit(EXTEND_QUIZ_COUNT);
+        session.addExtensionMarker();
+
+        String aiMsg = textOrDefault(continuation.get("ai_message"), "Wait, before we go - one more thing!");
+        String translation = textOrDefault(continuation.get("translation"), "잠깐, 가기 전에 하나만 더!");
+        session.addAssistantMessage(aiMsg, translation);
+
+        persistSessionState(session);
+        log.info("[InteractiveStory] 세션 {} 이어하기 - 퀴즈 한도 {} -> {} (userId: {})",
+                sessionId, session.getQuizLimit() - EXTEND_QUIZ_COUNT, session.getQuizLimit(), userId);
+
+        return StoryExtendResponse.builder()
+                .sessionId(sessionId)
+                .aiMessage(aiMsg)
+                .translation(translation)
+                .currentQuizCount(session.getQuizCount())
+                .quizLimit(session.getQuizLimit())
+                .canExtend(canExtend(session))
+                .userRemainingPoints(remainingPoints)
                 .build();
     }
 
@@ -357,6 +460,8 @@ public class InteractiveStoryService {
                             .tone(session.getTone())
                             .targetLanguage(session.getTargetLanguage())
                             .currentQuizCount(session.getQuizCount())
+                            .quizLimit(session.getQuizLimit())
+                            .canExtend(canExtend(session))
                             .isCompleted(session.isCompleted())
                             .timeline(session.getTimeline())
                             .build();
@@ -440,10 +545,60 @@ public class InteractiveStoryService {
         }
     }
 
-    /** 퀴즈를 모두 소진했고 마지막 퀴즈의 채점까지 끝났는지 (서버 강제 종료 조건). */
+    /** 이 세션이 이어하기를 더 할 수 있는지 (연장 상한: 총 퀴즈 한도 MAX_QUIZ_LIMIT). */
+    static boolean canExtend(StorySession session) {
+        return session.getQuizLimit() < MAX_QUIZ_LIMIT;
+    }
+
+    /** 퀴즈 한도를 모두 소진했고 마지막 퀴즈의 채점까지 끝났는지 (서버 강제 종료 조건). */
     static boolean shouldForceComplete(StorySession session) {
-        return session.getQuizCount() >= OpenAiStoryService.MAX_QUIZ_COUNT
+        return session.getQuizCount() >= session.getQuizLimit()
                 && session.getPendingQuiz() == null;
+    }
+
+    /**
+     * 새 퀴즈가 이미 다뤘던 표현을 다시 묻는지 판별 (형식만 바꾼 재출제 차단).
+     * 새 퀴즈의 정답/허용 답안이 기출 표현과 일치하거나, 기출 표현(4자 이상)을 그대로 포함하면 중복이다.
+     */
+    static boolean isDuplicateQuizSubject(List<String> testedSubjects, Map<String, Object> quiz) {
+        if (testedSubjects.isEmpty() || quiz == null) {
+            return false;
+        }
+
+        List<String> candidates = new java.util.ArrayList<>();
+        String correctAnswer = textOrDefault(quiz.get("correct_answer"), null);
+        if (correctAnswer != null) {
+            candidates.add(normalizeSubject(correctAnswer));
+        }
+        if (quiz.get("acceptable_answers") instanceof List<?> l) {
+            for (Object o : l) {
+                String acceptable = textOrDefault(o, null);
+                if (acceptable != null) {
+                    candidates.add(normalizeSubject(acceptable));
+                }
+            }
+        }
+        if (candidates.isEmpty()) {
+            return false;
+        }
+
+        for (String tested : testedSubjects) {
+            String normalizedTested = normalizeSubject(tested);
+            if (normalizedTested.isEmpty()) {
+                continue;
+            }
+            for (String candidate : candidates) {
+                if (candidate.equals(normalizedTested)
+                        || (normalizedTested.length() >= 4 && candidate.contains(normalizedTested))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static String normalizeSubject(String value) {
+        return value == null ? "" : value.trim().toLowerCase().replaceAll("\\s+", " ");
     }
 
     /** 직전에 출제된 퀴즈와 같은 문제인지 (오답 재시도 판별). */

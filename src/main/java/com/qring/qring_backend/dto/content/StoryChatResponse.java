@@ -39,9 +39,17 @@ public class StoryChatResponse {
     @JsonProperty("answer_result")
     private String answerResult;
 
-    @Schema(description = "현재까지 출제된 누적 퀴즈 개수 (총 5개 중)", example = "1")
+    @Schema(description = "현재까지 출제된 누적 퀴즈 개수", example = "1")
     @JsonProperty("current_quiz_count")
     private Integer currentQuizCount;
+
+    @Schema(description = "이 세션의 퀴즈 한도 (기본 5, 이어하기마다 +5, 최대 15)", example = "5")
+    @JsonProperty("quiz_limit")
+    private Integer quizLimit;
+
+    @Schema(description = "이어하기(/extend) 가능 여부 — 연장 상한(2회) 도달 시 false. 완결 시 이어하기 버튼 노출 판단에 사용", example = "true")
+    @JsonProperty("can_extend")
+    private Boolean canExtend;
 
     @Schema(description = "스토리 완전 종료 여부", example = "false")
     @JsonProperty("is_completed")

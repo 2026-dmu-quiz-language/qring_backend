@@ -172,6 +172,68 @@ class OpenAiStoryServiceTest {
     }
 
     @Test
+    @DisplayName("마지막 퀴즈를 채점하는 턴에는 스토리 마무리 지시가 붙는다")
+    void finalQuizGradingTurnGetsClosingDirective() {
+        StorySession session = newSession();
+        for (int i = 0; i < OpenAiStoryService.MAX_QUIZ_COUNT - 1; i++) {
+            session.recordQuiz(Map.of("question", "q" + i, "correct_answer", "a" + i));
+            session.clearPendingQuiz();
+        }
+        session.recordQuiz(Map.of("question", "'녹차'를 뜻하는 표현은?", "correct_answer", "green tea"));
+        session.incrementTurnsSinceLastQuiz();
+
+        String prompt = service.buildTurnSystemPrompt(session, "green tea");
+
+        assertTrue(prompt.contains("THIS IS THE FINAL QUIZ OF THE SESSION"));
+        assertTrue(prompt.contains("bring the situation to a warm, natural conclusion"));
+        assertTrue(prompt.contains("do not close the story yet"),
+                "오답 재시도 시에는 마무리하지 말라는 예외가 있어야 한다");
+        assertFalse(prompt.contains("QUIZ BUDGET EXHAUSTED"),
+                "마지막 퀴즈 채점 중에는 채점 지시가 우선이므로 소진 지시가 겹치면 안 된다");
+    }
+
+    @Test
+    @DisplayName("이어하기로 한도가 늘면 5번째 퀴즈 채점도 마지막이 아니게 되고 프롬프트에 새 한도가 반영된다")
+    void extendedLimitIsReflectedInPrompt() {
+        StorySession session = newSession();
+        for (int i = 0; i < StorySession.DEFAULT_QUIZ_LIMIT; i++) {
+            session.recordQuiz(Map.of("question", "q" + i, "correct_answer", "a" + i));
+            session.clearPendingQuiz();
+        }
+        session.extendQuizLimit(5); // 한도 10
+        session.incrementTurnsSinceLastQuiz();
+        session.incrementTurnsSinceLastQuiz();
+
+        String prompt = service.buildTurnSystemPrompt(session, "Sounds good!");
+
+        assertTrue(prompt.contains("Current Quiz Count Given So Far: 5 / 10"));
+        assertFalse(prompt.contains("QUIZ BUDGET EXHAUSTED"), "한도가 늘었으니 소진 지시가 나오면 안 된다");
+        assertTrue(prompt.contains("REQUIRED QUIZ TYPE"), "연장 후에는 다시 퀴즈 출제가 허용되어야 한다");
+    }
+
+    @Test
+    @DisplayName("이어하기 프롬프트는 장면을 다시 열되 초기화·퀴즈 언급을 금지한다")
+    void continuationPromptReopensScene() {
+        String prompt = service.buildContinuationSystemPrompt(newSession());
+
+        assertTrue(prompt.contains("THE LEARNER CHOSE TO CONTINUE THE STORY"));
+        assertTrue(prompt.contains("Do NOT restart the story"));
+        assertTrue(prompt.contains("do NOT mention quizzes"));
+        assertTrue(prompt.contains("End with ONE concrete question"));
+    }
+
+    @Test
+    @DisplayName("마지막 퀴즈가 아닌 채점 턴에는 마무리 지시가 없다")
+    void nonFinalGradingTurnHasNoClosingDirective() {
+        StorySession session = newSession();
+        session.recordQuiz(Map.of("question", "'녹차'를 뜻하는 표현은?", "correct_answer", "green tea"));
+        session.incrementTurnsSinceLastQuiz();
+
+        assertFalse(service.buildTurnSystemPrompt(session, "green tea")
+                .contains("THIS IS THE FINAL QUIZ OF THE SESSION"));
+    }
+
+    @Test
     @DisplayName("서버 채점: 객관식·단어배열은 확정하고, 주관식 목록 밖 답안은 모델에 위임한다")
     void serverGradesDeterministically() {
         Map<String, Object> mc = Map.of("quiz_type", "multiple_choice", "correct_answer", "green tea");

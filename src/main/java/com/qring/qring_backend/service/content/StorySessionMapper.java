@@ -49,6 +49,7 @@ public class StorySessionMapper {
         runtime.put("pendingQuiz", session.getPendingQuiz());
         runtime.put("testedQuizSubjects", session.getTestedQuizSubjects());
         runtime.put("usedQuizTypes", session.getUsedQuizTypes());
+        runtime.put("quizLimit", session.getQuizLimit());
         entity.setRuntimeState(writeJson(runtime));
 
         // 턴이 정상 처리되어 전체 상태를 저장하는 시점에는 응답 대기 중인 메시지가 없다
@@ -89,6 +90,9 @@ public class StorySessionMapper {
         session.setPendingQuiz(castMap(runtime.get("pendingQuiz")));
         session.setTestedQuizSubjects(castStringList(runtime.get("testedQuizSubjects")));
         session.setUsedQuizTypes(castStringList(runtime.get("usedQuizTypes")));
+        // 이어하기 이전에 저장된 세션(quizLimit 미기록)은 기본 한도로 복원된다
+        Object limit = runtime.get("quizLimit");
+        session.setQuizLimit(limit instanceof Number n ? n.intValue() : StorySession.DEFAULT_QUIZ_LIMIT);
         return session;
     }
 
