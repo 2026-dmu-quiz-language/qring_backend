@@ -1,10 +1,13 @@
 package com.qring.qring_backend.service.quiz;
 
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.domain.content.Content;
+import com.qring.qring_backend.domain.quiz.QuizContentRepository;
 import com.qring.qring_backend.domain.quiz.QuizDetail;
 import com.qring.qring_backend.domain.quiz.QuizDetailRepository;
 import com.qring.qring_backend.domain.quiz.QuizResult;
@@ -12,8 +15,6 @@ import com.qring.qring_backend.domain.quiz.QuizResultRepository;
 import com.qring.qring_backend.domain.quiz.QuizService;
 import com.qring.qring_backend.domain.quiz.StoryProgress;
 import com.qring.qring_backend.domain.quiz.StoryProgressRepository;
-import com.qring.qring_backend.domain.quiz.QuizContent;
-import com.qring.qring_backend.domain.quiz.QuizContentRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswer;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
@@ -28,8 +29,6 @@ import com.qring.qring_backend.dto.quiz.QuestionResultResponseDto;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -58,6 +57,20 @@ public class QuestionResultService {
         int totalScore = 0;
         int correctCount = 0;
         Content content = null;
+
+        // 이 스토리를 이미 완료한 적 있는지 먼저 확인 (재학습 시 포인트 재지급 방지)
+        boolean alreadyCompleted = false;
+        if (request.getResults() != null && !request.getResults().isEmpty()) {
+            QuizDetail firstQuizDetail = quizDetailRepository.findById(request.getResults().get(0).getQuizId())
+                    .orElseThrow(() -> new IllegalArgumentException("퀴즈를 찾을 수 없습니다."));
+            content = firstQuizDetail.getContent();
+            if (language != null) {
+                alreadyCompleted = storyProgressRepository
+                        .findByUserIdAndContentIdAndLanguage(userId, content.getContentId(), language)
+                        .map(StoryProgress::getIsCompleted)
+                        .orElse(false);
+            }
+        }
 
         for (QuizResultDto result : request.getResults()) {
 
@@ -106,8 +119,10 @@ public class QuestionResultService {
             studyLog.setLangCode(language);
             userStudyLogRepository.save(studyLog);
 
-            // 포인트 적립 (계산된 퀴즈 점수(score)를 그대로 토리로 지급)
-            userAssetRepository.addPoints(userId, score);
+            // 포인트 적립: 최초 완료(재학습 아님)일 때만 지급
+            if (!alreadyCompleted) {
+                userAssetRepository.addPoints(userId, score);
+            }
 
             // wrong_answer 처리: 유저 언어 + quizId로 quiz_content_id 조회
             if (language != null) {
@@ -166,7 +181,7 @@ public class QuestionResultService {
                         p.setLanguage(language);
                         return p;
                     });
-                    
+
             // 해당 언어의 첫 스토리 완료 시 30점 추가 부여
             if (progress.getProgressRate() == null || progress.getProgressRate() < 100) {
                 if (language != null) {
