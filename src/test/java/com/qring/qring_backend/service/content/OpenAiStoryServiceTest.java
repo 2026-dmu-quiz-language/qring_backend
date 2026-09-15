@@ -140,7 +140,7 @@ class OpenAiStoryServiceTest {
                 "정답이 대화 답변이 되는지 자문하라는 검증 지시가 있어야 한다");
         assertTrue(prompt.contains("MUST therefore be a CLOSED question"),
                 "답이 정해지지 않은 열린 질문을 금지해야 한다");
-        assertTrue(prompt.contains("quizzing a word that appears in your own question"),
+        assertTrue(prompt.contains("THE ANSWER MUST NOT APPEAR IN YOUR QUESTION"),
                 "자기 질문 속 단어를 정답으로 내는 앵무새 퀴즈를 금지해야 한다");
         assertTrue(prompt.contains("SHORT ANSWER ONLY"), "주관식은 단답만 내야 한다");
         assertTrue(prompt.contains("NEVER ask the learner to type a full sentence"));
@@ -178,8 +178,8 @@ class OpenAiStoryServiceTest {
                 "다른 뜻의 표현이면 그 뜻에 반응하라는 지시가 있어야 한다");
         assertTrue(prompt.contains("word-order or missing-word mistake"),
                 "단어 배열 오답은 빠진 단어/어순으로 반응하라는 별도 지시가 있어야 한다");
-        assertTrue(prompt.contains("quote the \"Correct answer\" above EXACTLY"),
-                "정답을 글자 그대로 인용하라는 지시가 있어야 한다");
+        assertTrue(prompt.contains("DO NOT REVEAL THE CORRECT ANSWER YET"),
+                "1~2회째 오답에는 정답을 공개하지 말고 힌트만 주라는 지시가 있어야 한다");
         assertTrue(prompt.contains("NEVER pretend they said the correct expression"));
         assertTrue(prompt.contains("NEVER quietly skip past the mistake"));
         assertTrue(prompt.contains("ALREADY graded this answer as INCORRECT"),
@@ -257,6 +257,15 @@ class OpenAiStoryServiceTest {
                 tiles.stream().sorted().toList(), "타일은 정답의 단어 집합과 같아야 한다");
         assertEquals("I want to play mid role", fixed.get("correct_answer"));
 
+        Map<String, Object> punctuated = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "I want ketchup, please!",
+                "tiles", List.of("please!", "I", "ketchup,", "want"));
+        Map<String, Object> cleaned = OpenAiStoryService.sanitizeQuiz(punctuated);
+        assertEquals("I want ketchup, please", cleaned.get("correct_answer"), "정답 끝 문장부호는 뗀다");
+        @SuppressWarnings("unchecked")
+        List<String> cleanedTiles = (List<String>) cleaned.get("tiles");
+        assertEquals(List.of("I", "ketchup,", "please", "want"), cleanedTiles.stream().sorted().toList());
+
         Map<String, Object> goodTiles = Map.of("quiz_type", "word_arrange",
                 "correct_answer", "Let's sit by the window",
                 "tiles", List.of("window", "the", "by", "sit", "Let's"));
@@ -299,8 +308,13 @@ class OpenAiStoryServiceTest {
         assertFalse(OpenAiStoryService.isAnswerEchoedInMessage("Any songs you like?", partial),
                 "단어 경계로 비교하므로 'song'은 'songs'에 걸리지 않는다");
 
-        Map<String, Object> arrange = Map.of("quiz_type", "word_arrange", "correct_answer", "I play a lot");
-        assertFalse(OpenAiStoryService.isAnswerEchoedInMessage("I play a lot too", arrange), "단어 배열은 검사 대상이 아니다");
+        Map<String, Object> arrange = Map.of("quiz_type", "word_arrange", "correct_answer", "I play often");
+        assertFalse(OpenAiStoryService.isAnswerEchoedInMessage("I play often too", arrange), "3단어 이하 단어 배열은 검사하지 않는다");
+
+        Map<String, Object> ownQuestion = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "Do you want to eat something salty or sweet");
+        assertTrue(OpenAiStoryService.isAnswerEchoedInMessage("Oh, you're hungry? Do you want to eat something salty or sweet?", ownQuestion),
+                "AI 자기 질문 문장을 배열시키는 퀴즈는 거부한다");
     }
 
     @Test
@@ -324,6 +338,180 @@ class OpenAiStoryServiceTest {
         assertEquals("hi", service.parseJsonObject("Sure! {\"ai_message\": \"hi\"} Done.").get("ai_message"));
         assertNull(service.parseJsonObject("Oh, I know Boundy! Which song do you like?"));
         assertNull(service.parseJsonObject("{not json}"));
+    }
+
+    @Test
+    @DisplayName("오프닝 번역의 말투를 판별한다 (반말/존댓말/판별 불가)")
+    void detectsSpeechLevel() {
+        assertEquals("반말", OpenAiStoryService.detectSpeechLevel("야! 여기 진짜 멋지지 않아? 너는 오늘 뭐 시킬 거야?"));
+        assertEquals("존댓말", OpenAiStoryService.detectSpeechLevel("어서 오세요! 무엇을 주문하시겠어요? 창가 자리로 안내할까요?"));
+        assertEquals("반말", OpenAiStoryService.detectSpeechLevel("안녕! 만나서 반가워. 오늘 날씨 좋죠?"), "다수결");
+        assertNull(OpenAiStoryService.detectSpeechLevel(""));
+        assertNull(OpenAiStoryService.detectSpeechLevel("Hello there!"));
+    }
+
+    @Test
+    @DisplayName("말투가 고정된 세션의 프롬프트에는 고정 지시가 들어간다")
+    void speechLevelLockAppearsInPrompts() {
+        StorySession session = newSession();
+        assertFalse(service.buildTurnSystemPrompt(session, "hi").contains("SPEECH LEVEL LOCKED"));
+
+        session.setSpeechLevel("반말");
+        assertTrue(service.buildTurnSystemPrompt(session, "hi").contains("SPEECH LEVEL LOCKED FOR THIS SESSION: 반말"));
+        assertTrue(service.buildContinuationSystemPrompt(session).contains("SPEECH LEVEL LOCKED FOR THIS SESSION: 반말"));
+    }
+
+    @Test
+    @DisplayName("문장형 주관식은 단어배열로 자동 변환된다")
+    void longSubjectiveBecomesWordArrange() {
+        Map<String, Object> longSubjective = Map.of("quiz_type", "subjective",
+                "question", "'나는 보통 외식하는 편이야'를 영어로 어떻게 말해?",
+                "reply_meaning", "나는 보통 외식하는 편이야",
+                "acceptable_answers", List.of("I usually eat out"), "hint", "eat이 들어가요");
+        Map<String, Object> fixed = OpenAiStoryService.sanitizeQuiz(longSubjective);
+
+        assertEquals("word_arrange", fixed.get("quiz_type"));
+        assertEquals("I usually eat out", fixed.get("correct_answer"));
+        @SuppressWarnings("unchecked")
+        List<String> tiles = (List<String>) fixed.get("tiles");
+        assertEquals(List.of("I", "eat", "out", "usually"), tiles.stream().sorted().toList());
+        assertEquals("'나는 보통 외식하는 편이야'가 되도록 단어를 배열해 보세요.", fixed.get("question"));
+        assertNull(fixed.get("acceptable_answers"));
+
+        Map<String, Object> shortSubjective = Map.of("quiz_type", "subjective", "acceptable_answers", List.of("often"));
+        assertEquals("subjective", OpenAiStoryService.sanitizeQuiz(shortSubjective).get("quiz_type"));
+    }
+
+    @Test
+    @DisplayName("오답 1~2회째는 정답을 공개하지 않고 힌트만 주라고 지시한다")
+    void wrongAttemptsGiveHintsOnly() {
+        StorySession session = newSession();
+        session.recordQuiz(Map.of("quiz_type", "word_arrange", "question", "배열", "correct_answer", "I usually eat out",
+                "tiles", List.of("out", "I", "eat", "usually")));
+        session.incrementTurnsSinceLastQuiz();
+
+        String prompt = service.buildTurnSystemPrompt(session, "I eat usually out");
+        assertTrue(prompt.contains("DO NOT REVEAL THE CORRECT ANSWER YET"));
+        assertTrue(prompt.contains("name the ONE word that is misplaced or missing"));
+        assertFalse(prompt.contains("LAST allowed attempt"));
+
+        session.recordWrongAttempt();
+        session.recordWrongAttempt();
+        String last = service.buildTurnSystemPrompt(session, "I eat usually out");
+        assertTrue(last.contains("LAST allowed attempt"));
+        assertTrue(last.contains("gently reveal the correct expression"));
+    }
+
+    @Test
+    @DisplayName("퀴즈 재질문 금지와 재생성 지시문이 들어간다")
+    void noReaskRuleAndCorrectionDirective() {
+        String prompt = service.buildTurnSystemPrompt(newSession(), "감자튀김 좋다");
+        assertTrue(prompt.contains("NEVER RE-ASK WHAT THEY ALREADY TOLD YOU"));
+        assertTrue(prompt.contains("Would you like fries or coleslaw?"), "실측 실패 사례가 금지 예시로 들어가야 한다");
+        assertFalse(prompt.contains("[\"iced\", \"boiled\", \"hot\"]"), "베낄 수 있는 보기 예시는 없어야 한다");
+        assertFalse(prompt.contains("correct_answer: \"often\""), "영어 예시 답은 프롬프트에 없어야 한다");
+        assertFalse(prompt.contains("acceptable_answers: [\"often\"]"));
+        assertTrue(prompt.contains("THE ANSWER MUST NOT APPEAR IN YOUR QUESTION"));
+
+        StorySession pending = newSession();
+        pending.recordQuiz(Map.of("quiz_type", "subjective", "question", "'처음이야'를 뜻하는 표현은?",
+                "asked", "Have you tried the wheel before?", "acceptable_answers", List.of("first time")));
+        pending.incrementTurnsSinceLastQuiz();
+        assertTrue(service.buildTurnSystemPrompt(pending, "banana").contains("Your in-story question it answers: Have you tried the wheel before?"),
+                "채점 턴에는 AI 가 실제로 한 질문을 다시 알려줘야 한다");
+
+        String correction = service.buildCorrectionDirective("the answer repeats a tested expression", "correct");
+        assertTrue(correction.contains("REJECTED BY THE SERVER"));
+        assertTrue(correction.contains("the answer repeats a tested expression"));
+        assertTrue(correction.contains("keep \"answer_result\" as \"correct\""));
+    }
+
+    @Test
+    @DisplayName("학습자가 방금 한 말을 그대로 퀴즈로 되묻는지 판별한다")
+    void detectsReaskOfUserMessage() {
+        assertTrue(OpenAiStoryService.isReaskOfRecentUserMessage(List.of("응 주로 미드 해"),
+                Map.of("reply_meaning", "주로 미드 해", "question", "'주로 미드 해'를 뜻하는 영어 표현은?")));
+        assertTrue(OpenAiStoryService.isReaskOfRecentUserMessage(List.of("요즘은 바빠서 주말에만 해"),
+                Map.of("reply_meaning", "주로 주말에만 해", "question", "'주로 주말에만 해'를 뜻하는 표현은?")));
+        assertTrue(OpenAiStoryService.isReaskOfRecentUserMessage(List.of("이번 주에 좋아하는 가수 콘서트를 가", "바운디라는 가순데 알아?"),
+                Map.of("reply_meaning", "이번 주말에 바운디 콘서트 간다", "question", "'이번 주말에 바운디 콘서트 갈 거야'를 영어로?")),
+                "그 전 메시지와 두 단어 이상 겹치면 되묻기다");
+        assertTrue(OpenAiStoryService.isReaskOfRecentUserMessage(List.of("차가운거 가자"),
+                Map.of("reply_meaning", "차가운 걸로", "question", "'차가운 걸로'를 뜻하는 표현은?")));
+
+        assertFalse(OpenAiStoryService.isReaskOfRecentUserMessage(List.of("감자튀김 좋다"),
+                Map.of("reply_meaning", "케첩으로 할래", "question", "'케첩'을 뜻하는 영어 단어는?")),
+                "새 정보를 묻는 퀴즈는 통과한다");
+        assertFalse(OpenAiStoryService.isReaskOfRecentUserMessage(List.of("게임 얘기 할래?"),
+                Map.of("reply_meaning", "주말마다 해", "question", "'주말마다'를 뜻하는 표현은?")));
+        assertFalse(OpenAiStoryService.isReaskOfRecentUserMessage(List.of("게임 얘기 할래?"),
+                Map.of("reply_meaning", "주로 핸드폰에서 게임해", "question", "'주로 핸드폰에서 게임해'를 영어로?")),
+                "주제 단어 하나만 겹치는 후속 질문은 통과한다");
+        assertFalse(OpenAiStoryService.isReaskOfRecentUserMessage(List.of("응 주로 미드 해"),
+                Map.of("reply_meaning", "저녁이나 주말에 게임을 주로 해", "question", "'저녁이나 주말에 게임을 주로 해'를 영어로?")),
+                "'주로' 같은 정도 부사만 겹치는 건 되묻기가 아니다");
+        assertTrue(OpenAiStoryService.isReaskOfRecentUserMessage(List.of("응 주로 미드 해"),
+                Map.of("reply_meaning", "미드 라인을 선호해", "question", "'미드 라인을 선호해'를 영어로?")));
+        assertFalse(OpenAiStoryService.isReaskOfRecentUserMessage(List.of(), Map.of("reply_meaning", "주로 미드 해")));
+    }
+
+    @Test
+    @DisplayName("정적 블록은 턴이 지나도 같고, 이번 턴 블록에 이미 아는 것 목록이 들어간다")
+    void staticBlockIsStableAndTurnBlockListsKnownFacts() {
+        StorySession session = newSession();
+        session.setSpeechLevel("반말");
+        String staticBefore = service.buildStaticSystemPrompt(session);
+
+        session.addMessage("user", "치킨");
+        session.incrementTurnsSinceLastQuiz();
+        session.addAssistantMessage("Chicken it is!", "치킨 좋지!");
+        session.addMessage("user", "난 기본이 좋더라");
+        session.incrementTurnsSinceLastQuiz();
+        session.recordQuiz(Map.of("quiz_type", "multiple_choice", "question", "q", "correct_answer", "ketchup",
+                "asked", "Do you want ketchup or mayo with your fries?"));
+        session.clearPendingQuiz();
+        session.incrementTurnsSinceLastQuiz();
+        session.incrementTurnsSinceLastQuiz();
+
+        assertEquals(staticBefore, service.buildStaticSystemPrompt(session), "정적 블록은 세션 중 바뀌면 안 된다 (프롬프트 캐시)");
+        assertFalse(staticBefore.contains("THIS TURN:"));
+        assertTrue(staticBefore.contains("\"learner_told_me\""));
+        assertTrue(staticBefore.contains("\"next_beat\""));
+        assertTrue(staticBefore.contains("THE ANSWER MUST NOT APPEAR IN YOUR QUESTION"));
+
+        String turn = service.buildTurnDirective(session, "매운것도 좋아하긴 해");
+        assertTrue(turn.startsWith("THIS TURN:"));
+        assertTrue(turn.contains("* \"치킨\""));
+        assertTrue(turn.contains("* \"난 기본이 좋더라\""));
+        assertTrue(turn.contains("* \"Do you want ketchup or mayo with your fries?\""), "퀴즈로 물었던 질문이 목록에 있어야 한다");
+        assertTrue(turn.contains("Expressions already tested (never the focus or answer of a quiz again): "));
+        assertTrue(turn.contains("The learner's latest message: \"매운것도 좋아하긴 해\""));
+        assertTrue(turn.contains("REQUIRED QUIZ TYPE"), "2턴이 지났으니 퀴즈 턴이어야 한다");
+    }
+
+    @Test
+    @DisplayName("되묻기 검사는 최근 5개 발화까지 본다 (두세 턴 전 말도 두 단어 이상 겹치면 되묻기)")
+    void reaskCheckLooksBackFiveMessages() {
+        List<String> recent = List.of("응 주로 미드 해", "요즘은 바빠서 주말에만 해", "인정해", "아 배고프다");
+        assertTrue(OpenAiStoryService.isReaskOfRecentUserMessage(recent,
+                Map.of("reply_meaning", "주말에만 해", "question", "'주말에만 해'를 영어로?")),
+                "세 턴 전에 한 말('주말에만 해')을 되묻는 건 안 된다");
+        assertFalse(OpenAiStoryService.isReaskOfRecentUserMessage(recent,
+                Map.of("reply_meaning", "짭짤한 거 먹고 싶어", "question", "'짭짤한 거'를 뜻하는 표현은?")));
+    }
+
+    @Test
+    @DisplayName("AI 가 이미 했던 질문을 다시 퀴즈로 내면 판별한다")
+    void detectsRepeatedQuestion() {
+        List<Map<String, String>> history = List.of(
+                Map.of("role", "assistant", "content", "Oh, mid lane main, nice! Do you usually play games in the evening or during the weekend?"),
+                Map.of("role", "user", "content", "요즘은 바빠서 주말에만 해"),
+                Map.of("role", "assistant", "content", "I get that, weekends are perfect for gaming."));
+        assertTrue(OpenAiStoryService.isQuestionAlreadyAsked(history,
+                Map.of("asked", "Do you usually play games in the evening or during the weekend?")));
+        assertFalse(OpenAiStoryService.isQuestionAlreadyAsked(history,
+                Map.of("asked", "Do you prefer playing games alone or with friends?")));
+        assertFalse(OpenAiStoryService.isQuestionAlreadyAsked(history, Map.of("correct_answer", "alone")), "asked 가 없으면 검사하지 않는다");
     }
 
     @Test
@@ -369,7 +557,7 @@ class OpenAiStoryServiceTest {
 
         String prompt = service.buildTurnSystemPrompt(session, "Sounds good!");
 
-        assertTrue(prompt.contains("Current Quiz Count Given So Far: 5 / 10"));
+        assertTrue(prompt.contains("Quiz count so far: 5 / 10"));
         assertFalse(prompt.contains("QUIZ BUDGET EXHAUSTED"), "한도가 늘었으니 소진 지시가 나오면 안 된다");
         assertTrue(prompt.contains("REQUIRED QUIZ TYPE"), "연장 후에는 다시 퀴즈 출제가 허용되어야 한다");
         assertTrue(prompt.contains("STORY PROGRESS NOTE"),

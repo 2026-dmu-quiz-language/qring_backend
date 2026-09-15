@@ -91,7 +91,7 @@ public class OpenAiStoryService {
             }
             """, session.getCharacterName(), session.getSituationDescription(), session.getTone(),
                 session.getTargetLanguage(), session.getLevelCode(),
-                buildSpeechStyleDirective(session.getTone(), session.getSituationDescription()),
+                buildSpeechStyleDirective(session.getTone(), session.getSituationDescription(), session.getSpeechLevel()),
                 buildLanguageDirective(session.getTargetLanguage()));
     }
 
@@ -115,7 +115,13 @@ public class OpenAiStoryService {
      * 높임법은 상황이 암시하는 관계로 판단하게 한다.
      * "다정하게"가 곧 반말을 뜻하지는 않기 때문이다.
      */
-    private String buildSpeechStyleDirective(String tone, String situationDescription) {
+    private String buildSpeechStyleDirective(String tone, String situationDescription, String speechLevel) {
+        String lock = speechLevel == null || speechLevel.isBlank() ? "" : String.format("""
+            - SPEECH LEVEL LOCKED FOR THIS SESSION: %s. The opening line already set it, so every later
+              "translation" and the register of every "ai_message" MUST keep it - INCLUDING turns where you
+              correct a mistake or explain an expression. A correction is still said by the same friend in the
+              same voice, never by a teacher switching to 존댓말 (or to 반말). Never drift.
+            """, speechLevel);
         return String.format("""
             TONE & SPEECH-LEVEL RULES:
             - Requested Tone/Mood: "%s". This describes the EMOTIONAL WARMTH and ATTITUDE of your
@@ -137,7 +143,7 @@ public class OpenAiStoryService {
               relationship always wins over matching the tone word literally.
             - Keep the chosen speech level CONSISTENT for the whole session, and keep "translation" at
               the same speech level as "ai_message".
-            """, tone, situationDescription);
+            """, tone, situationDescription) + lock;
     }
 
     /**
@@ -205,7 +211,7 @@ public class OpenAiStoryService {
             }
             """, session.getCharacterName(), session.getSituationDescription(), session.getTone(),
                 session.getTargetLanguage(),
-                buildSpeechStyleDirective(session.getTone(), session.getSituationDescription()),
+                buildSpeechStyleDirective(session.getTone(), session.getSituationDescription(), session.getSpeechLevel()),
                 buildLanguageDirective(session.getTargetLanguage()),
                 session.getCharacterName());
     }
@@ -214,15 +220,50 @@ public class OpenAiStoryService {
      * 2단계: 턴 바이 턴 대화 - 사용자의 대답을 받아 OpenAI(ChatGPT)로 100% 실시간 대화 반응 및 퀴즈 생성
      */
     public Map<String, Object> generateTurnResponse(StorySession session, String userMessage) {
+        return generateTurn(session, buildStaticSystemPrompt(session), buildTurnDirective(session, userMessage));
+    }
+
+    /**
+     * 서버가 퀴즈를 거부했을 때의 재생성 호출. 거부 사유를 붙여 대사와 퀴즈를 함께 다시 받는다.
+     * 답안 판정(answerResult)은 첫 응답 기준으로 이미 확정되었으므로 그대로 유지하라고 알린다.
+     */
+    public Map<String, Object> regenerateTurnWithCorrection(StorySession session, String userMessage,
+                                                            String rejectionReason, String recordedAnswerResult) {
+        String turnDirective = buildTurnDirective(session, userMessage)
+                + buildCorrectionDirective(rejectionReason, recordedAnswerResult);
+        return generateTurn(session, buildStaticSystemPrompt(session), turnDirective);
+    }
+
+    /** 재생성 호출에 덧붙는 지시문 (단위 테스트 가능하도록 분리). */
+    String buildCorrectionDirective(String rejectionReason, String recordedAnswerResult) {
+        return String.format("""
+
+            YOUR PREVIOUS REPLY FOR THIS TURN WAS REJECTED BY THE SERVER. Reason: %s.
+            Write the WHOLE reply again from scratch: a fresh quiz that fixes that problem, and an ai_message that
+            ends with the exact question in quiz.asked. Do NOT reuse the rejected answer expression and do NOT ask the
+            same question again - change the TOPIC of the question (a different choice, the next step of the scene).
+            If the reason was parroting: ask in a way that does not contain the answer, and quiz a reply that ADDS
+            information (a concrete choice, a time, a place, a feeling) instead of echoing your own words.
+            If the reason was re-asking: what the learner said is settled - move the scene forward and ask about
+            something they have NOT told you yet.
+            The learner's answer to the previous quiz has already been recorded as "%s" - keep "answer_result" as "%s"
+            and keep your reaction consistent with it.
+            """, rejectionReason, recordedAnswerResult, recordedAnswerResult);
+    }
+
+    /**
+     * 메시지 구성: [system(정적 규칙)] + 히스토리 + [system(이번 턴 블록)].
+     * 정적 규칙과 히스토리는 턴이 지나도 접두가 그대로라 OpenAI 프롬프트 캐시에 맞고(캐시된 입력은 1/4 가격),
+     * 턴마다 바뀌는 채점·페이싱·이미 아는 것 목록은 맨 뒤에 둬서 캐시를 깨지 않는다.
+     */
+    private Map<String, Object> generateTurn(StorySession session, String staticSystemPrompt, String turnDirective) {
         validateApiKey();
 
-        String systemPrompt = buildTurnSystemPrompt(session, userMessage);
-
         try {
-            // 시스템 프롬프트를 최상단에 배치하고 대화 히스토리 전체 결합
             List<Map<String, String>> fullMessages = new ArrayList<>();
-            fullMessages.add(Map.of("role", "system", "content", systemPrompt));
+            fullMessages.add(Map.of("role", "system", "content", staticSystemPrompt));
             fullMessages.addAll(session.getChatHistory());
+            fullMessages.add(Map.of("role", "system", "content", turnDirective));
 
             return callOpenAiJson(fullMessages);
         } catch (Exception e) {
@@ -231,40 +272,19 @@ public class OpenAiStoryService {
         }
     }
 
-    /** 턴 대화용 시스템 프롬프트 조립 (네트워크 호출과 분리되어 단위 테스트 가능). */
+    /**
+     * 턴 프롬프트 전문 (정적 블록 + 이번 턴 블록). 단위 테스트와 로그용.
+     * 실제 호출은 두 블록을 나눠 보낸다: [system(정적)] + 히스토리 + [system(이번 턴)].
+     * 정적 블록이 매 턴 같아야 OpenAI 프롬프트 캐시(접두 일치)가 시스템 프롬프트와 히스토리 전체에 걸린다.
+     */
     String buildTurnSystemPrompt(StorySession session, String userMessage) {
-        int currentQuizCount = session.getQuizCount();
+        return buildStaticSystemPrompt(session) + "\n" + buildTurnDirective(session, userMessage);
+    }
+
+    /** 세션 동안 바뀌지 않는 부분: 캐릭터·상황·말투·규칙·출력 형식. (이어하기로 한도가 늘 때만 바뀐다.) */
+    String buildStaticSystemPrompt(StorySession session) {
         int quizLimit = session.getQuizLimit() > 0 ? session.getQuizLimit() : MAX_QUIZ_COUNT;
-        int turnsSinceLastQuiz = session.getTurnsSinceLastQuiz();
-        boolean quizBudgetLeft = currentQuizCount < quizLimit;
-        boolean quizPending = session.getPendingQuiz() != null;
-        boolean allowQuiz = turnsSinceLastQuiz >= 2 && quizBudgetLeft && !quizPending;
-
-        // 한도의 마지막 퀴즈를 채점하는 턴인지 — 정답이면 이 턴이 스토리의 마지막 대사가 된다
-        boolean gradingFinalQuiz = quizPending && currentQuizCount >= quizLimit;
-
-        String pacingDirective;
-        if (allowQuiz) {
-            String requiredType = pickNextQuizType(session.getUsedQuizTypes());
-            pacingDirective = String.format("PACING RULE: Sufficient dialogue turns have passed (%d turns since last quiz). You SHOULD now present a quiz by setting `is_quiz: true`. REQUIRED QUIZ TYPE FOR THIS QUIZ: \"%s\" - set `quiz_type` to exactly this value and design the quiz in that format. Your ai_message for this turn MUST end with the ONE closed in-story question that the quiz answer replies to (see THE MOST IMPORTANT QUIZ RULE).", turnsSinceLastQuiz, requiredType);
-        } else if (quizPending) {
-            pacingDirective = "A quiz is still pending. Follow section 1 (grading) for this turn. Do NOT design a new quiz; set `is_quiz: false` (the app re-shows the pending quiz by itself when needed).";
-        } else if (gradingFinalQuiz) {
-            // 마지막 퀴즈 채점 중에는 채점 지시문(정답→마무리, 오답→재시도)이 우선한다
-            pacingDirective = String.format("All %d quizzes have been presented. Follow the FINAL QUIZ rules in section 1 above: close the story only when this final answer is graded correct; if it is incorrect, do not close yet.", quizLimit);
-        } else if (!quizBudgetLeft) {
-            pacingDirective = String.format("QUIZ BUDGET EXHAUSTED: All %d quizzes for this session have already been given. YOU MUST SET `is_quiz: false`. Wrap the scenario up naturally with a warm closing (no new questions) and set `is_completed: true`.", quizLimit);
-        } else {
-            pacingDirective = String.format("STRICT PACING RULE: ONLY %d dialogue turn(s) passed since last quiz/start. YOU MUST SET `is_quiz: false` FOR THIS TURN! Do NOT output a quiz yet. Continue the natural dialogue (A-B-A-B dialogue turn): react, share, or move the scene forward. A question is optional, not required.", turnsSinceLastQuiz);
-        }
-
-        String testedSubjectsDirective = session.getTestedQuizSubjects().isEmpty()
-                ? "No quiz topics have been tested yet."
-                : "FORBIDDEN ALREADY-TESTED QUIZ TOPICS/WORDS (NEVER TEST OR FOCUS ON ANY OF THESE AGAIN): "
-                  + String.join(", ", session.getTestedQuizSubjects())
-                  + ". Pick a fresh expression the learner has not been asked for yet.";
-
-        String quizContextDirective = buildQuizGradingDirective(session, userMessage, gradingFinalQuiz);
+        String targetLanguage = session.getTargetLanguage();
 
         // 이어하기로 장면이 바뀐 세션: 프롬프트 상단의 "Situation"(오프닝 상황)이 아니라
         // 히스토리상 현재 장면을 따르게 한다. 없으면 모델이 원래 장소로 되돌아가려 한다.
@@ -280,8 +300,6 @@ public class OpenAiStoryService {
                   """
                 : "";
 
-        String targetLanguage = session.getTargetLanguage();
-
         return String.format("""
             You are AI Partner "%s", an adaptive conversation partner in a language-learning app.
             Situation: %s
@@ -291,62 +309,82 @@ public class OpenAiStoryService {
             %s
             %s
             %s
+            HOW TO READ THIS PROMPT: the rules below never change during the session. The state of THIS turn
+            (grading of the learner's last input, whether to quiz now, what is already known) comes in a separate
+            "THIS TURN" block at the very end of the conversation. Always read that block before answering.
+
             CRITICAL DYNAMIC CONVERSATION & MEMORY RULES:
-            1. PREVIOUS TURN QUIZ ANSWER HANDLING:
-               %s
+            1. PREVIOUS TURN QUIZ ANSWER HANDLING: follow the grading instructions in the THIS TURN block.
             2. CONVERSATION MEMORY & NO REPEAT QUESTIONS:
-               - Thoroughly inspect all previous messages of the conversation before responding.
+               - The THIS TURN block lists what the learner has already told you and which questions you already asked.
+                 Those are settled. NEVER ask about them again, in any wording.
                - YOU MUST REMEMBER ALL DETAILS discussed (e.g. chosen drinks, food, seating preference, plans, hobbies).
-               - NEVER repeat a question or ask about a topic you have ALREADY asked about in previous turns.
                - Keep moving the conversation FORWARD to new, natural topics within the scenario.
             3. RESPOND ACCURATELY TO USER'S ACTUAL INPUT:
-               - You MUST carefully read the user's latest message ("%s") and respond accurately in character!
+               - You MUST carefully read the user's latest message and respond accurately in character!
                - If the user specifies a preference, NEVER contradict or ignore their choice. Always accept and adapt to what the user said!
             4. NO ROBOTIC TRANSLATIONESE:
                - NEVER say robotic phrases like "Thanks for answering", "That's a good opinion", and NEVER repeat the user's input verbatim
                  or echo their answer back as praise ("Favorite song, huh? Solid choice!" is FORBIDDEN).
             5. AI CONVERSATION LEADERSHIP - TALK LIKE A PERSON, NOT AN INTERVIEWER:
-               - In non-quiz turns (`is_quiz: false`), lead the scene the way a real partner would: react to what they said,
-                 share your own opinion, feeling, or a small detail about yourself, or move the scene forward with an
-                 action or a suggestion.
+               - Let the learner's input steer you. In non-quiz turns (`is_quiz: false`), respond the way a real partner
+                 would: react to what they said, share your own opinion, feeling, or a small detail about yourself, agree
+                 or disagree, or move the scene forward with an action or a suggestion. Follow their thread when they open
+                 one; you do not have to bring it back to your own agenda.
                - Do NOT end every message with a question. A question is fine roughly every second or third turn, or
                  when the scene really needs a decision from the learner. Otherwise end with a statement or a suggestion
                  they can respond to [meaning: saying you'll go with the strawberry cake / pointing at a free window
                  seat and suggesting you grab it].
-               - Keep it fluid and non-forced: NEVER steer or force the conversation topic unnaturally just to create a quiz. Always flow naturally with the user's lead.
-            6. STRICT INTER-QUIZ PACING (A-B-A-B-A-B-Quiz):
-               - %s
-            7. Current Quiz Count Given So Far: %d / %d.
-               - Once all %d quizzes are finished, wrap up the scene with `is_completed: true`.
+               - Keep it fluid and non-forced: NEVER steer or force the conversation topic unnaturally just to create a quiz.
+            6. QUIZ PACING: the THIS TURN block tells you whether this turn is a quiz turn. Obey it exactly.
 
             THE MOST IMPORTANT QUIZ RULE - A QUIZ IS PART OF THE CONVERSATION, NOT A POP-UP TEST:
             - On a quiz turn, your ai_message ends with ONE short CLOSED in-story question, and the quiz asks for the
               exact SHORT expression the learner would use to ANSWER it. Their correct answer IS their reply.
-            - This is the flow you must produce (meanings in Korean, actual lines in %s):
-                you ask     -> [meaning: "게임 많이 하는 편이야?"]
-                quiz        -> question: "'자주'를 뜻하는, o로 시작하는 %s 단어는?"  correct_answer: "often"
-                next turn   -> you react to the MEANING of "often" as their reply [meaning: "오, 꽤 자주 하는구나!"]
+            - NEVER RE-ASK WHAT THEY ALREADY TOLD YOU. If the learner has already answered something - even in Korean -
+              it is settled: accept it, react to it, and ask about the NEXT thing. The quiz must ask for information that
+              is NOT yet in the conversation. The THIS TURN block lists what is already settled.
+              FORBIDDEN (real failures): they said "감자튀김 좋다" and you asked "Would you like fries or coleslaw?";
+              they said "차가운거 가자" and you asked "Do you prefer your drink hot or iced?"; they said "난 기본이 좋더라"
+              and you asked "Do you usually prefer the original flavor?". Each of these asks a question that was just
+              answered. Instead: "Fries it is! Want ketchup or mayo with them?" -> quiz the reply to THAT.
+            - HOW TO FIND THE NEXT THING (do this instead of grabbing their last sentence): pick the next beat of the scene
+              that has not happened yet - the next choice in the activity (size, side, seat, time, route), the next step
+              (ordering -> paying -> leaving), a related preference they have not mentioned, or a small plan. Then ask a
+              closed question about THAT.
+            - reply_meaning must be something the learner would really say NOW, consistent with everything they have
+              told you. Never make them "say" the opposite of a preference they already stated (they said they eat out;
+              do not quiz "I usually cook at home").
+            - This is the flow you must produce (example scene: a pottery class; meanings in Korean, actual lines in %s):
+                you ask     -> [meaning: "물레 돌려 본 적 있어?"]
+                quiz        -> asks for the short %s expression meaning '처음이야' (with a clue such as its first letter)
+                learner     -> answers with that expression, which is also their real reply
+                next turn   -> you react to the MEANING of their reply [meaning: "오, 처음이구나! 그럼 천천히 해 보자."]
                                and move on. No verdict, no repeating the question.
-              Another:      you ask [meaning: "따뜻한 걸로 줄까, 차가운 걸로 줄까?"] -> quiz "'차가운 걸로'를 %s로 하면?"
-                            -> "iced" -> you hand them the iced one and carry on.
+              This prompt deliberately gives NO example answers in %s. Build every quiz from the current scene;
+              never fall back to stock words from memory unless the scene truly calls for them.
             - Your question MUST therefore be a CLOSED question whose answer is predictable: yes/no, how often, this or that,
               hot or iced, what time, which of a few obvious things.
               FORBIDDEN: open questions with unknowable answers ("Which artist are you going to see?", "What's your
               favorite song?", "What do you want to talk about?") - no fixed correct answer can exist for them.
-              FORBIDDEN: quizzing a word that appears in your own question ("Do you have a favorite song?" and then
-              quizzing "favorite song"). The learner cannot answer you with your own words. The server rejects such a quiz.
-            - The quizzed expression is SHORT: one word or a 2-3 word phrase (often, green tea, every weekend,
-              a little nervous). A whole sentence is allowed ONLY in word_arrange.
+            - THE ANSWER MUST NOT APPEAR IN YOUR QUESTION. Decide correct_answer first, then write the question WITHOUT that
+              word: ask [meaning: "게임 많이 하는 편이야?"] and quiz the word for '자주' - do NOT ask "Do you play often?" and
+              then quiz "often"; do NOT ask "Do you have a favorite song?" and then quiz "favorite song". The learner must
+              PRODUCE the expression, not copy it from you. The server rejects such quizzes.
+            - The quizzed expression is SHORT: one word or a 2-3 word phrase (a frequency word, a drink, a place,
+              a feeling). A whole sentence is allowed ONLY in word_arrange.
             - Before finalising, check both: "If they answer this correctly, have they answered my question in the scene?"
               and "Is the answer absent from my own question?" If either fails, redesign the quiz.
             - The quiz must fit the CURRENT moment of the scene. Never rewind to an earlier topic just to have something to test.
             - The quiz is about what the LEARNER says next, never about your own line. Do NOT ask them to reproduce a sentence
               you just said ("I've been practicing support" / "Shall we go eat?" are YOUR lines, not their reply).
-            - The illustration expressions in this prompt (often, iced, green tea, every weekend, "주로 저녁에 연습해") are
-              ILLUSTRATIONS ONLY. Never reuse them as your quiz unless the current scene genuinely calls for that exact reply.
-            - Fill "asked" and "reply_meaning" FIRST inside the quiz object: "asked" is the exact question sentence from your
-              ai_message, "reply_meaning" is the Korean meaning of the reply the learner should give. Then design the quiz so
-              that correct_answer is exactly that reply in %s. The server checks that "asked" really is in your ai_message.
+            - The Korean illustrations in this prompt (물레, 처음이야, 주로 저녁에 연습해) are ILLUSTRATIONS ONLY. Never
+              reuse them or their scenes as your quiz unless the current scene genuinely calls for that exact reply.
+            - Fill the quiz object IN ORDER. The first fields are your own notes: "learner_told_me" (one Korean line
+              summarising what they have told you so far), "next_beat" (the NEW thing you will ask about and why it is
+              not in learner_told_me), "reply_meaning" (Korean meaning of the reply they should give). Then
+              "correct_answer" in %s, and only THEN "asked" - the question sentence, written so that it does not contain
+              correct_answer. Your ai_message must end with that exact "asked" sentence. The server checks it.
 
             MESSAGE LENGTH: ai_message is 1-2 short sentences (3 at most on a final closing turn), and contains at most ONE
             question. Never stack two questions in one message.
@@ -356,9 +394,10 @@ public class OpenAiStoryService {
                - ALL quizzes in this session MUST test ONLY "%s". NEVER mix or introduce any other foreign language.
             2. QUIZ FORMATS (every format obeys the rule above: the answer doubles as the learner's reply):
                  Format A (multiple_choice - pick your reply):
-                   - You just asked [meaning: "따뜻한 걸로 줄까, 차가운 걸로 줄까?"]
-                   - question: "'차가운 걸로'를 뜻하는 표현은?"
-                   - options: 3 short candidate replies in %s, e.g. ["iced", "boiled", "hot"] ; correct_answer: "iced"
+                   - You just asked [meaning: "컵 만들래, 접시 만들래?"]
+                   - question: "'접시로 할래'를 뜻하는 표현은?"
+                   - options: 3 short candidate replies in %s - the correct one plus two that are plausible things to
+                     say in this scene but mean something different (never nonsense fillers) ; correct_answer: the reply
                  Format B (word_arrange - build your reply, `quiz_type: "word_arrange"`):
                    - You just asked a closed question; the learner's reply is a short sentence of 4-6 words
                      (e.g. asked [meaning: "언제 연습해?"] -> reply [meaning: "주로 저녁에 연습해"]).
@@ -367,33 +406,35 @@ public class OpenAiStoryService {
                      only if THEY are proposing) ; tiles: EXACTLY the words of correct_answer, shuffled, no word
                      missing and no extra word. Never make the tiles from a sentence YOU said.
                  Format C (subjective - SHORT ANSWER ONLY, `quiz_type: "subjective"`):
-                   - You just asked [meaning: "게임 많이 하는 편이야?"]
-                   - question: "'자주'를 뜻하는, o로 시작하는 %s 단어는?"  (give a natural clue: first letter, length, or a hint)
-                   - acceptable_answers: ["often"] plus natural variants if any.
+                   - You just asked [meaning: "물레 돌려 본 적 있어?"]
+                   - question: "'처음이야'를 뜻하는, f로 시작하는 두 단어 %s 표현은?"  (give a natural clue: first letter, length, or a hint)
+                   - acceptable_answers: [that expression, plus natural variants if any].
                    - The answer is ONE word or a phrase of at most 3 words. NEVER ask the learner to type a full sentence -
                      typing long sentences is tiring on a phone.
                  Format D (fill in the blank as multiple_choice):
-                   - question: "다음을 완성해 보세요. 'I'd like it ______.' (얼음을 넣어서)" ; options: ["iced", "boiled", "grilled"]
+                   - question: "다음을 완성해 보세요. '<reply with one blank>' (<Korean meaning of the blank>)" ; options: 3 candidates
             3. QUIZ TYPE VARIETY:
-               - Use the REQUIRED QUIZ TYPE given in the pacing rule. Across a session all three types should appear.
+               - Use the REQUIRED QUIZ TYPE given in the THIS TURN block. Across a session all three types should appear.
             4. ABSOLUTE QUIZ TOPIC / WORD OBSESSION PREVENTION:
-               - %s
+               - The THIS TURN block lists expressions already tested. NEVER test or focus on any of them again.
                - Once a specific word, phrase, or concept has been tested in a previous quiz, that word or topic MUST NOT be the main focus, question subject, or correct answer in any subsequent quiz!
                - Each quiz MUST pick a fresh, completely different Target Language expression.
 
-            QUIZ OBJECT FORMAT (ONLY included if `is_quiz` is true; keep this field order):
+            QUIZ OBJECT FORMAT (ONLY included if `is_quiz` is true; keep EXACTLY this field order):
             {
-              "asked": "The exact closed question sentence that ends your ai_message",
-              "reply_meaning": "Korean meaning of the reply the learner should give to it (e.g. '꽤 자주 해', '차가운 걸로')",
-              "quiz_number": number (1 to %d),
+              "learner_told_me": "One Korean line: what the learner has told you so far in this scene",
+              "next_beat": "One Korean line: the NEW thing you will ask about now, and why it is not already known",
+              "reply_meaning": "Korean meaning of the reply the learner should give (e.g. '꽤 자주 해', '차가운 걸로')",
               "quiz_type": "multiple_choice" | "word_arrange" | "subjective",
+              "correct_answer": "Exact string of the correct option / the exact sentence for word_arrange",
+              "acceptable_answers": ["acceptable1"], // for subjective: short answers only
+              "options": ["reply 1", "reply 2", "reply 3"], // for multiple_choice, all in the Target Language
+              "tiles": ["tile1", "tile2"], // for word_arrange: exactly the words of correct_answer, shuffled
+              "asked": "The closed question sentence that ends your ai_message - must NOT contain correct_answer",
               "question": "Short Korean question asking for the expression the learner needs in order to answer your in-story question",
               "explanation": "One short Korean sentence clarifying the Target Language expression",
-              "options": ["reply 1", "reply 2", "reply 3"], // for multiple_choice, all in the Target Language
-              "correct_answer": "Exact string of the correct option / the exact sentence for word_arrange",
-              "tiles": ["tile1", "tile2"], // for word_arrange: exactly the words of correct_answer, shuffled
-              "acceptable_answers": ["acceptable1"], // for subjective: short answers only
-              "hint": "Short hint in Korean" // for subjective
+              "hint": "Short hint in Korean", // for subjective
+              "quiz_number": number (1 to %d)
             }
 
             OUTPUT FORMAT (Strict JSON - keep EXACTLY this field order; decide the quiz BEFORE you write the line):
@@ -408,18 +449,89 @@ public class OpenAiStoryService {
             }
 
             `answer_result` MEANING:
-            - "correct" / "incorrect": ONLY when the user's latest input was graded as an answer to a pending quiz (see rule 1).
+            - "correct" / "incorrect": ONLY when the user's latest input was graded as an answer to a pending quiz.
             - "none": every other turn - normal roleplay dialogue, no quiz pending, or the learner did not attempt the pending quiz.
             """, session.getCharacterName(), session.getSituationDescription(), session.getTone(), targetLanguage,
-                buildSpeechStyleDirective(session.getTone(), session.getSituationDescription()),
+                buildSpeechStyleDirective(session.getTone(), session.getSituationDescription(), session.getSpeechLevel()),
                 buildLanguageDirective(targetLanguage),
                 storyProgressDirective,
-                quizContextDirective, userMessage, pacingDirective, currentQuizCount, quizLimit, quizLimit,
                 targetLanguage, targetLanguage, targetLanguage,
                 targetLanguage,
                 targetLanguage, targetLanguage, targetLanguage,
                 targetLanguage, targetLanguage,
-                testedSubjectsDirective, quizLimit);
+                quizLimit);
+    }
+
+    /** 이번 턴에만 해당하는 블록: 채점, 페이싱, 이미 아는 것 목록, 기출 표현. 히스토리 뒤에 system 메시지로 붙는다. */
+    String buildTurnDirective(StorySession session, String userMessage) {
+        int currentQuizCount = session.getQuizCount();
+        int quizLimit = session.getQuizLimit() > 0 ? session.getQuizLimit() : MAX_QUIZ_COUNT;
+        int turnsSinceLastQuiz = session.getTurnsSinceLastQuiz();
+        boolean quizBudgetLeft = currentQuizCount < quizLimit;
+        boolean quizPending = session.getPendingQuiz() != null;
+        boolean allowQuiz = turnsSinceLastQuiz >= 2 && quizBudgetLeft && !quizPending;
+
+        // 한도의 마지막 퀴즈를 채점하는 턴인지 — 정답이면 이 턴이 스토리의 마지막 대사가 된다
+        boolean gradingFinalQuiz = quizPending && currentQuizCount >= quizLimit;
+
+        String pacingDirective;
+        if (allowQuiz) {
+            String requiredType = pickNextQuizType(session.getUsedQuizTypes());
+            pacingDirective = String.format("PACING RULE: Sufficient dialogue turns have passed (%d turns since last quiz). You SHOULD now present a quiz by setting `is_quiz: true`. REQUIRED QUIZ TYPE FOR THIS QUIZ: \"%s\" - set `quiz_type` to exactly this value and design the quiz in that format. Your ai_message for this turn MUST end with the ONE closed in-story question that the quiz answer replies to (see THE MOST IMPORTANT QUIZ RULE). "
+                    + "React to what the learner just said in one clause, then ask about something NEW that is not in the ALREADY KNOWN list below (the next choice or next step of the scene). The server rejects a quiz that re-asks anything already known.",
+                    turnsSinceLastQuiz, requiredType);
+        } else if (quizPending) {
+            pacingDirective = "A quiz is still pending. Follow section 1 (grading) for this turn. Do NOT design a new quiz; set `is_quiz: false` (the app re-shows the pending quiz by itself when needed).";
+        } else if (gradingFinalQuiz) {
+            // 마지막 퀴즈 채점 중에는 채점 지시문(정답→마무리, 오답→재시도)이 우선한다
+            pacingDirective = String.format("All %d quizzes have been presented. Follow the FINAL QUIZ rules in section 1 above: close the story only when this final answer is graded correct; if it is incorrect, do not close yet.", quizLimit);
+        } else if (!quizBudgetLeft) {
+            pacingDirective = String.format("QUIZ BUDGET EXHAUSTED: All %d quizzes for this session have already been given. YOU MUST SET `is_quiz: false`. Wrap the scenario up naturally with a warm closing (no new questions) and set `is_completed: true`.", quizLimit);
+        } else {
+            pacingDirective = String.format("STRICT PACING RULE: ONLY %d dialogue turn(s) passed since last quiz/start. YOU MUST SET `is_quiz: false` FOR THIS TURN! Do NOT output a quiz yet. Continue the natural dialogue (A-B-A-B dialogue turn): react, share, or move the scene forward. A question is optional, not required.", turnsSinceLastQuiz);
+        }
+
+        String testedSubjectsDirective = session.getTestedQuizSubjects().isEmpty()
+                ? "(none yet)"
+                : String.join(", ", session.getTestedQuizSubjects());
+
+        String quizContextDirective = buildQuizGradingDirective(session, userMessage, gradingFinalQuiz);
+
+        return String.format("""
+            THIS TURN:
+            1. PREVIOUS TURN QUIZ ANSWER HANDLING:
+               %s
+            2. QUIZ PACING FOR THIS TURN:
+               - %s
+            3. Quiz count so far: %d / %d. Once all %d quizzes are finished, wrap up the scene with `is_completed: true`.
+            4. ALREADY KNOWN - settled information. NEVER ask about any of this again, in any wording, and never quiz it:
+               - What the learner has told you (most recent last):
+            %s
+               - Questions you already asked as quizzes (never ask them again, even rephrased):
+            %s
+               - Expressions already tested (never the focus or answer of a quiz again): %s
+            5. The learner's latest message: "%s"
+            """, quizContextDirective, pacingDirective, currentQuizCount, quizLimit, quizLimit,
+                bulletList(session.recentUserMessages(ALREADY_KNOWN_MESSAGES)),
+                bulletList(session.getAskedQuestions()),
+                testedSubjectsDirective, userMessage);
+    }
+
+    /** "이미 아는 것" 목록에 넣는 최근 사용자 발화 수. 되묻기 검사(isReaskOfRecentUserMessage)도 같은 범위를 본다. */
+    static final int ALREADY_KNOWN_MESSAGES = 5;
+
+    private static String bulletList(List<String> items) {
+        if (items == null || items.isEmpty()) {
+            return "         * (nothing yet)";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String item : items) {
+            if (sb.length() > 0) {
+                sb.append('\n');
+            }
+            sb.append("         * \"").append(item.replace("\n", " ").trim()).append('"');
+        }
+        return sb.toString();
     }
 
     /**
@@ -510,6 +622,10 @@ public class OpenAiStoryService {
                  Otherwise (a wrong attempt with tries left, or no attempt), do not close the story yet.
                """;
 
+        String askedLine = pendingQuiz.get("asked") == null || String.valueOf(pendingQuiz.get("asked")).isBlank()
+                ? ""
+                : "    Your in-story question it answers: " + pendingQuiz.get("asked") + "\n";
+
         return String.format("""
                QUIZ ANSWER GRADING (a quiz IS pending):
                - The quiz presented in the immediately preceding turn was:
@@ -517,18 +633,139 @@ public class OpenAiStoryService {
                    Question: %s
                    Correct answer: %s
                    Accepted answers: %s
+               %s
                - The user's latest input ("%s") is BOTH their answer to that quiz AND their reply in the
                  story. Treat it as both.
                %s%s- Either way your reply must read as ONE natural utterance in the scene, never as
                  "verdict first, unrelated roleplay after". Do NOT design a new quiz this turn.
-               """, quizType, question, correctAnswer, acceptableAnswers, userMessage, outcomeDirective, closingDirective);
+               """, quizType, question, correctAnswer, acceptableAnswers, askedLine, userMessage, outcomeDirective, closingDirective);
+    }
+
+    /** 한국어 조사·어미를 떼어 내용어만 남기기 위한 접미 목록 (되묻기 판별용, 완벽할 필요는 없다). */
+    private static final String KOREAN_PARTICLES =
+            "(이랑|랑|하고|에서|으로|에게|한테|까지|부터|처럼|보다|이나|은|는|이|가|을|를|의|에|도|로|만|요|야|나)$";
+
+    /**
+     * 새 퀴즈가 학습자가 방금 한 말을 되묻는지 판별한다 (실측: "응 주로 미드 해" → "주로 미드 해"를 퀴즈로).
+     * reply_meaning(한국어)의 내용어를 학습자의 최근 메시지 5개(한국어)와 비교해
+     *   - 직전 메시지: 겹치는 내용어가 2개 이상이거나, 한쪽 내용어의 60%% 이상이 다른 쪽에 있으면 되묻기
+     *   - 그 전 메시지 4개: 겹치는 내용어가 2개 이상이면 되묻기 (두세 턴 전 말 되묻기도 막는다)
+     * 내용어는 공백 단위로 나눈 뒤 조사를 떼고 2글자 이상만 센다. 한쪽이 다른 쪽을 포함하면 겹치는 것으로 본다.
+     */
+    static boolean isReaskOfRecentUserMessage(List<String> recentUserMessages, Map<String, Object> quiz) {
+        if (quiz == null || recentUserMessages == null || recentUserMessages.isEmpty()) {
+            return false;
+        }
+        String meaning = asTextOrEmpty(quiz.get("reply_meaning")).isBlank()
+                ? asTextOrEmpty(quiz.get("question"))
+                : asTextOrEmpty(quiz.get("reply_meaning"));
+        List<String> quizTokens = koreanContentWords(meaning);
+        if (quizTokens.isEmpty()) {
+            return false;
+        }
+        for (int i = recentUserMessages.size() - 1, age = 0; i >= 0 && age < ALREADY_KNOWN_MESSAGES; i--, age++) {
+            List<String> userTokens = koreanContentWords(recentUserMessages.get(i));
+            if (userTokens.isEmpty()) {
+                continue;
+            }
+            long userHits = userTokens.stream().filter(u -> quizTokens.stream().anyMatch(q -> q.contains(u) || u.contains(q))).count();
+            long quizHits = quizTokens.stream().filter(q -> userTokens.stream().anyMatch(u -> q.contains(u) || u.contains(q))).count();
+            if (userHits >= 2) {
+                return true;
+            }
+            if (userHits == 0) {
+                continue;
+            }
+            double quizRatio = (double) quizHits / quizTokens.size();
+            double userRatio = (double) userHits / userTokens.size();
+            // 직전 메시지: 한쪽의 내용어가 대부분 다른 쪽에 들어 있으면 되묻기 ("응 주로 미드 해" ↔ "미드 라인을 선호해").
+            // 주제 단어 하나만 겹치는 후속 질문("게임 얘기 할래?" ↔ "주로 핸드폰에서 게임해")은 통과시킨다.
+            if (age == 0 && Math.max(userRatio, quizRatio) >= 0.6) {
+                return true;
+            }
+            // 그 전 메시지: 퀴즈 대답의 내용이 대부분 옛 발화에 이미 있으면 되묻기 (세 턴 전 "주말에만 해" → "주말에만 해")
+            if (age > 0 && quizRatio >= 0.6) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 되묻기 판별에서 무시할 흔한 맞장구·대명사·정도 부사 (겹쳐도 의미가 없다). */
+    private static final java.util.Set<String> KOREAN_STOPWORDS = java.util.Set.of(
+            "좋아", "좋다", "그래", "응응", "아니", "알아", "그거", "그건", "그럼", "나는", "너는", "우리", "진짜", "정말",
+            "근데", "그런데", "그리고", "그래서", "뭐야", "뭐해", "어때", "있어", "없어", "해요", "해줘", "할래", "할까",
+            "주로", "보통", "자주", "가끔", "요즘", "오늘", "하는", "거야", "편이야", "싶어", "같아", "하긴", "하지");
+
+    /**
+     * 새 퀴즈의 질문("asked")을 AI 가 이미 이전 턴에 한 적이 있는지 (같은 질문 반복, 실측: "저녁에 해, 주말에 해?"를 두 번).
+     * 단어 단위로 80%% 이상 겹치면 같은 질문으로 본다. 직전 AI 메시지(이번 턴 대사)는 비교 대상에서 뺀다.
+     */
+    static boolean isQuestionAlreadyAsked(List<Map<String, String>> chatHistory, Map<String, Object> quiz) {
+        if (quiz == null || chatHistory == null || quiz.get("asked") == null) {
+            return false;
+        }
+        List<String> askedWords = gradingWords(String.valueOf(quiz.get("asked")));
+        if (askedWords.size() < 3) {
+            return false;
+        }
+        for (Map<String, String> message : chatHistory) {
+            if (!"assistant".equals(message.get("role"))) {
+                continue;
+            }
+            List<String> previous = gradingWords(message.get("content"));
+            long found = askedWords.stream().filter(previous::contains).count();
+            if (found * 10 >= askedWords.size() * 8) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<String> koreanContentWords(String text) {
+        if (text == null || text.isBlank()) {
+            return List.of();
+        }
+        List<String> out = new ArrayList<>();
+        for (String raw : text.split("\\s+")) {
+            String word = raw.replaceAll("[^\\p{IsHangul}\\p{L}\\p{N}]", "");
+            if (word.chars().noneMatch(c -> Character.UnicodeScript.of(c) == Character.UnicodeScript.HANGUL)) {
+                continue;
+            }
+            String stripped = word;
+            for (int i = 0; i < 3; i++) { // "주말에만" → "주말에" → "주말"
+                String next = stripped.replaceAll(KOREAN_PARTICLES, "");
+                if (next.equals(stripped)) {
+                    break;
+                }
+                stripped = next; // 조사만 남는 말("걸로", "거야")은 2글자 미만이 되어 아래에서 버려진다
+            }
+            if (stripped.length() >= 2 && !KOREAN_STOPWORDS.contains(stripped)) {
+                out.add(stripped);
+            }
+        }
+        return out;
+    }
+
+    private static String asTextOrEmpty(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    /** 클라이언트로 내려보낼 퀴즈 사본: 모델 자기 점검용 내부 필드("asked", "reply_meaning")를 뺀다. 세션에는 원본이 남는다. */
+    static Map<String, Object> clientQuizView(Map<String, Object> quiz) {
+        if (quiz == null) {
+            return null;
+        }
+        Map<String, Object> view = new HashMap<>(quiz);
+        INTERNAL_QUIZ_FIELDS.forEach(view::remove);
+        return view;
     }
 
     private static final String CORRECT_REACTION = """
                - React to WHAT THEY SAID, not to the fact that they were right. Their answer is their real
                  reply in the scene: take its MEANING and move the story forward with it
-                 [meaning: they said "often" -> "오, 꽤 자주 하는구나! 나도 주말마다 해." ;
-                  they said "iced" -> you hand over the iced one and say what you're having].
+                 [meaning: they said it's their first time -> "오, 처음이구나! 그럼 천천히 해 보자." ;
+                  they picked the plate -> you hand them the clay for a plate and say what you'll make].
                  A light confirmation woven into the sentence is fine. DO NOT open with a bare verdict like
                  "정답이야!" / "Correct!", DO NOT echo their answer back as praise, and DO NOT ask again
                  the question they have just answered.
@@ -543,11 +780,15 @@ public class OpenAiStoryService {
                       is missing or misplaced [meaning: "거의 맞았어! 'to'가 빠졌네."]. Do NOT use the
                       "different meaning" pattern for these.
                    3. If their answer is not a usable expression here, say so plainly but kindly.
-                 Then give the correct expression: quote the "Correct answer" above EXACTLY, character for
-                 character. Never add, drop, or change a word (no extra "the", no rephrasing). Add one short
-                 explanation in the translation-friendly way (still 100%% in the Target Language in ai_message).
-                 Close by inviting them to try once more. The app shows the same quiz again by itself, so do NOT
-                 ask a different question and do NOT move the scene forward yet.
+                 DO NOT REVEAL THE CORRECT ANSWER YET - they still have tries left, and revealing it turns the retry
+                 into copying. Give exactly ONE targeted hint instead:
+                   * word_arrange: name the ONE word that is misplaced or missing and where it belongs
+                     [meaning: "'usually'는 'I' 바로 뒤에 와야 해", "'at'이 빠졌어"], never the whole sentence.
+                   * multiple_choice: say what their choice actually means and what meaning you are looking for
+                     [meaning: "그건 삶았다는 뜻이야. 얼음 넣은 걸 뭐라고 하지?"], never name the right option.
+                   * subjective: give the first letter, the number of letters, or a meaning clue - never the word itself.
+                 Then invite them to try once more. The app shows the same quiz again by itself, so do NOT ask a
+                 different question and do NOT move the scene forward yet.
                  Stay in the scene: never say "the quiz", "the app", "the exercise" - you are a person talking, not a tutor.
                  NEVER pretend they said the correct expression, NEVER quietly skip past the mistake,
                  NEVER praise a wrong answer, and NEVER call it correct.
@@ -672,8 +913,11 @@ public class OpenAiStoryService {
                 fixed.put("correct_answer", correct);
             }
             if (!correct.isEmpty()) {
+                // 정답 문장의 끝 문장부호는 타일에 들어가면 안 된다 ("sweet?" 타일 실측)
+                correct = correct.replaceAll("[.,!?]+$", "").trim();
+                fixed.put("correct_answer", correct);
                 List<String> words = java.util.Arrays.stream(correct.split("\\s+")).filter(w -> !w.isEmpty()).toList();
-                List<String> tileWords = tiles.stream().map(String::trim).sorted(String.CASE_INSENSITIVE_ORDER).toList();
+                List<String> tileWords = tiles.stream().map(t -> t.trim().replaceAll("[.,!?]+$", "")).sorted(String.CASE_INSENSITIVE_ORDER).toList();
                 List<String> answerWords = words.stream().sorted(String.CASE_INSENSITIVE_ORDER).toList();
                 if (!tileWords.equals(answerWords)) {
                     List<String> shuffled = new ArrayList<>(words);
@@ -699,14 +943,42 @@ public class OpenAiStoryService {
                     fixed.put("options", options);
                 }
             }
-        } else if ("subjective".equals(quizType) && correct.isEmpty()) {
+        } else if ("subjective".equals(quizType)) {
             List<String> acceptable = stringList(fixed.get("acceptable_answers"));
-            if (!acceptable.isEmpty()) {
-                fixed.put("correct_answer", acceptable.get(0));
+            if (correct.isEmpty() && !acceptable.isEmpty()) {
+                correct = acceptable.get(0);
+                fixed.put("correct_answer", correct);
             }
+            // 단답 규칙을 어긴 문장형 주관식(실측: "I usually eat out")은 타이핑 대신 타일 배열로 바꾼다.
+            List<String> words = java.util.Arrays.stream(correct.split("\\s+")).filter(w -> !w.isEmpty()).toList();
+            if (words.size() > MAX_SUBJECTIVE_WORDS) {
+                log.warn("[InteractiveStory] 문장형 주관식({}단어)을 단어배열로 변환: \"{}\"", words.size(), correct);
+                List<String> shuffled = new ArrayList<>(words);
+                Collections.shuffle(shuffled);
+                if (shuffled.equals(words) && shuffled.size() > 1) {
+                    Collections.reverse(shuffled);
+                }
+                fixed.put("quiz_type", "word_arrange");
+                fixed.put("tiles", shuffled);
+                fixed.remove("acceptable_answers");
+                fixed.remove("hint");
+                Object replyMeaning = fixed.get("reply_meaning");
+                if (replyMeaning != null && !String.valueOf(replyMeaning).isBlank()) {
+                    fixed.put("question", "'" + String.valueOf(replyMeaning).trim() + "'가 되도록 단어를 배열해 보세요.");
+                }
+            }
+        }
+        if (!correct.isEmpty() && PROMPT_EXAMPLE_ANSWERS.contains(normalizeForGrading(correct))) {
+            log.warn("[InteractiveStory] 프롬프트 예시 표현이 퀴즈 정답으로 나옴 (예시 베끼기 의심): \"{}\"", correct);
         }
         return fixed;
     }
+
+    /** 주관식 답의 최대 단어 수. 넘으면 단어배열로 변환한다 (팀 결정: 주관식은 단답만). */
+    static final int MAX_SUBJECTIVE_WORDS = 3;
+
+    /** 프롬프트 예시에 쓰인 표현. 정답으로 나오면 예시 베끼기 의심 로그를 남긴다. */
+    private static final java.util.Set<String> PROMPT_EXAMPLE_ANSWERS = java.util.Set.of("iced", "often", "green tea");
 
     /** 선택형 질문("A or B?")을 나타내는 접속사. 이런 질문은 답 단어가 질문에 나오는 것이 자연스럽다. */
     private static final List<String> ALTERNATIVE_MARKERS = List.of(" or ", "それとも", "还是", "還是", "または");
@@ -719,18 +991,26 @@ public class OpenAiStoryService {
      * 단어 배열(문장 전체가 정답)은 대상에서 제외한다.
      */
     static boolean isAnswerEchoedInMessage(String aiMessage, Map<String, Object> quiz) {
-        if (aiMessage == null || quiz == null || "word_arrange".equals(String.valueOf(quiz.get("quiz_type")))) {
+        if (aiMessage == null || quiz == null) {
             return false;
         }
         List<String> messageWords = gradingWords(aiMessage);
         if (messageWords.isEmpty()) {
             return false;
         }
+        boolean wordArrange = "word_arrange".equals(String.valueOf(quiz.get("quiz_type")));
         String lowered = " " + aiMessage.toLowerCase() + " ";
         boolean alternativeQuestion = ALTERNATIVE_MARKERS.stream().anyMatch(lowered::contains);
         for (String answer : acceptedAnswers(quiz)) {
             List<String> answerWords = gradingWords(answer);
             if (answerWords.isEmpty() || Collections.indexOfSubList(messageWords, answerWords) < 0) {
+                continue;
+            }
+            if (wordArrange) {
+                // 단어배열은 문장 전체가 정답이므로, 4단어 이상 문장이 대사에 그대로 있으면 "내 질문을 배열시키는" 퀴즈다 (실측)
+                if (answerWords.size() >= 4) {
+                    return true;
+                }
                 continue;
             }
             if (!alternativeQuestion || answerWords.size() > 3) {
@@ -741,7 +1021,7 @@ public class OpenAiStoryService {
     }
 
     /** 퀴즈 객체에서 모델의 자기 점검용 필드("asked", "reply_meaning")를 뽑아 클라이언트로 나가지 않게 한다. */
-    static final List<String> INTERNAL_QUIZ_FIELDS = List.of("asked", "reply_meaning");
+    static final List<String> INTERNAL_QUIZ_FIELDS = List.of("asked", "reply_meaning", "learner_told_me", "next_beat");
 
     /**
      * 모델이 퀴즈 객체에 적은 "asked"(방금 한 질문)가 실제 AI 대사 안에 있는지 (단어 단위, 70%% 이상 겹치면 통과).
@@ -766,6 +1046,33 @@ public class OpenAiStoryService {
             return List.of();
         }
         return java.util.Arrays.stream(cleaned.split("\\s+")).filter(w -> !w.isEmpty()).toList();
+    }
+
+    /**
+     * 한국어 번역문의 말투를 판별한다. 문장 끝 어미로 존댓말(요/니다/세요/죠/까요)과 반말을 세어 다수결.
+     * 문장이 없거나 판별 불가면 null.
+     */
+    static String detectSpeechLevel(String koreanText) {
+        if (koreanText == null || koreanText.isBlank()) {
+            return null;
+        }
+        int polite = 0;
+        int casual = 0;
+        for (String sentence : koreanText.split("[.!?~…]+")) {
+            String s = sentence.trim().replaceAll("[\\s\"'()\\[\\]]+$", "");
+            if (s.isEmpty() || !s.chars().anyMatch(c -> Character.UnicodeScript.of(c) == Character.UnicodeScript.HANGUL)) {
+                continue;
+            }
+            if (s.matches(".*(요|니다|세요|죠|까요|습니까|셨어요|세여)$")) {
+                polite++;
+            } else {
+                casual++;
+            }
+        }
+        if (polite == 0 && casual == 0) {
+            return null;
+        }
+        return polite > casual ? "존댓말" : "반말";
     }
 
     /** 대상 언어가 한국어가 아닌데 AI 대사에 한글이 섞였는지 (관측용 경고 로그에 쓴다). */

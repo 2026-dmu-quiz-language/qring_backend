@@ -48,7 +48,8 @@ class LiveStorySmokeTest {
 
         Map<String, Object> opening = service.generateOpening(session);
         session.addAssistantMessage(str(opening.get("ai_message")), str(opening.get("translation")));
-        System.out.println("AI> " + opening.get("ai_message") + "\n    (" + opening.get("translation") + ")");
+        session.setSpeechLevel(OpenAiStoryService.detectSpeechLevel(str(opening.get("translation"))));
+        System.out.println("AI> " + opening.get("ai_message") + "\n    (" + opening.get("translation") + ")  speechLevel=" + session.getSpeechLevel());
 
         int scriptIndex = 0;
         int attemptsOnCurrent = 0;
@@ -103,13 +104,22 @@ class LiveStorySmokeTest {
             if (session.getPendingQuiz() == null && Boolean.TRUE.equals(res.get("is_quiz")) && res.get("quiz") instanceof Map<?, ?> q) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> quiz = OpenAiStoryService.sanitizeQuiz((Map<String, Object>) q);
-                boolean echoed = OpenAiStoryService.isAnswerEchoedInMessage(aiMsg, quiz);
-                boolean linked = OpenAiStoryService.isQuizLinkedToMessage(aiMsg, quiz);
-                boolean duplicate = InteractiveStoryService.isDuplicateQuizSubject(session.getTestedQuizSubjects(), quiz);
-                System.out.println("    [QUIZ" + (echoed ? " REJECTED(echo)" : "") + (linked ? "" : " REJECTED(unlinked)")
-                        + (duplicate ? " REJECTED(duplicate)" : "") + "] " + quiz);
-                if (!echoed && linked && !duplicate) {
-                    OpenAiStoryService.INTERNAL_QUIZ_FIELDS.forEach(quiz::remove);
+                String reason = rejection(session, aiMsg, quiz);
+                if (reason != null) {
+                    // 서버와 같은 재생성 경로
+                    System.out.println("    [QUIZ REJECTED: " + reason + "] -> regenerate");
+                    String recorded = pending == null ? "none" : String.valueOf(res.get("answer_result"));
+                    Map<String, Object> redo = service.regenerateTurnWithCorrection(session, userMessage, reason, recorded);
+                    aiMsg = str(redo.get("ai_message"));
+                    System.out.println("AI(redo)> " + aiMsg + "\n    (" + redo.get("translation") + ")  is_quiz=" + redo.get("is_quiz"));
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> redoQuiz = Boolean.TRUE.equals(redo.get("is_quiz")) && redo.get("quiz") instanceof Map<?, ?> q2
+                            ? OpenAiStoryService.sanitizeQuiz((Map<String, Object>) q2) : null;
+                    quiz = redoQuiz;
+                    reason = quiz == null ? "no quiz" : rejection(session, aiMsg, quiz);
+                }
+                System.out.println("    [QUIZ" + (reason == null ? "" : " REJECTED AGAIN: " + reason) + "] " + quiz);
+                if (reason == null) {
                     if (quiz.get("correct_answer") != null) {
                         session.addTestedQuizSubject(String.valueOf(quiz.get("correct_answer")));
                     }
@@ -121,6 +131,25 @@ class LiveStorySmokeTest {
             }
             session.addAssistantMessage(aiMsg, str(res.get("translation")));
         }
+    }
+
+    private static String rejection(StorySession session, String aiMsg, Map<String, Object> quiz) {
+        if (InteractiveStoryService.isDuplicateQuizSubject(session.getTestedQuizSubjects(), quiz)) {
+            return "duplicate";
+        }
+        if (OpenAiStoryService.isAnswerEchoedInMessage(aiMsg, quiz)) {
+            return "echo";
+        }
+        if (!OpenAiStoryService.isQuizLinkedToMessage(aiMsg, quiz)) {
+            return "unlinked: asked=" + quiz.get("asked");
+        }
+        if (OpenAiStoryService.isReaskOfRecentUserMessage(session.recentUserMessages(OpenAiStoryService.ALREADY_KNOWN_MESSAGES), quiz)) {
+            return "re-ask: reply_meaning=" + quiz.get("reply_meaning");
+        }
+        if (OpenAiStoryService.isQuestionAlreadyAsked(session.getChatHistory(), quiz)) {
+            return "already asked: " + quiz.get("asked");
+        }
+        return null;
     }
 
     private static String correctAnswer(Map<String, Object> quiz) {

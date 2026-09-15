@@ -63,6 +63,12 @@ public class StorySession {
     private int wrongAttempts = 0;
 
     /**
+     * 이 세션의 한국어 말투 ("반말" / "존댓말"). 오프닝 번역에서 서버가 판별해 고정한다.
+     * 채점·설명 턴에서 모델이 선생님 말투(존댓말)로 흔들리는 사례가 실측되어 프롬프트에 고정값으로 넣는다. 미판별이면 null.
+     */
+    private String speechLevel;
+
+    /**
      * 대화·퀴즈·채점 결과가 실제로 일어난 순서 그대로 쌓이는 열람용 통합 타임라인.
      * chatHistory(프롬프트용, 40개 제한)와 달리 절대 잘리지 않으며, 보관 시 이대로 저장된다.
      * 이벤트 형태:
@@ -117,6 +123,10 @@ public class StorySession {
     @Builder.Default
     private List<String> usedQuizTypes = new ArrayList<>();
 
+    /** 퀴즈로 물었던 극중 질문들(quiz.asked). 프롬프트의 "이미 물은 것" 목록과 같은 질문 반복 검사에 쓴다. */
+    @Builder.Default
+    private List<String> askedQuestions = new ArrayList<>();
+
     /** 퀴즈 출제 이벤트를 타임라인에 기록 (직전 assistant 메시지에 붙는 퀴즈). */
     public void addQuizPresented(Map<String, Object> quiz) {
         Map<String, Object> event = new HashMap<>();
@@ -144,6 +154,20 @@ public class StorySession {
         if (quiz != null && quiz.get("quiz_type") != null) {
             usedQuizTypes.add(String.valueOf(quiz.get("quiz_type")));
         }
+        if (quiz != null && quiz.get("asked") != null && !String.valueOf(quiz.get("asked")).isBlank()) {
+            askedQuestions.add(String.valueOf(quiz.get("asked")).trim());
+        }
+    }
+
+    /** 프롬프트 히스토리에서 최근 사용자 발화 n개 (오래된 것부터). */
+    public List<String> recentUserMessages(int count) {
+        List<String> out = new ArrayList<>();
+        for (int i = chatHistory.size() - 1; i >= 0 && out.size() < count; i--) {
+            if ("user".equals(chatHistory.get(i).get("role"))) {
+                out.add(0, chatHistory.get(i).get("content"));
+            }
+        }
+        return out;
     }
 
     /** 채점이 끝나 더 이상 대기 중인 퀴즈가 없음. */

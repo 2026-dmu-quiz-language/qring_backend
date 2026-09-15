@@ -108,6 +108,10 @@ public class InteractiveStoryService {
         String aiFirstTrans = textOrDefault(openingData.get("translation"), "안녕! 만나서 반가워.");
         session.addAssistantMessage(aiFirstMsg, aiFirstTrans);
 
+        // 오프닝 번역의 말투(반말/존댓말)를 세션에 고정 — 이후 모든 턴이 같은 말투를 유지하도록 프롬프트에 박는다
+        session.setSpeechLevel(OpenAiStoryService.detectSpeechLevel(aiFirstTrans));
+        log.info("[InteractiveStory] 세션 {} 말투 고정: {}", sessionId, session.getSpeechLevel());
+
         // 4. 진행 중 세션을 DB에 기록 (서버 재시작 대비).
         //    story_session 테이블이 아직 없으면(팀원이 생성 예정) 저장이 생략되고 메모리로만 동작한다.
         persistSessionState(session);
@@ -231,23 +235,40 @@ public class InteractiveStoryService {
         // 4. 새 퀴즈 채택 여부는 서버가 최종 결정한다. 대기 퀴즈가 남아 있으면 새 퀴즈는 받지 않는다.
         //    (모델이 is_quiz=true 를 주고도 quiz 를 빠뜨리거나, 한도를 넘겨 출제하는 경우 방지)
         boolean isNewQuiz = false;
-        if (!isRetry && modelWantsQuiz) {
-            if (isDuplicateQuizSubject(session.getTestedQuizSubjects(), modelQuiz)) {
-                // 이미 다뤘던 표현을 형식만 바꿔 다시 낸 퀴즈 (프롬프트 금지 지시를 모델이 어긴 경우)
-                log.warn("[InteractiveStory] 세션 {} 중복 주제 퀴즈 차단 - 한도 미소모, 다음 턴에 재출제 유도: {}",
-                        sessionId, modelQuiz.get("question"));
-            } else if (OpenAiStoryService.isAnswerEchoedInMessage(aiMsg, modelQuiz)) {
-                // 자기 질문에 들어 있는 단어를 정답으로 낸 앵무새 퀴즈 ("favorite song?" → 'favorite song')
-                log.warn("[InteractiveStory] 세션 {} 앵무새 퀴즈 차단 (정답이 AI 질문에 그대로 포함) - 한도 미소모: {}",
-                        sessionId, modelQuiz.get("correct_answer"));
-            } else if (!OpenAiStoryService.isQuizLinkedToMessage(aiMsg, modelQuiz)) {
-                // 모델이 적은 "방금 한 질문"이 실제 대사에 없다 → 대사와 무관한 퀴즈 (예시 베끼기 등)
-                log.warn("[InteractiveStory] 세션 {} 대사와 무관한 퀴즈 차단 (asked=\"{}\" 가 ai_message 에 없음) - 한도 미소모: {}",
-                        sessionId, modelQuiz.get("asked"), modelQuiz.get("correct_answer"));
-            } else if (session.getQuizCount() < session.getQuizLimit()) {
+        if (!isRetry && modelWantsQuiz && session.getQuizCount() < session.getQuizLimit()) {
+            String rejection = rejectionReason(session, aiMsg, modelQuiz);
+            if (rejection != null) {
+                // 거부된 퀴즈를 그냥 버리면 "질문만 나가고 퀴즈는 없는" 턴이 되고, 다음 턴에 같은 질문이 반복된다 (실측).
+                // 거부 사유를 붙여 한 번 다시 받아 대사와 퀴즈를 함께 교체한다. 답안 판정은 이미 확정된 값을 유지한다.
+                log.warn("[InteractiveStory] 세션 {} 퀴즈 거부 ({}) - 사유를 붙여 1회 재생성: {}",
+                        sessionId, rejection, modelQuiz.get("correct_answer"));
+                try {
+                    Map<String, Object> redo = openAiStoryService.regenerateTurnWithCorrection(
+                            session, request.getUserMessage(), rejection, answerResult);
+                    String redoMsg = textOrDefault(redo.get("ai_message"), "");
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> redoQuiz = redo.get("quiz") instanceof Map
+                            ? OpenAiStoryService.sanitizeQuiz((Map<String, Object>) redo.get("quiz"))
+                            : null;
+                    boolean redoWantsQuiz = toBoolean(redo.get("is_quiz")) && redoQuiz != null;
+                    String redoRejection = redoWantsQuiz ? rejectionReason(session, redoMsg, redoQuiz) : "no quiz";
+                    if (!redoMsg.isEmpty()) {
+                        aiMsg = redoMsg;
+                        translation = textOrDefault(redo.get("translation"), "");
+                    }
+                    if (redoRejection == null) {
+                        modelQuiz = redoQuiz;
+                        rejection = null;
+                    } else {
+                        log.warn("[InteractiveStory] 세션 {} 재생성 퀴즈도 거부 ({}) - 이번 턴은 퀴즈 없이 진행", sessionId, redoRejection);
+                    }
+                } catch (RuntimeException e) {
+                    log.warn("[InteractiveStory] 세션 {} 퀴즈 재생성 호출 실패 - 첫 대사로 퀴즈 없이 진행: {}", sessionId, e.getMessage());
+                }
+            }
+            if (rejection == null) {
                 isNewQuiz = true;
-                quiz = modelQuiz;
-                OpenAiStoryService.INTERNAL_QUIZ_FIELDS.forEach(quiz::remove);
+                quiz = modelQuiz; // "asked" 등 내부 필드는 세션에 남긴다 (채점 턴에 "네가 한 질문"으로 다시 알려주기 위해)
             }
         }
 
@@ -294,7 +315,7 @@ public class InteractiveStoryService {
         session.addAssistantMessage(aiMsg, translation);
         if (quiz != null) {
             // 방금 그 AI 대사와 함께 출제된 퀴즈 — 타임라인에서 대사 바로 뒤에 위치
-            session.addQuizPresented(quiz);
+            session.addQuizPresented(OpenAiStoryService.clientQuizView(quiz));
         }
 
         if (isCompleted) {
@@ -310,7 +331,7 @@ public class InteractiveStoryService {
                 .aiMessage(aiMsg)
                 .translation(translation)
                 .isQuiz(isQuiz)
-                .quiz(quiz)
+                .quiz(OpenAiStoryService.clientQuizView(quiz))
                 .answerResult(answerResult)
                 .currentQuizCount(session.getQuizCount())
                 .quizLimit(session.getQuizLimit())
@@ -694,6 +715,35 @@ public class InteractiveStoryService {
             return bool;
         }
         return value instanceof String str && Boolean.parseBoolean(str.trim());
+    }
+
+    /**
+     * 모델이 낸 새 퀴즈를 서버가 받을 수 없는 이유. 받을 수 있으면 null.
+     * 재생성 호출 때 모델에게 그대로 전달되므로 영어로 쓴다.
+     */
+    private static String rejectionReason(StorySession session, String aiMsg, Map<String, Object> quiz) {
+        if (isDuplicateQuizSubject(session.getTestedQuizSubjects(), quiz)) {
+            // 이미 다뤘던 표현을 형식만 바꿔 다시 낸 퀴즈 (프롬프트 금지 지시를 모델이 어긴 경우)
+            return "the answer \"" + quiz.get("correct_answer") + "\" repeats an expression that was already tested in this session";
+        }
+        if (OpenAiStoryService.isAnswerEchoedInMessage(aiMsg, quiz)) {
+            // 자기 질문에 들어 있는 단어를 정답으로 낸 앵무새 퀴즈 ("favorite song?" → 'favorite song')
+            return "the answer \"" + quiz.get("correct_answer") + "\" appears word-for-word inside your own question, so the learner would just be parroting you";
+        }
+        if (!OpenAiStoryService.isQuizLinkedToMessage(aiMsg, quiz)) {
+            // 모델이 적은 "방금 한 질문"이 실제 대사에 없다 → 대사와 무관한 퀴즈 (예시 베끼기 등)
+            return "quiz.asked (\"" + quiz.get("asked") + "\") is not the question your ai_message actually ends with, so the quiz does not match what you said";
+        }
+        if (OpenAiStoryService.isReaskOfRecentUserMessage(session.recentUserMessages(OpenAiStoryService.ALREADY_KNOWN_MESSAGES), quiz)) {
+            // 학습자가 방금 한 말(한국어)을 그대로 퀴즈로 되묻는 경우 (실측: "응 주로 미드 해" → "주로 미드 해")
+            return "the quiz just re-asks what the learner already told you (reply_meaning \"" + quiz.get("reply_meaning")
+                    + "\" repeats their recent message), so it asks for nothing new";
+        }
+        if (OpenAiStoryService.isQuestionAlreadyAsked(session.getChatHistory(), quiz)) {
+            // 같은 질문을 이전 턴에 이미 했던 경우 (실측: "저녁에 해, 주말에 해?"를 두 번)
+            return "you already asked this same question (\"" + quiz.get("asked") + "\") earlier in this conversation";
+        }
+        return null;
     }
 
     /**
