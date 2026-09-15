@@ -43,3 +43,7 @@ out/
 
 ### Cloudflared (시크릿) ###
 cloudflared/credentials.json
+
+### JVM crash dumps ###
+hs_err_pid*.log
+replay_pid*.log
