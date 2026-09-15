@@ -50,6 +50,7 @@ public class StorySessionMapper {
         runtime.put("testedQuizSubjects", session.getTestedQuizSubjects());
         runtime.put("usedQuizTypes", session.getUsedQuizTypes());
         runtime.put("quizLimit", session.getQuizLimit());
+        runtime.put("wrongAttempts", session.getWrongAttempts());
         entity.setRuntimeState(writeJson(runtime));
 
         // 턴이 정상 처리되어 전체 상태를 저장하는 시점에는 응답 대기 중인 메시지가 없다
@@ -93,6 +94,8 @@ public class StorySessionMapper {
         // 이어하기 이전에 저장된 세션(quizLimit 미기록)은 기본 한도로 복원된다
         Object limit = runtime.get("quizLimit");
         session.setQuizLimit(limit instanceof Number n ? n.intValue() : StorySession.DEFAULT_QUIZ_LIMIT);
+        Object wrong = runtime.get("wrongAttempts");
+        session.setWrongAttempts(wrong instanceof Number n ? n.intValue() : 0);
         return session;
     }
 

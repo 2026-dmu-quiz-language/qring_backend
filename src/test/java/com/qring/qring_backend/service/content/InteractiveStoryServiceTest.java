@@ -58,6 +58,28 @@ class InteractiveStoryServiceTest {
     }
 
     @Test
+    @DisplayName("오답 횟수는 퀴즈마다 누적되고, 새 퀴즈 출제나 채점 종료 시 0으로 돌아간다")
+    void wrongAttemptsAreTrackedPerQuiz() {
+        StorySession session = StorySession.builder()
+                .sessionId("s").userId(1L).characterName("지민")
+                .situationDescription("카페").tone("다정하게")
+                .targetLanguage("English").levelCode(1).build();
+
+        session.recordQuiz(quiz("'녹차'를 뜻하는 표현은?"));
+        assertEquals(1, session.recordWrongAttempt());
+        assertEquals(2, session.recordWrongAttempt());
+        assertEquals(3, session.recordWrongAttempt());
+        assertTrue(session.getWrongAttempts() >= OpenAiStoryService.MAX_WRONG_ATTEMPTS);
+
+        session.clearPendingQuiz();
+        assertEquals(0, session.getWrongAttempts());
+
+        session.recordWrongAttempt();
+        session.recordQuiz(quiz("'홍차'를 뜻하는 표현은?"));
+        assertEquals(0, session.getWrongAttempts(), "새 퀴즈가 나오면 오답 횟수는 초기화된다");
+    }
+
+    @Test
     @DisplayName("퀴즈 5개를 모두 채점하면 서버가 세션 종료를 확정한다")
     void forcesCompletionAfterAllQuizzesGraded() {
         StorySession session = StorySession.builder()
@@ -133,22 +155,35 @@ class InteractiveStoryServiceTest {
     @Test
     @DisplayName("이미 다룬 표현을 형식만 바꿔 다시 낸 퀴즈를 중복으로 판별한다")
     void detectsDuplicateSubjectAcrossQuizFormats() {
-        List<String> tested = List.of("green tea", "relax");
+        List<String> tested = List.of("green tea", "relax", "nervous", "rest");
 
-        // 같은 표현을 주관식으로 재출제
+        // 같은 표현을 주관식으로 재출제 (대소문자·문장부호 무시)
         assertTrue(InteractiveStoryService.isDuplicateQuizSubject(tested, Map.of(
                 "quiz_type", "subjective", "question", "'녹차'를 영어로?",
-                "acceptable_answers", List.of("Green Tea"))));
+                "acceptable_answers", List.of("Green Tea!"))));
 
-        // 같은 표현이 단어 배열 정답 문장 안에 포함됨
+        // 기출 단어에 한 단어만 붙인 답안은 같은 표현의 재출제
         assertTrue(InteractiveStoryService.isDuplicateQuizSubject(tested, Map.of(
+                "quiz_type", "multiple_choice", "question", "'아이스 녹차'를 뜻하는 표현은?",
+                "correct_answer", "iced green tea")));
+        assertTrue(InteractiveStoryService.isDuplicateQuizSubject(tested, Map.of(
+                "quiz_type", "subjective", "question", "'긴장돼'를 뜻하는 표현을 입력하세요",
+                "acceptable_answers", List.of("I'm nervous"))));
+
+        // 긴 문장 안에 기출 단어 하나가 들어간 단어 배열은 문장 자체를 새로 묻는 것이므로 통과
+        assertFalse(InteractiveStoryService.isDuplicateQuizSubject(tested, Map.of(
                 "quiz_type", "word_arrange", "question", "문장을 배열하세요",
                 "correct_answer", "I want to relax at home")));
 
+        // 부분 문자열 매칭은 하지 않는다 ("rest" 기출이 "restaurant"를 막으면 안 된다)
+        assertFalse(InteractiveStoryService.isDuplicateQuizSubject(tested, Map.of(
+                "quiz_type", "multiple_choice", "question", "'식당'을 뜻하는 표현은?",
+                "correct_answer", "restaurant")));
+
         // 완전히 새로운 표현은 통과
         assertFalse(InteractiveStoryService.isDuplicateQuizSubject(tested, Map.of(
-                "quiz_type", "multiple_choice", "question", "'긴장돼'를 뜻하는 표현은?",
-                "correct_answer", "nervous")));
+                "quiz_type", "multiple_choice", "question", "'창가 자리'를 뜻하는 표현은?",
+                "correct_answer", "window seat")));
 
         // 기출 목록이 비어 있으면 항상 통과
         assertFalse(InteractiveStoryService.isDuplicateQuizSubject(List.of(), Map.of(
