@@ -51,6 +51,8 @@ public class StorySessionMapper {
         runtime.put("usedQuizTypes", session.getUsedQuizTypes());
         runtime.put("quizLimit", session.getQuizLimit());
         runtime.put("wrongAttempts", session.getWrongAttempts());
+        runtime.put("speechLevel", session.getSpeechLevel());
+        runtime.put("askedQuestions", session.getAskedQuestions());
         entity.setRuntimeState(writeJson(runtime));
 
         // 턴이 정상 처리되어 전체 상태를 저장하는 시점에는 응답 대기 중인 메시지가 없다
@@ -96,6 +98,9 @@ public class StorySessionMapper {
         session.setQuizLimit(limit instanceof Number n ? n.intValue() : StorySession.DEFAULT_QUIZ_LIMIT);
         Object wrong = runtime.get("wrongAttempts");
         session.setWrongAttempts(wrong instanceof Number n ? n.intValue() : 0);
+        Object level = runtime.get("speechLevel");
+        session.setSpeechLevel(level instanceof String s && !s.isBlank() ? s : null);
+        session.setAskedQuestions(castStringList(runtime.get("askedQuestions")));
         return session;
     }
 
