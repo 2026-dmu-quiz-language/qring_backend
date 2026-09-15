@@ -48,7 +48,7 @@ qring:
     dev-mode: ${QRING_EMAIL_DEV_MODE:false}
   openai:
     api-key: ${OPENAI_API_KEY:}
-    model: ${OPENAI_MODEL:gpt-4o-mini}
+    model: ${OPENAI_MODEL:gpt-4.1-mini}
   admin:
     # 관리자 전용 API(/admin/**) 허용 userId 목록 (쉼표 구분). 비어 있으면 아무도 접근 불가.
     user-ids: ${ADMIN_USER_IDS:}

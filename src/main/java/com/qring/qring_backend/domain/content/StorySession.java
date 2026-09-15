@@ -58,6 +58,10 @@ public class StorySession {
     /** 직전 AI 턴에 출제되어 아직 채점되지 않은 퀴즈. 없으면 null. */
     private Map<String, Object> pendingQuiz;
 
+    /** 대기 중인 퀴즈에 대한 누적 오답 횟수. 새 퀴즈가 출제되면 0으로 돌아간다. */
+    @Builder.Default
+    private int wrongAttempts = 0;
+
     /**
      * 대화·퀴즈·채점 결과가 실제로 일어난 순서 그대로 쌓이는 열람용 통합 타임라인.
      * chatHistory(프롬프트용, 40개 제한)와 달리 절대 잘리지 않으며, 보관 시 이대로 저장된다.
@@ -136,6 +140,7 @@ public class StorySession {
         this.quizCount++;
         this.turnsSinceLastQuiz = 0;
         this.pendingQuiz = quiz;
+        this.wrongAttempts = 0;
         if (quiz != null && quiz.get("quiz_type") != null) {
             usedQuizTypes.add(String.valueOf(quiz.get("quiz_type")));
         }
@@ -144,6 +149,7 @@ public class StorySession {
     /** 채점이 끝나 더 이상 대기 중인 퀴즈가 없음. */
     public void clearPendingQuiz() {
         this.pendingQuiz = null;
+        this.wrongAttempts = 0;
     }
 
     /**
@@ -152,6 +158,11 @@ public class StorySession {
      */
     public void repeatPendingQuiz() {
         this.turnsSinceLastQuiz = 0;
+    }
+
+    /** 대기 중인 퀴즈에 오답을 제출함. 누적 횟수를 돌려준다. */
+    public int recordWrongAttempt() {
+        return ++this.wrongAttempts;
     }
 
     public void incrementTurnsSinceLastQuiz() {

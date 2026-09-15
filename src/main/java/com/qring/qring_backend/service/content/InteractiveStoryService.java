@@ -166,49 +166,92 @@ public class InteractiveStoryService {
         }
 
         String aiMsg = textOrDefault(turnResponse.get("ai_message"), "Got it!");
-        String translation = textOrDefault(turnResponse.get("translation"), "알겠어!");
+        // 번역이 비면 빈 문자열로 둔다 — 엉뚱한 기본 문구("알겠어!")가 영어 대사 밑에 붙지 않게
+        String translation = textOrDefault(turnResponse.get("translation"), "");
+        if (translation.isEmpty()) {
+            log.warn("[InteractiveStory] 세션 {} 턴 응답에 translation 누락", sessionId);
+        }
         boolean isCompleted = toBoolean(turnResponse.get("is_completed"));
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> quiz = turnResponse.get("quiz") instanceof Map
-                ? (Map<String, Object>) turnResponse.get("quiz")
+        Map<String, Object> modelQuiz = turnResponse.get("quiz") instanceof Map
+                ? OpenAiStoryService.sanitizeQuiz((Map<String, Object>) turnResponse.get("quiz"))
                 : null;
+        boolean modelWantsQuiz = toBoolean(turnResponse.get("is_quiz")) && modelQuiz != null;
 
-        // 3. 퀴즈 채택 여부는 서버가 최종 결정한다.
-        //    (모델이 is_quiz=true 를 주고도 quiz 를 빠뜨리거나, 5개 상한을 넘겨 출제하는 경우 방지)
-        Map<String, Object> pendingQuiz = session.getPendingQuiz();
-        boolean modelWantsQuiz = toBoolean(turnResponse.get("is_quiz")) && quiz != null;
-
-        // 오답 후 같은 문제를 다시 낸 재시도는 새 퀴즈가 아니다. 5개 한도를 소모해서는 안 된다.
-        boolean isRetry = modelWantsQuiz && isSameQuestion(pendingQuiz, quiz);
-
-        // 이미 다뤘던 표현을 형식만 바꿔 다시 낸 퀴즈는 서버가 걸러낸다 (프롬프트 금지 지시를 모델이 어긴 경우)
-        boolean isDuplicate = modelWantsQuiz && !isRetry
-                && isDuplicateQuizSubject(session.getTestedQuizSubjects(), quiz);
-        if (isDuplicate) {
-            log.warn("[InteractiveStory] 세션 {} 중복 주제 퀴즈 차단 - 한도 미소모, 다음 턴에 재출제 유도: {}",
-                    sessionId, quiz.get("question"));
+        if (OpenAiStoryService.hasUnexpectedHangul(session.getTargetLanguage(), aiMsg)) {
+            log.warn("[InteractiveStory] 세션 {} AI 대사에 한글 혼입 (대상 언어 {}): {}",
+                    sessionId, session.getTargetLanguage(), aiMsg);
         }
 
-        boolean isNewQuiz = modelWantsQuiz && !isRetry && !isDuplicate
-                && session.getQuizCount() < session.getQuizLimit();
-
-        boolean isQuiz = isRetry || isNewQuiz;
-        if (!isQuiz) {
-            quiz = null;
-        }
-
-        // 4. 직전 퀴즈 채점: 서버가 확정할 수 있으면 서버 판정이 최종이고,
+        // 3. 직전 퀴즈 채점. 서버가 확정할 수 있으면 서버 판정이 최종이고,
         //    확정 불가한 경우(주관식 목록 밖 답안)에만 모델 판정을 쓴다.
+        //    정답이 아니면 서버가 "원본" 대기 퀴즈를 그대로 다시 내려보낸다 (모델이 재출제하든 말든, 무엇을 만들든 무시).
+        //    오답이 MAX_WRONG_ATTEMPTS 회 쌓이면 정답을 알려주고 넘어간다.
+        Map<String, Object> pendingQuiz = session.getPendingQuiz();
+        Map<String, Object> quiz = null;
+        boolean isRetry = false;
         String answerResult = "none";
         if (pendingQuiz != null) {
-            String serverVerdict = OpenAiStoryService.gradeAnswer(pendingQuiz, request.getUserMessage());
-            answerResult = serverVerdict != null
-                    ? serverVerdict
-                    : normalizeAnswerResult(turnResponse.get("answer_result"));
-            // 채점 결과를 타임라인에 기록 — 직전 user 메시지가 답안이었다는 표시 (보관 시 함께 저장됨)
-            session.addQuizResult(pendingQuiz, request.getUserMessage(), answerResult);
+            String verdict = OpenAiStoryService.classifyAnswer(pendingQuiz, request.getUserMessage());
+            if (verdict == null) {
+                verdict = normalizeModelVerdict(turnResponse.get("answer_result"));
+            }
+
+            if ("correct".equals(verdict)) {
+                answerResult = "correct";
+                session.addQuizResult(pendingQuiz, request.getUserMessage(), answerResult);
+                session.clearPendingQuiz();
+            } else if ("incorrect".equals(verdict)) {
+                answerResult = "incorrect";
+                session.addQuizResult(pendingQuiz, request.getUserMessage(), answerResult);
+                int wrongAttempts = session.recordWrongAttempt();
+                if (wrongAttempts >= OpenAiStoryService.MAX_WRONG_ATTEMPTS) {
+                    log.info("[InteractiveStory] 세션 {} 퀴즈 {}회 오답 - 정답 공개 후 진행 (누적 {}개)",
+                            sessionId, wrongAttempts, session.getQuizCount());
+                    session.clearPendingQuiz();
+                } else {
+                    quiz = pendingQuiz;
+                    isRetry = true;
+                    session.repeatPendingQuiz();
+                    log.info("[InteractiveStory] 세션 {} 오답 재시도 {}/{} - 퀴즈 한도 미소모 (누적 {}개)",
+                            sessionId, wrongAttempts, OpenAiStoryService.MAX_WRONG_ATTEMPTS, session.getQuizCount());
+                }
+            } else {
+                // 시도 자체가 아님 (딴 얘기 등): 채점 표시 없이 같은 퀴즈를 다시 보여준다
+                answerResult = "none";
+                quiz = pendingQuiz;
+                isRetry = true;
+                session.repeatPendingQuiz();
+                log.info("[InteractiveStory] 세션 {} 퀴즈 미시도 입력 - 같은 퀴즈 유지: \"{}\"",
+                        sessionId, request.getUserMessage());
+            }
         }
+
+        // 4. 새 퀴즈 채택 여부는 서버가 최종 결정한다. 대기 퀴즈가 남아 있으면 새 퀴즈는 받지 않는다.
+        //    (모델이 is_quiz=true 를 주고도 quiz 를 빠뜨리거나, 한도를 넘겨 출제하는 경우 방지)
+        boolean isNewQuiz = false;
+        if (!isRetry && modelWantsQuiz) {
+            if (isDuplicateQuizSubject(session.getTestedQuizSubjects(), modelQuiz)) {
+                // 이미 다뤘던 표현을 형식만 바꿔 다시 낸 퀴즈 (프롬프트 금지 지시를 모델이 어긴 경우)
+                log.warn("[InteractiveStory] 세션 {} 중복 주제 퀴즈 차단 - 한도 미소모, 다음 턴에 재출제 유도: {}",
+                        sessionId, modelQuiz.get("question"));
+            } else if (OpenAiStoryService.isAnswerEchoedInMessage(aiMsg, modelQuiz)) {
+                // 자기 질문에 들어 있는 단어를 정답으로 낸 앵무새 퀴즈 ("favorite song?" → 'favorite song')
+                log.warn("[InteractiveStory] 세션 {} 앵무새 퀴즈 차단 (정답이 AI 질문에 그대로 포함) - 한도 미소모: {}",
+                        sessionId, modelQuiz.get("correct_answer"));
+            } else if (!OpenAiStoryService.isQuizLinkedToMessage(aiMsg, modelQuiz)) {
+                // 모델이 적은 "방금 한 질문"이 실제 대사에 없다 → 대사와 무관한 퀴즈 (예시 베끼기 등)
+                log.warn("[InteractiveStory] 세션 {} 대사와 무관한 퀴즈 차단 (asked=\"{}\" 가 ai_message 에 없음) - 한도 미소모: {}",
+                        sessionId, modelQuiz.get("asked"), modelQuiz.get("correct_answer"));
+            } else if (session.getQuizCount() < session.getQuizLimit()) {
+                isNewQuiz = true;
+                quiz = modelQuiz;
+                OpenAiStoryService.INTERNAL_QUIZ_FIELDS.forEach(quiz::remove);
+            }
+        }
+
+        boolean isQuiz = isRetry || isNewQuiz;
 
         if (isNewQuiz) {
             // 기출 금지 목록에는 정답과 허용 답안 전부를 담는다
@@ -232,24 +275,20 @@ public class InteractiveStoryService {
                 session.addTestedQuizSubject(textOrDefault(quiz.get("question"), null));
             }
             session.recordQuiz(quiz);
-        } else if (isRetry) {
-            session.repeatPendingQuiz();
-            log.info("[InteractiveStory] 세션 {} 오답 재시도 - 퀴즈 한도 미소모 (누적 {}개)",
-                    sessionId, session.getQuizCount());
-        } else {
-            session.clearPendingQuiz();
         }
 
-        // 5. 종료 확정은 서버가 한다.
-        //    재시도로 퀴즈를 다시 낸 턴에는 종료 불가 (마지막 퀴즈를 틀렸는데 모델이 마무리해버리는 경우 방지)
-        if (isRetry) {
-            isCompleted = false;
+        // 5. 종료 확정은 서버가 한다: 퀴즈 한도를 모두 채우고 마지막 채점까지 끝났을 때만 완결이다.
+        //    - 퀴즈가 남았거나 대기 중인데 모델이 is_completed=true 를 보내는 사례(4개째에 종료 선언) 실측 → 무시
+        //    - 모두 끝났는데 모델이 마무리하지 않는 사례 실측 → 강제 종료
+        boolean allQuizzesDone = shouldForceComplete(session);
+        if (isCompleted && !allQuizzesDone) {
+            log.info("[InteractiveStory] 세션 {} 모델의 조기 완결 무시 (퀴즈 {}/{}, 대기 퀴즈 {})",
+                    sessionId, session.getQuizCount(), session.getQuizLimit(), session.getPendingQuiz() != null);
         }
-        //    퀴즈를 모두 소진하고 마지막 채점까지 끝나면 강제 종료 (모델이 지시를 무시하는 사례 실측 확인)
-        if (!isCompleted && shouldForceComplete(session)) {
-            isCompleted = true;
+        if (!isCompleted && allQuizzesDone) {
             log.info("[InteractiveStory] 세션 {} 서버 강제 완결 (퀴즈 {}개 채점 완료)", sessionId, session.getQuizCount());
         }
+        isCompleted = allQuizzesDone;
 
         // 6. AI 대사 기록 (타임라인에는 번역까지, 프롬프트 히스토리에는 원문만)
         session.addAssistantMessage(aiMsg, translation);
@@ -322,6 +361,13 @@ public class InteractiveStoryService {
 
         String aiMsg = textOrDefault(continuation.get("ai_message"), "Wait, before we go - one more thing!");
         String translation = textOrDefault(continuation.get("translation"), "잠깐, 가기 전에 하나만 더!");
+        if (continuation.get("translation") == null || String.valueOf(continuation.get("translation")).isBlank()) {
+            log.warn("[InteractiveStory] 세션 {} 이어하기 응답에 translation 누락 - 기본 문구로 대체", sessionId);
+        }
+        if (OpenAiStoryService.hasUnexpectedHangul(session.getTargetLanguage(), aiMsg)) {
+            log.warn("[InteractiveStory] 세션 {} 이어하기 대사에 한글 혼입 (대상 언어 {}): {}",
+                    sessionId, session.getTargetLanguage(), aiMsg);
+        }
         session.addAssistantMessage(aiMsg, translation);
 
         persistSessionState(session);
@@ -558,38 +604,46 @@ public class InteractiveStoryService {
 
     /**
      * 새 퀴즈가 이미 다뤘던 표현을 다시 묻는지 판별 (형식만 바꾼 재출제 차단).
-     * 새 퀴즈의 정답/허용 답안이 기출 표현과 일치하거나, 기출 표현(4자 이상)을 그대로 포함하면 중복이다.
+     * 새 퀴즈의 정답/허용 답안이 기출 표현과 단어 단위로 완전히 일치하거나,
+     * 기출 표현을 단어 경계에서 통째로 포함하면서 그 표현이 답안의 거의 전부인 경우
+     * (답안 단어 수가 기출 단어 수 + 1 이하, 예: "iced" 기출 → "iced latte") 중복이다.
+     * 긴 문장 답안이 기출 단어 하나를 포함하는 경우("relax" 기출 → "I want to relax at home")는
+     * 문장 자체를 새로 묻는 것이므로 중복으로 보지 않는다. 부분 문자열 매칭("rest" → "restaurant")도 하지 않는다.
      */
     static boolean isDuplicateQuizSubject(List<String> testedSubjects, Map<String, Object> quiz) {
         if (testedSubjects.isEmpty() || quiz == null) {
             return false;
         }
 
-        List<String> candidates = new java.util.ArrayList<>();
+        List<List<String>> candidates = new java.util.ArrayList<>();
         String correctAnswer = textOrDefault(quiz.get("correct_answer"), null);
         if (correctAnswer != null) {
-            candidates.add(normalizeSubject(correctAnswer));
+            candidates.add(subjectWords(correctAnswer));
         }
         if (quiz.get("acceptable_answers") instanceof List<?> l) {
             for (Object o : l) {
                 String acceptable = textOrDefault(o, null);
                 if (acceptable != null) {
-                    candidates.add(normalizeSubject(acceptable));
+                    candidates.add(subjectWords(acceptable));
                 }
             }
         }
+        candidates.removeIf(List::isEmpty);
         if (candidates.isEmpty()) {
             return false;
         }
 
         for (String tested : testedSubjects) {
-            String normalizedTested = normalizeSubject(tested);
-            if (normalizedTested.isEmpty()) {
+            List<String> testedWords = subjectWords(tested);
+            if (testedWords.isEmpty()) {
                 continue;
             }
-            for (String candidate : candidates) {
-                if (candidate.equals(normalizedTested)
-                        || (normalizedTested.length() >= 4 && candidate.contains(normalizedTested))) {
+            for (List<String> candidate : candidates) {
+                if (candidate.equals(testedWords)) {
+                    return true;
+                }
+                if (candidate.size() <= testedWords.size() + 1
+                        && java.util.Collections.indexOfSubList(candidate, testedWords) >= 0) {
                     return true;
                 }
             }
@@ -597,8 +651,18 @@ public class InteractiveStoryService {
         return false;
     }
 
-    private static String normalizeSubject(String value) {
-        return value == null ? "" : value.trim().toLowerCase().replaceAll("\\s+", " ");
+    /** 소문자화 후 문장부호를 떼고 공백 기준으로 단어를 나눈다 (단어 경계 비교용). */
+    private static List<String> subjectWords(String value) {
+        if (value == null) {
+            return List.of();
+        }
+        String cleaned = value.toLowerCase().replaceAll("[^\\p{L}\\p{N}\\s']", " ").trim();
+        if (cleaned.isEmpty()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(cleaned.split("\\s+"))
+                .filter(w -> !w.isEmpty())
+                .toList();
     }
 
     /** 직전에 출제된 퀴즈와 같은 문제인지 (오답 재시도 판별). */
@@ -632,9 +696,13 @@ public class InteractiveStoryService {
         return value instanceof String str && Boolean.parseBoolean(str.trim());
     }
 
-    private static String normalizeAnswerResult(Object value) {
+    /**
+     * 서버가 확정하지 못한 주관식 답안에 대한 모델 판정을 정규화한다.
+     * "correct"/"incorrect" 외의 값(주로 "none")은 "시도 아님"으로 본다.
+     */
+    private static String normalizeModelVerdict(Object value) {
         String result = textOrDefault(value, "none").toLowerCase();
-        return ("correct".equals(result) || "incorrect".equals(result)) ? result : "none";
+        return ("correct".equals(result) || "incorrect".equals(result)) ? result : OpenAiStoryService.NOT_ATTEMPT;
     }
 
     /** TTL 을 넘긴 미보관 세션을 메모리와 DB 양쪽에서 제거한다. */
