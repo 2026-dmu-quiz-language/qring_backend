@@ -37,6 +37,9 @@ public class StoryArchiveDetailResponse {
     @JsonProperty("archived_at")
     private LocalDateTime archivedAt;
 
+    @JsonProperty("model_tier")
+    private String modelTier;
+
     @Schema(description = """
             대화·퀴즈·채점이 실제 진행 순서대로 섞인 통합 기록. type 으로 구분해 순서대로 렌더링하면 된다.
             - {type: "message", role: "user"|"assistant", content, translation(assistant만)}

@@ -47,6 +47,10 @@ public class StoryResumeResponse {
     @JsonProperty("is_completed")
     private Boolean isCompleted;
 
+    @Schema(description = "세션의 모델 티어: standard / premium", example = "standard")
+    @JsonProperty("model_tier")
+    private String modelTier;
+
     @Schema(description = "지금까지의 대화·퀴즈·채점 통합 기록 — /library/chat 의 timeline 과 같은 형식. 순서대로 렌더링하면 화면이 복원된다")
     private List<Map<String, Object>> timeline;
 }

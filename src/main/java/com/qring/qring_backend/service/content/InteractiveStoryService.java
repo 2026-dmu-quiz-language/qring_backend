@@ -35,14 +35,10 @@ public class InteractiveStoryService {
     private final StoryPointManager pointManager;
     private final StorySessionRepository storySessionRepository;
     private final StorySessionMapper sessionMapper;
-
-    public static final int STORY_GENERATION_COST = 30;
+    private final StoryModelTier modelTiers;
 
     /** 완결된 스토리를 영구 보관하는 추가 비용. 팀에서 금액 확정 전까지 0. */
     public static final int STORY_ARCHIVE_COST = 0;
-
-    /** 이어하기(연장) 1회 비용. */
-    public static final int STORY_EXTEND_COST = 100;
 
     /** 이어하기 1회당 추가되는 퀴즈 개수. */
     public static final int EXTEND_QUIZ_COUNT = 5;
@@ -78,10 +74,14 @@ public class InteractiveStoryService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. (ID: " + userId + ")"));
         int levelCode = user.getLevelCode() != null ? user.getLevelCode() : 1;
 
+        // 0. 모델 티어 결정 (잘못된 값은 400). 이어하기에서도 바뀌지 않는다.
+        String modelTier = StoryModelTier.normalize(request.getModelTier());
+        int startCost = modelTiers.startCostFor(modelTier);
+
         // 1. 포인트 선 차감 (짧은 트랜잭션, 원자적 — 잔액 부족 시 여기서 거절)
-        int remainingPoints = pointManager.deduct(userId, STORY_GENERATION_COST);
-        log.info("[InteractiveStory] 사용자(ID: {}) 스토리 세션 시작 포인트 차감 완료: -{} pt (잔액 {} pt)",
-                userId, STORY_GENERATION_COST, remainingPoints);
+        int remainingPoints = pointManager.deduct(userId, startCost);
+        log.info("[InteractiveStory] 사용자(ID: {}) 스토리 세션 시작 포인트 차감 완료: -{} pt (잔액 {} pt, 티어 {}, 모델 {})",
+                userId, startCost, remainingPoints, modelTier, modelTiers.modelFor(modelTier));
 
         // 2. 세션 객체 생성
         String sessionId = "sess-" + UUID.randomUUID();
@@ -93,14 +93,16 @@ public class InteractiveStoryService {
                 .tone(request.getTone())
                 .targetLanguage(request.getTargetLanguage() != null ? request.getTargetLanguage() : "English")
                 .levelCode(levelCode)
+                .modelTier(modelTier)
                 .build();
 
         // 3. OpenAI 첫 오프닝 생성 — 트랜잭션 밖. 실패 시 환불 후 원래 오류 전달
+        //    (프리미엄 호출이 실패해도 기본 모델로 조용히 내려가지 않는다 — 돈을 더 냈는데 다른 모델을 쓰는 상황 방지)
         Map<String, Object> openingData;
         try {
             openingData = openAiStoryService.generateOpening(session);
         } catch (RuntimeException e) {
-            refundSafely(userId, STORY_GENERATION_COST, sessionId, "오프닝 생성 실패");
+            refundSafely(userId, startCost, sessionId, "오프닝 생성 실패");
             throw e;
         }
 
@@ -125,6 +127,8 @@ public class InteractiveStoryService {
                 .aiFirstMessage(aiFirstMsg)
                 .aiFirstTranslation(aiFirstTrans)
                 .userRemainingPoints(remainingPoints)
+                .modelTier(modelTier)
+                .chargedPoints(startCost)
                 .build();
     }
 
@@ -184,8 +188,9 @@ public class InteractiveStoryService {
         boolean modelWantsQuiz = toBoolean(turnResponse.get("is_quiz")) && modelQuiz != null;
 
         if (OpenAiStoryService.hasUnexpectedHangul(session.getTargetLanguage(), aiMsg)) {
-            log.warn("[InteractiveStory] 세션 {} AI 대사에 한글 혼입 (대상 언어 {}): {}",
+            log.warn("[InteractiveStory] 세션 {} AI 대사에 한글 혼입 (대상 언어 {}) - 한글 문장 제거: {}",
                     sessionId, session.getTargetLanguage(), aiMsg);
+            aiMsg = OpenAiStoryService.stripHangulSentences(session.getTargetLanguage(), aiMsg);
         }
 
         // 3. 직전 퀴즈 채점. 서버가 확정할 수 있으면 서버 판정이 최종이고,
@@ -213,6 +218,10 @@ public class InteractiveStoryService {
                 if (wrongAttempts >= OpenAiStoryService.MAX_WRONG_ATTEMPTS) {
                     log.info("[InteractiveStory] 세션 {} 퀴즈 {}회 오답 - 정답 공개 후 진행 (누적 {}개)",
                             sessionId, wrongAttempts, session.getQuizCount());
+                    String revealAnswer = textOrDefault(pendingQuiz.get("correct_answer"), "");
+                    if (!revealAnswer.isEmpty() && !aiMsg.toLowerCase().contains(revealAnswer.toLowerCase())) {
+                        log.warn("[InteractiveStory] 세션 {} 3회 오답 공개 턴인데 대사에 정답(\"{}\")이 없음", sessionId, revealAnswer);
+                    }
                     session.clearPendingQuiz();
                 } else {
                     quiz = pendingQuiz;
@@ -235,7 +244,13 @@ public class InteractiveStoryService {
         // 4. 새 퀴즈 채택 여부는 서버가 최종 결정한다. 대기 퀴즈가 남아 있으면 새 퀴즈는 받지 않는다.
         //    (모델이 is_quiz=true 를 주고도 quiz 를 빠뜨리거나, 한도를 넘겨 출제하는 경우 방지)
         boolean isNewQuiz = false;
-        if (!isRetry && modelWantsQuiz && session.getQuizCount() < session.getQuizLimit()) {
+        // 페이싱은 서버가 강제한다: 마지막 퀴즈(또는 시작) 후 2턴이 지나야 새 퀴즈를 받는다.
+        // 3회 오답 공개 턴이나 정답 직후 턴에 모델이 새 퀴즈를 끼워 넣던 실측 사례 방지.
+        boolean pacingAllowsQuiz = session.getTurnsSinceLastQuiz() >= 2;
+        if (!isRetry && modelWantsQuiz && !pacingAllowsQuiz) {
+            log.info("[InteractiveStory] 세션 {} 페이싱 미달({}턴)인데 모델이 퀴즈를 냄 - 무시", sessionId, session.getTurnsSinceLastQuiz());
+        }
+        if (!isRetry && modelWantsQuiz && pacingAllowsQuiz && session.getQuizCount() < session.getQuizLimit()) {
             String rejection = rejectionReason(session, aiMsg, modelQuiz);
             if (rejection != null) {
                 // 거부된 퀴즈를 그냥 버리면 "질문만 나가고 퀴즈는 없는" 턴이 되고, 다음 턴에 같은 질문이 반복된다 (실측).
@@ -268,7 +283,9 @@ public class InteractiveStoryService {
             }
             if (rejection == null) {
                 isNewQuiz = true;
-                quiz = modelQuiz; // "asked" 등 내부 필드는 세션에 남긴다 (채점 턴에 "네가 한 질문"으로 다시 알려주기 위해)
+                quiz = OpenAiStoryService.ensureQuestionQuotesMeaning(modelQuiz); // "asked" 등 내부 필드는 세션에 남긴다
+                quiz.put("quiz_number", session.getQuizCount() + 1); // 번호는 서버가 매긴다 (모델 번호는 #1, null 등으로 엉킴)
+                aiMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(aiMsg); // 같은 질문 두 번 붙는 사례 정리
             }
         }
 
@@ -364,21 +381,22 @@ public class InteractiveStoryService {
                     MAX_EXTEND_COUNT, MAX_QUIZ_LIMIT));
         }
 
-        // 1. 연장 비용 선 차감 (짧은 트랜잭션, 원자적 — 잔액 부족 시 여기서 거절)
-        int remainingPoints = pointManager.deduct(userId, STORY_EXTEND_COST);
+        // 1. 연장 비용 선 차감 (짧은 트랜잭션, 원자적 — 잔액 부족 시 여기서 거절). 티어는 시작 때 것을 따른다 (업그레이드 없음)
+        int extendCost = modelTiers.extendCostFor(session.getModelTier());
+        int remainingPoints = pointManager.deduct(userId, extendCost);
 
         // 2. 마무리된 장면을 다시 여는 연결 대사 생성 — 트랜잭션 밖. 실패 시 환불, 세션은 완결 상태 그대로
         Map<String, Object> continuation;
         try {
             continuation = openAiStoryService.generateContinuation(session);
         } catch (RuntimeException e) {
-            refundSafely(userId, STORY_EXTEND_COST, sessionId, "이어하기 대사 생성 실패");
+            refundSafely(userId, extendCost, sessionId, "이어하기 대사 생성 실패");
             throw e;
         }
 
         // 3. 한도 확장 + 완결 해제 + 연결 대사 기록
         session.extendQuizLimit(EXTEND_QUIZ_COUNT);
-        session.addExtensionMarker();
+        session.addExtensionMarker(extendCost);
 
         String aiMsg = textOrDefault(continuation.get("ai_message"), "Wait, before we go - one more thing!");
         String translation = textOrDefault(continuation.get("translation"), "잠깐, 가기 전에 하나만 더!");
@@ -403,6 +421,8 @@ public class InteractiveStoryService {
                 .quizLimit(session.getQuizLimit())
                 .canExtend(canExtend(session))
                 .userRemainingPoints(remainingPoints)
+                .modelTier(session.getModelTier())
+                .chargedPoints(extendCost)
                 .build();
     }
 
@@ -468,6 +488,7 @@ public class InteractiveStoryService {
                         .situation(e.getSituationDescription())
                         .quizCount(e.getQuizCount())
                         .archivedAt(e.getArchivedAt())
+                        .modelTier(sessionMapper.readModelTier(e))
                         .build())
                 .toList();
         return StoryArchiveListResponse.builder().archives(summaries).build();
@@ -490,6 +511,7 @@ public class InteractiveStoryService {
                 .targetLanguage(entity.getTargetLanguage())
                 .quizCount(entity.getQuizCount())
                 .archivedAt(entity.getArchivedAt())
+                .modelTier(sessionMapper.readModelTier(entity))
                 .timeline(sessionMapper.parseTimeline(entity.getTimeline()))
                 .build();
     }
@@ -530,6 +552,7 @@ public class InteractiveStoryService {
                             .quizLimit(session.getQuizLimit())
                             .canExtend(canExtend(session))
                             .isCompleted(session.isCompleted())
+                            .modelTier(session.getModelTier())
                             .timeline(session.getTimeline())
                             .build();
                 })
@@ -738,6 +761,21 @@ public class InteractiveStoryService {
             // 학습자가 방금 한 말(한국어)을 그대로 퀴즈로 되묻는 경우 (실측: "응 주로 미드 해" → "주로 미드 해")
             return "the quiz just re-asks what the learner already told you (reply_meaning \"" + quiz.get("reply_meaning")
                     + "\" repeats their recent message), so it asks for nothing new";
+        }
+        if (OpenAiStoryService.isDescriptiveReplyMeaning(quiz)) {
+            // reply_meaning 이 대사가 아니라 설명이면 퀴즈 질문이 뜻을 잃는다
+            return "reply_meaning (\"" + quiz.get("reply_meaning") + "\") is a description, not the learner's spoken line. "
+                    + "Write the exact Korean sentence they would say (e.g. '그래, 보스 명령이야'), then quiz that";
+        }
+        if (OpenAiStoryService.isQuestionAboutAiItself(quiz)) {
+            // 학습자가 AI 자신의 행동·감정을 대신 말하게 하는 퀴즈 ("내 차례에 나는 뭘 할까?" → 'I'll pull the trigger')
+            return "your question (\"" + quiz.get("asked") + "\") is about YOUR OWN action or feeling, so the learner would be narrating you. "
+                    + "Ask what THEY will do, choose, feel, or want instead";
+        }
+        if (OpenAiStoryService.isMetaLanguageQuestion(aiMsg, quiz)) {
+            // 캐릭터가 선생님이 되어 "뭐라고 말하겠어?"라고 묻는 사례
+            return "your question (\"" + quiz.get("asked") + "\") is a meta question about language (asking what they would say / how to say it). "
+                    + "Your character does not know there is a quiz - ask a real in-story question instead";
         }
         if (OpenAiStoryService.isQuestionAlreadyAsked(session.getChatHistory(), quiz)) {
             // 같은 질문을 이전 턴에 이미 했던 경우 (실측: "저녁에 해, 주말에 해?"를 두 번)

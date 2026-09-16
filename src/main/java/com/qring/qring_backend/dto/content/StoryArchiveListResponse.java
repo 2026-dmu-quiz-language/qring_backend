@@ -39,5 +39,8 @@ public class StoryArchiveListResponse {
 
         @JsonProperty("archived_at")
         private LocalDateTime archivedAt;
+
+        @JsonProperty("model_tier")
+        private String modelTier;
     }
 }

@@ -36,8 +36,20 @@ public class OpenAiStoryService {
     @Value("${qring.openai.api-key:}")
     private String apiKey;
 
-    @Value("${qring.openai.model:gpt-4.1-mini}")
-    private String modelName;
+    /** 티어별 모델·비용 설정. Spring 이 주입하고, 테스트에서 new 로 만들면 기본값을 가진 인스턴스를 쓴다. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private StoryModelTier tiers = new StoryModelTier();
+
+    /** 세션의 티어에 해당하는 모델 ID. */
+    String resolveModel(StorySession session) {
+        return tiers.modelFor(session != null ? session.getModelTier() : StoryModelTier.STANDARD);
+    }
+
+    /** 스모크 테스트용: 모든 티어를 한 모델로 강제. */
+    void overrideModelForTests(String model) {
+        this.tiers = new StoryModelTier();
+        this.tiers.overrideModels(model);
+    }
 
     private final RestTemplate restTemplate = createRestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -59,7 +71,7 @@ public class OpenAiStoryService {
         String systemPrompt = buildOpeningSystemPrompt(session);
 
         try {
-            return callOpenAiJson(List.of(
+            return callOpenAiJson(resolveModel(session), List.of(
                     Map.of("role", "system", "content", systemPrompt),
                     Map.of("role", "user", "content", "Start the conversation now.")
             ));
@@ -164,7 +176,7 @@ public class OpenAiStoryService {
                     "(The learner tapped 'continue the story' - they don't want it to end yet. "
                     + "Move the story on to its next scene now as instructed, without repeating your goodbye.)"));
 
-            return callOpenAiJson(fullMessages);
+            return callOpenAiJson(resolveModel(session), fullMessages);
         } catch (Exception e) {
             log.error("[OpenAI API 호출 오류] 이어하기 대사 생성 실패: {}", e.getMessage(), e);
             throw new RuntimeException("OpenAI API 호출 실패: " + e.getMessage(), e);
@@ -265,7 +277,7 @@ public class OpenAiStoryService {
             fullMessages.addAll(session.getChatHistory());
             fullMessages.add(Map.of("role", "system", "content", turnDirective));
 
-            return callOpenAiJson(fullMessages);
+            return callOpenAiJson(resolveModel(session), fullMessages);
         } catch (Exception e) {
             log.error("[OpenAI API 호출 오류] 턴 대화 생성 실패: {}", e.getMessage(), e);
             throw new RuntimeException("OpenAI API 호출 실패: " + e.getMessage(), e);
@@ -313,6 +325,24 @@ public class OpenAiStoryService {
             (grading of the learner's last input, whether to quiz now, what is already known) comes in a separate
             "THIS TURN" block at the very end of the conversation. Always read that block before answering.
 
+            STAY IN THE DRAMA - THIS COMES BEFORE EVERY QUIZ RULE:
+            - You are a character inside a story with real stakes, not a language tutor with a costume. Read the
+              Situation: if it contains conflict, danger, secrets, betrayal, or strong feelings, play it like a scene from
+              a drama - with tension, pride, fear, anger, hurt. If it is everyday life, keep it light and warm.
+            - Whatever the learner just said or did is the most important thing in the scene. If it is big (a threat,
+              a confession, violence, a revelation, a name from your past, an accusation), your WHOLE message is about
+              that: how it lands on you, what you feel, what it changes. A threat to your life is not "bold move";
+              being stabbed is not "whatever"; hearing an old lover's name is not something to skip past.
+              FORBIDDEN pivots after a big moment: "Anyway", "Whatever", "Bold move", "So,", "By the way" - do not
+              brush it off and change the subject.
+            - Follow the learner's thread. When they bring up a person, an event, or a plan, the next beats are about
+              THAT. Never drag the scene back to your own agenda or to small logistics (visiting hours, schedules,
+              snacks) while something dramatic is on the table.
+            - Consequences persist. If you were threatened, you stay wary. If you were hurt, you are hurt for the rest
+              of the scene. If something was revealed, you know it from now on.
+            - Your character has wants and secrets of their own. Use them: push back, bargain, plead, accuse, confess -
+              whatever this person would really do next.
+
             CRITICAL DYNAMIC CONVERSATION & MEMORY RULES:
             1. PREVIOUS TURN QUIZ ANSWER HANDLING: follow the grading instructions in the THIS TURN block.
             2. CONVERSATION MEMORY & NO REPEAT QUESTIONS:
@@ -348,10 +378,20 @@ public class OpenAiStoryService {
               they said "차가운거 가자" and you asked "Do you prefer your drink hot or iced?"; they said "난 기본이 좋더라"
               and you asked "Do you usually prefer the original flavor?". Each of these asks a question that was just
               answered. Instead: "Fries it is! Want ketchup or mayo with them?" -> quiz the reply to THAT.
-            - HOW TO FIND THE NEXT THING (do this instead of grabbing their last sentence): pick the next beat of the scene
-              that has not happened yet - the next choice in the activity (size, side, seat, time, route), the next step
-              (ordering -> paying -> leaving), a related preference they have not mentioned, or a small plan. Then ask a
-              closed question about THAT.
+            - HOW TO FIND THE NEXT THING (do this instead of grabbing their last sentence): pick the NEXT BEAT OF THIS
+              STORY that has not happened yet, and make your question the thing your character genuinely needs to ask
+              at that moment. The learner's reply (the quiz) is their in-story decision.
+                * In a dramatic scene: a demand, an accusation, a plea, a bargain, a last request, a question that
+                  digs into what they just revealed. Example [meaning] - the learner says they came on the boss's
+                  orders to kill you -> you: "크윽... 정말 보스가 시킨 일이야?" -> the quiz is THEIR reply, e.g.
+                  word_arrange for [meaning: "미안하지만 사실 내 야망이 시킨 일이야"], or multiple_choice between
+                  [meaning: "그래, 보스 명령이야" / "아니, 내가 원해서 왔어" / "그건 말할 수 없어"].
+                * In an everyday scene: the next choice in the activity (size, side, seat, time, route), the next step
+                  (ordering -> paying -> leaving), or a related preference they have not mentioned.
+              Never ask about logistics or trivia while the scene is dramatic.
+            - reply_meaning is the learner's actual spoken LINE in Korean, written as speech ("그래, 보스 명령이야",
+              "다른 계획이 있어", "창가 자리로 할게"), never a description of it ("무엇을 할지", "이유를 말하기",
+              "보스가 시킨 이유"). The server rejects descriptions.
             - reply_meaning must be something the learner would really say NOW, consistent with everything they have
               told you. Never make them "say" the opposite of a preference they already stated (they said they eat out;
               do not quiz "I usually cook at home").
@@ -371,6 +411,16 @@ public class OpenAiStoryService {
               word: ask [meaning: "게임 많이 하는 편이야?"] and quiz the word for '자주' - do NOT ask "Do you play often?" and
               then quiz "often"; do NOT ask "Do you have a favorite song?" and then quiz "favorite song". The learner must
               PRODUCE the expression, not copy it from you. The server rejects such quizzes.
+            - Do not fall back on frequency questions ("Do you ... often?", "How often ...?") - frequency is almost never
+              the next beat of a scene. Ask about what happens next, what they choose, what they feel, what they want.
+            - THE QUESTION IS ABOUT THE LEARNER, NEVER ABOUT YOU. Ask what THEY will do, choose, feel, or want ("you /
+              your"). FORBIDDEN: "What will I do?", "What should I do with the revolver?", "What feeling hits me?" - that
+              makes the learner narrate YOUR actions and feelings in your voice. If the next beat is your own action,
+              just do it in ai_message and ask them how they respond to it. The server rejects such questions.
+            - NEVER ASK A META QUESTION ABOUT LANGUAGE. "What would you say if...", "How do you say...", "What should I
+              ask you?", "What question should I ask?" are FORBIDDEN - your character is not a teacher and does not know
+              there is a quiz. Ask a real question that a person in this scene would ask, and let the quiz (which the app
+              shows separately) ask for the words. The server rejects meta questions.
             - The quizzed expression is SHORT: one word or a 2-3 word phrase (a frequency word, a drink, a place,
               a feeling). A whole sentence is allowed ONLY in word_arrange.
             - Before finalising, check both: "If they answer this correctly, have they answered my question in the scene?"
@@ -386,8 +436,9 @@ public class OpenAiStoryService {
               "correct_answer" in %s, and only THEN "asked" - the question sentence, written so that it does not contain
               correct_answer. Your ai_message must end with that exact "asked" sentence. The server checks it.
 
-            MESSAGE LENGTH: ai_message is 1-2 short sentences (3 at most on a final closing turn), and contains at most ONE
-            question. Never stack two questions in one message.
+            MESSAGE LENGTH: ai_message is 2-3 sentences: your in-character reaction (1-2 sentences, more when the moment is
+            big) and, on a quiz turn, ONE question at the end. Never stack two questions in one message, and never write
+            the same question twice in different words - the question appears exactly once, as the last sentence.
 
             CRITICAL LANGUAGE LEARNING QUIZ RULES (Target Language: %s):
             1. STRICT TARGET LANGUAGE LOCK (%s ONLY):
@@ -431,7 +482,7 @@ public class OpenAiStoryService {
               "options": ["reply 1", "reply 2", "reply 3"], // for multiple_choice, all in the Target Language
               "tiles": ["tile1", "tile2"], // for word_arrange: exactly the words of correct_answer, shuffled
               "asked": "The closed question sentence that ends your ai_message - must NOT contain correct_answer",
-              "question": "Short Korean question asking for the expression the learner needs in order to answer your in-story question",
+              "question": "Short Korean question that QUOTES the Korean meaning of correct_answer in quotes, e.g. \"'응, 받았어'를 뜻하는 표현은?\" - the learner must be able to tell which option/word is meant",
               "explanation": "One short Korean sentence clarifying the Target Language expression",
               "hint": "Short hint in Korean", // for subjective
               "quiz_number": number (1 to %d)
@@ -478,7 +529,7 @@ public class OpenAiStoryService {
         if (allowQuiz) {
             String requiredType = pickNextQuizType(session.getUsedQuizTypes());
             pacingDirective = String.format("PACING RULE: Sufficient dialogue turns have passed (%d turns since last quiz). You SHOULD now present a quiz by setting `is_quiz: true`. REQUIRED QUIZ TYPE FOR THIS QUIZ: \"%s\" - set `quiz_type` to exactly this value and design the quiz in that format. Your ai_message for this turn MUST end with the ONE closed in-story question that the quiz answer replies to (see THE MOST IMPORTANT QUIZ RULE). "
-                    + "React to what the learner just said in one clause, then ask about something NEW that is not in the ALREADY KNOWN list below (the next choice or next step of the scene). The server rejects a quiz that re-asks anything already known.",
+                    + "React to what the learner just said fully and in character, then end with a question about the NEXT BEAT of the story that is not in the ALREADY KNOWN list below. The server rejects a quiz that re-asks anything already known, and rejects meta questions about language.",
                     turnsSinceLastQuiz, requiredType);
         } else if (quizPending) {
             pacingDirective = "A quiz is still pending. Follow section 1 (grading) for this turn. Do NOT design a new quiz; set `is_quiz: false` (the app re-shows the pending quiz by itself when needed).";
@@ -511,6 +562,8 @@ public class OpenAiStoryService {
             %s
                - Expressions already tested (never the focus or answer of a quiz again): %s
             5. The learner's latest message: "%s"
+               React to THIS first, in character, before anything else. If it introduces a person, an event, a threat, a
+               confession or an accusation, this whole turn is about that - do not change the subject.
             """, quizContextDirective, pacingDirective, currentQuizCount, quizLimit, quizLimit,
                 bulletList(session.recentUserMessages(ALREADY_KNOWN_MESSAGES)),
                 bulletList(session.getAskedQuestions()),
@@ -751,6 +804,120 @@ public class OpenAiStoryService {
         return value == null ? "" : String.valueOf(value);
     }
 
+    /** 언어 자체를 묻는 메타 질문 패턴 ("뭐라고 말하겠어?", "영어로 어떻게 말해?"). 캐릭터가 선생님이 되는 실측 사례. */
+    private static final java.util.regex.Pattern META_QUESTION = java.util.regex.Pattern.compile(
+            "\\b(what (would|should|do|will|can) (you|i) say|how (do|would|should|can) (you|i|we) say|how (do|would) you put|"
+            + "what (question|questions) (should|would|do|can) i ask|what should i ask|what (would|should) i ask|"
+            + "in english|in korean|the (english|korean) (word|expression|phrase)|say (it|that) in|"
+            + "what('s| is) the (word|expression|phrase) for)\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /** AI 자신의 행동·감정을 학습자에게 서술시키는 질문 ("What will I do?", "What feeling hits me?"). 실측: 러시안룰렛 세션 5개 중 3개. */
+    private static final java.util.regex.Pattern SELF_QUESTION = java.util.regex.Pattern.compile(
+            "\\b(what|which|how) (will|would|do|should|am|can|could|shall) i\\b|\\bwhat (feeling|emotion) .*\\b(me|i)\\b|"
+            + "\\b(hits|grips|takes over) me\\b|\\bwhat do i (do|feel|say|want)\\b|\\bwhat am i (going to|gonna)\\b",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /** 퀴즈의 asked 가 AI 자신에 대한 질문이면 true ("나는 뭘 할까?"). "should I go first or you?" 같은 선택 제시는 or 가 있으면 통과. */
+    static boolean isQuestionAboutAiItself(Map<String, Object> quiz) {
+        if (quiz == null || quiz.get("asked") == null) {
+            return false;
+        }
+        String asked = String.valueOf(quiz.get("asked"));
+        if (!SELF_QUESTION.matcher(asked).find()) {
+            return false;
+        }
+        return !asked.toLowerCase().contains(" or ") || asked.toLowerCase().contains(" or i ");
+    }
+
+    /** 퀴즈의 asked 또는 AI 대사가 언어 메타 질문이면 true. */
+    static boolean isMetaLanguageQuestion(String aiMessage, Map<String, Object> quiz) {
+        String asked = quiz != null && quiz.get("asked") != null ? String.valueOf(quiz.get("asked")) : "";
+        return META_QUESTION.matcher(asked).find()
+                || (aiMessage != null && META_QUESTION.matcher(lastSentence(aiMessage)).find());
+    }
+
+    private static String lastSentence(String text) {
+        String[] parts = text.trim().split("(?<=[.!?])\\s+");
+        return parts.length == 0 ? "" : parts[parts.length - 1];
+    }
+
+    /**
+     * 대사 끝에 같은 질문이 두 번 붙는 실측 사례("Cola or juice? Do you want me to bring cola or juice ...?")를 정리한다.
+     * 마지막 문장과 단어가 60%% 이상 겹치는 앞 질문 문장을 지운다. 문장이 둘 이하이거나 겹치지 않으면 그대로 돌려준다.
+     */
+    static String removeDuplicateTrailingQuestion(String aiMessage) {
+        if (aiMessage == null) {
+            return null;
+        }
+        String[] sentences = aiMessage.trim().split("(?<=[.!?])\\s+");
+        if (sentences.length < 2) {
+            return aiMessage;
+        }
+        List<String> lastWords = gradingWords(sentences[sentences.length - 1]);
+        if (lastWords.size() < 3) {
+            return aiMessage;
+        }
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < sentences.length - 1; i++) {
+            List<String> words = gradingWords(sentences[i]);
+            long shared = words.stream().filter(lastWords::contains).count();
+            boolean duplicate = !words.isEmpty() && shared * 10 >= Math.min(words.size(), lastWords.size()) * 6
+                    && sentences[i].trim().endsWith("?");
+            if (duplicate) {
+                continue;
+            }
+            if (out.length() > 0) {
+                out.append(' ');
+            }
+            out.append(sentences[i].trim());
+        }
+        if (out.length() > 0) {
+            out.append(' ');
+        }
+        out.append(sentences[sentences.length - 1].trim());
+        return out.toString();
+    }
+
+    /**
+     * 객관식 질문에 정답의 한국어 뜻이 따옴표로 들어 있지 않으면(실측: "'네가 받은 편지 내용'에 대해 대답할 때 쓸 표현은?")
+     * reply_meaning 으로 질문을 다시 쓴다. 보기가 전부 그럴듯한 대답이라 뜻이 없으면 정답을 고를 수 없기 때문이다.
+     */
+    static Map<String, Object> ensureQuestionQuotesMeaning(Map<String, Object> quiz) {
+        if (quiz == null || !"multiple_choice".equals(String.valueOf(quiz.get("quiz_type")))) {
+            return quiz;
+        }
+        String meaning = quiz.get("reply_meaning") == null ? "" : String.valueOf(quiz.get("reply_meaning")).trim();
+        if (meaning.isEmpty() || meaning.endsWith("?")) {
+            return quiz;
+        }
+        String question = quiz.get("question") == null ? "" : String.valueOf(quiz.get("question"));
+        boolean quotesMeaning = question.contains("'" + meaning + "'") || question.contains("‘" + meaning + "’")
+                || question.contains("\"" + meaning + "\"");
+        if (!quotesMeaning) {
+            Map<String, Object> fixed = new HashMap<>(quiz);
+            fixed.put("question", "'" + meaning + "'를 뜻하는 표현은?");
+            log.info("[InteractiveStory] 객관식 질문에 정답 뜻이 없어 보정: \"{}\" -> \"{}\"", question, fixed.get("question"));
+            return fixed;
+        }
+        return quiz;
+    }
+
+    /**
+     * reply_meaning 이 대사가 아니라 설명("도망친 뒤에 뭘 할지", "보스가 시킨 이유", "…를 말하기")이면 true.
+     * 설명이면 퀴즈 질문("'…'를 뜻하는 표현은?")이 뜻을 잃고, 되묻기 검사도 오탐한다 (실측).
+     */
+    static boolean isDescriptiveReplyMeaning(Map<String, Object> quiz) {
+        if (quiz == null || quiz.get("reply_meaning") == null) {
+            return false;
+        }
+        String meaning = String.valueOf(quiz.get("reply_meaning")).trim().replaceAll("[.!?~'\"’”]+$", "");
+        if (meaning.isEmpty()) {
+            return false;
+        }
+        return meaning.matches(".*(할지|인지|는지|하기|말하기|묻기|여부|이유|계획|표현|것|대답|답변|질문|내용|방법|방식)$")
+                || meaning.matches(".*(를|을) (말하기|표현하기|대답하기)$");
+    }
+
     /** 클라이언트로 내려보낼 퀴즈 사본: 모델 자기 점검용 내부 필드("asked", "reply_meaning")를 뺀다. 세션에는 원본이 남는다. */
     static Map<String, Object> clientQuizView(Map<String, Object> quiz) {
         if (quiz == null) {
@@ -795,10 +962,11 @@ public class OpenAiStoryService {
                """;
 
     private static final String LAST_INCORRECT_REACTION = """
-               - This was their LAST allowed attempt. Stay in character, gently reveal the correct expression
-                 (quote the "Correct answer" above EXACTLY, character for character), and say you'll move on.
-                 Then treat that correct expression as their reply and continue the scene naturally from it.
-                 Do NOT invite another try and do NOT ask the same question again.
+               - This was their LAST allowed attempt. Stay in character and REVEAL the correct expression in this very
+                 message: your ai_message MUST contain the "Correct answer" above EXACTLY, character for character
+                 (e.g. put it in their mouth: [meaning: "...'relieved'라고 하고 싶었던 거지?"]). Then treat it as their
+                 reply and continue the scene naturally from it. Do NOT invite another try, do NOT ask the same question
+                 again, do NOT repeat an earlier line of yours, and do NOT present a new quiz this turn.
                """;
 
     private static final String NOT_ATTEMPT_REACTION = """
@@ -1003,15 +1171,20 @@ public class OpenAiStoryService {
         boolean alternativeQuestion = ALTERNATIVE_MARKERS.stream().anyMatch(lowered::contains);
         for (String answer : acceptedAnswers(quiz)) {
             List<String> answerWords = gradingWords(answer);
+            if (wordArrange) {
+                // 단어배열은 문장 전체가 정답이다. 4단어 이상인데 그 단어의 80%% 이상이 대사에 있으면
+                // "내 질문을 배열시키는" 퀴즈다 (실측: "What exactly did the boss tell Selena to do?" → 같은 문장 배열)
+                long found = answerWords.stream().filter(messageWords::contains).count();
+                if (answerWords.size() >= 4 && found * 10 >= answerWords.size() * 8) {
+                    return true;
+                }
+                continue;
+            }
             if (answerWords.isEmpty() || Collections.indexOfSubList(messageWords, answerWords) < 0) {
                 continue;
             }
             if (wordArrange) {
-                // 단어배열은 문장 전체가 정답이므로, 4단어 이상 문장이 대사에 그대로 있으면 "내 질문을 배열시키는" 퀴즈다 (실측)
-                if (answerWords.size() >= 4) {
-                    return true;
-                }
-                continue;
+                continue; // 단어배열은 아래에서 단어 포함률로 따로 본다
             }
             if (!alternativeQuestion || answerWords.size() > 3) {
                 return true;
@@ -1075,6 +1248,30 @@ public class OpenAiStoryService {
         return polite > casual ? "존댓말" : "반말";
     }
 
+    /**
+     * 대상 언어가 한국어가 아닌데 AI 대사에 한글 문장이 섞이면 그 문장을 뗀다 (실측: 오답 반응 끝에 퀴즈 질문을 한국어로 덧붙임).
+     * 글자의 30%% 이상이 한글인 문장만 지운다. 전부 지워지면 원문을 그대로 돌려준다.
+     */
+    static String stripHangulSentences(String targetLanguage, String aiMessage) {
+        if (!hasUnexpectedHangul(targetLanguage, aiMessage)) {
+            return aiMessage;
+        }
+        String[] sentences = aiMessage.trim().split("(?<=[.!?])\s+");
+        StringBuilder out = new StringBuilder();
+        for (String sentence : sentences) {
+            long letters = sentence.chars().filter(Character::isLetter).count();
+            long hangul = sentence.chars().filter(c -> Character.UnicodeScript.of(c) == Character.UnicodeScript.HANGUL).count();
+            if (letters > 0 && hangul * 10 >= letters * 3) {
+                continue;
+            }
+            if (out.length() > 0) {
+                out.append(' ');
+            }
+            out.append(sentence.trim());
+        }
+        return out.length() == 0 ? aiMessage : out.toString();
+    }
+
     /** 대상 언어가 한국어가 아닌데 AI 대사에 한글이 섞였는지 (관측용 경고 로그에 쓴다). */
     static boolean hasUnexpectedHangul(String targetLanguage, String aiMessage) {
         if (aiMessage == null || targetLanguage == null) {
@@ -1118,21 +1315,21 @@ public class OpenAiStoryService {
         }
     }
 
-    private Map<String, Object> callOpenAiJson(List<Map<String, String>> messages) throws Exception {
-        return callOpenAiJson(messages, true);
+    private Map<String, Object> callOpenAiJson(String model, List<Map<String, String>> messages) throws Exception {
+        return callOpenAiJson(model, messages, true);
     }
 
     /**
      * response_format=json_object 를 줘도 드물게 평문이 오는 사례가 실측되어, JSON 을 못 찾으면 한 번 다시 호출한다.
      * 두 번째도 평문이면 대사로만 감싸 돌려준다.
      */
-    private Map<String, Object> callOpenAiJson(List<Map<String, String>> messages, boolean retryOnPlainText) throws Exception {
+    private Map<String, Object> callOpenAiJson(String model, List<Map<String, String>> messages, boolean retryOnPlainText) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
 
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", modelName);
+        requestBody.put("model", model);
         requestBody.put("response_format", Map.of("type", "json_object"));
         requestBody.put("messages", messages);
         requestBody.put("temperature", 0.7);
@@ -1153,15 +1350,25 @@ public class OpenAiStoryService {
                     }
                     if (contentJson != null && !contentJson.trim().isEmpty()) {
                         if (responseMap.containsKey("usage")) {
-                            log.info("[OpenAI Token Usage] {}", responseMap.get("usage"));
+                            log.info("[OpenAI Token Usage] model={} {}", model, responseMap.get("usage"));
                         }
                         Map<String, Object> parsed = parseJsonObject(contentJson);
+                        if (parsed != null && parsed.get("ai_message") != null
+                                && !String.valueOf(parsed.get("ai_message")).isBlank()) {
+                            return parsed;
+                        }
                         if (parsed != null) {
+                            // JSON 은 맞는데 대사가 빠진 경우 (실측: 기본 문구 "Got it!" 이 사용자에게 노출됨)
+                            if (retryOnPlainText) {
+                                log.warn("[OpenAI] 응답에 ai_message 가 없어 1회 재호출: {}", contentJson);
+                                return callOpenAiJson(model, messages, false);
+                            }
+                            log.warn("[OpenAI] 재호출도 ai_message 가 없음: {}", contentJson);
                             return parsed;
                         }
                         if (retryOnPlainText) {
                             log.warn("[OpenAI] JSON 응답이 아니어서 1회 재호출: {}", contentJson);
-                            return callOpenAiJson(messages, false);
+                            return callOpenAiJson(model, messages, false);
                         }
                         // 재호출도 평문이면: 대사로만 쓰고 번역은 비워 둔다 (영어 원문을 번역 자리에 넣지 않는다)
                         log.warn("[OpenAI] JSON 응답이 아니어서 텍스트로 감쌈 (translation 없음): {}", contentJson);

@@ -315,6 +315,12 @@ class OpenAiStoryServiceTest {
                 "correct_answer", "Do you want to eat something salty or sweet");
         assertTrue(OpenAiStoryService.isAnswerEchoedInMessage("Oh, you're hungry? Do you want to eat something salty or sweet?", ownQuestion),
                 "AI 자기 질문 문장을 배열시키는 퀴즈는 거부한다");
+        Map<String, Object> nearOwnQuestion = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "What did the boss tell Selena to do");
+        assertTrue(OpenAiStoryService.isAnswerEchoedInMessage("You brought up Selena? What exactly did the boss tell Selena to do?", nearOwnQuestion),
+                "단어 하나가 끼어 있어도 80% 이상 겹치면 자기 질문 배열이다");
+        Map<String, Object> realReply = Map.of("quiz_type", "word_arrange", "correct_answer", "Because of the boss's lies");
+        assertFalse(OpenAiStoryService.isAnswerEchoedInMessage("So tell me, why don't you trust me anymore?", realReply));
     }
 
     @Test
@@ -399,7 +405,7 @@ class OpenAiStoryServiceTest {
         session.recordWrongAttempt();
         String last = service.buildTurnSystemPrompt(session, "I eat usually out");
         assertTrue(last.contains("LAST allowed attempt"));
-        assertTrue(last.contains("gently reveal the correct expression"));
+        assertTrue(last.contains("REVEAL the correct expression"));
     }
 
     @Test
@@ -498,6 +504,98 @@ class OpenAiStoryServiceTest {
                 "세 턴 전에 한 말('주말에만 해')을 되묻는 건 안 된다");
         assertFalse(OpenAiStoryService.isReaskOfRecentUserMessage(recent,
                 Map.of("reply_meaning", "짭짤한 거 먹고 싶어", "question", "'짭짤한 거'를 뜻하는 표현은?")));
+    }
+
+    @Test
+    @DisplayName("언어 메타 질문('뭐라고 말하겠어?')을 판별한다")
+    void detectsMetaLanguageQuestion() {
+        assertTrue(OpenAiStoryService.isMetaLanguageQuestion("Great. Now, what would you say if you want to go to the yard?",
+                Map.of("asked", "What would you say if you want to go to the prison yard after the visit?")));
+        assertTrue(OpenAiStoryService.isMetaLanguageQuestion("Fine. During this visit, what question should I ask you?",
+                Map.of("asked", "What question should I ask you during this visit?")));
+        assertTrue(OpenAiStoryService.isMetaLanguageQuestion("So how do you say that in English?", Map.of()));
+        assertFalse(OpenAiStoryService.isMetaLanguageQuestion("Did the boss really send you?",
+                Map.of("asked", "Did the boss really send you?")));
+        assertFalse(OpenAiStoryService.isMetaLanguageQuestion("What do you want to drink?",
+                Map.of("asked", "What do you want to drink?")));
+    }
+
+    @Test
+    @DisplayName("대사 끝에 같은 질문이 두 번 붙으면 앞의 것을 지운다")
+    void removesDuplicateTrailingQuestion() {
+        assertEquals("Chicken sounds good. Do you want me to bring cola or juice with the chicken?",
+                OpenAiStoryService.removeDuplicateTrailingQuestion(
+                        "Chicken sounds good. Now, what drink do you want me to bring with it? Cola or juice? Do you want me to bring cola or juice with the chicken?"));
+        assertEquals("You think it's easy because I'm restrained, huh? Fine. What question should I ask you during this visit?",
+                OpenAiStoryService.removeDuplicateTrailingQuestion(
+                        "You think it's easy because I'm restrained, huh? Fine. During this visit, what question should I ask you? What question should I ask you during this visit?"));
+        String clean = "Yeah, I remember Selena. Did you get the letter I sent you recently?";
+        assertEquals(clean, OpenAiStoryService.removeDuplicateTrailingQuestion(clean), "겹치지 않으면 그대로");
+        assertEquals("Short one?", OpenAiStoryService.removeDuplicateTrailingQuestion("Short one?"));
+    }
+
+    @Test
+    @DisplayName("객관식 질문에 정답의 한국어 뜻이 없으면 reply_meaning 으로 다시 쓴다")
+    void rewritesMultipleChoiceQuestionWithoutMeaning() {
+        Map<String, Object> vague = Map.of("quiz_type", "multiple_choice", "reply_meaning", "응, 받았어",
+                "question", "'네가 받은 편지 내용'에 대해 대답할 때 쓸 표현은?", "correct_answer", "Yes, I got it");
+        assertEquals("'응, 받았어'를 뜻하는 표현은?", OpenAiStoryService.ensureQuestionQuotesMeaning(vague).get("question"));
+
+        Map<String, Object> fine = Map.of("quiz_type", "multiple_choice", "reply_meaning", "차가운 걸로",
+                "question", "'차가운 걸로'를 뜻하는 표현은?", "correct_answer", "iced");
+        assertEquals("'차가운 걸로'를 뜻하는 표현은?", OpenAiStoryService.ensureQuestionQuotesMeaning(fine).get("question"));
+
+        Map<String, Object> subjective = Map.of("quiz_type", "subjective", "reply_meaning", "꽤 자주 해",
+                "question", "'자주'를 뜻하는 o로 시작하는 단어는?", "correct_answer", "often");
+        assertEquals("'자주'를 뜻하는 o로 시작하는 단어는?", OpenAiStoryService.ensureQuestionQuotesMeaning(subjective).get("question"),
+                "주관식은 손대지 않는다");
+    }
+
+    @Test
+    @DisplayName("reply_meaning 이 대사가 아니라 설명이면 판별한다")
+    void detectsDescriptiveReplyMeaning() {
+        assertTrue(OpenAiStoryService.isDescriptiveReplyMeaning(Map.of("reply_meaning", "도망친 뒤에 뭘 할지")));
+        assertTrue(OpenAiStoryService.isDescriptiveReplyMeaning(Map.of("reply_meaning", "보스가 널 처리하라고 한 이유")));
+        assertTrue(OpenAiStoryService.isDescriptiveReplyMeaning(Map.of("reply_meaning", "칼로 찌른 후 나에게 뭘 할지 말하기")));
+        assertFalse(OpenAiStoryService.isDescriptiveReplyMeaning(Map.of("reply_meaning", "그래, 보스 명령이야")));
+        assertFalse(OpenAiStoryService.isDescriptiveReplyMeaning(Map.of("reply_meaning", "다른 계획이 있어")));
+        assertFalse(OpenAiStoryService.isDescriptiveReplyMeaning(Map.of("reply_meaning", "차가운 걸로")));
+        assertFalse(OpenAiStoryService.isDescriptiveReplyMeaning(Map.of("correct_answer", "iced")));
+    }
+
+    @Test
+    @DisplayName("대상 언어가 한국어가 아니면 AI 대사의 한글 문장을 뗀다")
+    void stripsHangulSentences() {
+        assertEquals("Try again and tell me how you plan to get close to me.",
+                OpenAiStoryService.stripHangulSentences("English",
+                        "Try again and tell me how you plan to get close to me. 내게 다가가길 원하는 방법은 무엇인가?"));
+        assertEquals("Coffee it is!", OpenAiStoryService.stripHangulSentences("English", "Coffee it is!"));
+        assertEquals("커피 좋지!", OpenAiStoryService.stripHangulSentences("Korean", "커피 좋지!"));
+        assertEquals("전부 한글이면 그대로.", OpenAiStoryService.stripHangulSentences("English", "전부 한글이면 그대로."));
+    }
+
+    @Test
+    @DisplayName("AI 자신의 행동·감정을 묻는 질문을 판별한다")
+    void detectsQuestionAboutAiItself() {
+        assertTrue(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "When it's my turn, what will I do?")));
+        assertTrue(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "What will I do with the revolver before I pull the trigger?")));
+        assertTrue(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "Before pulling the trigger, what feeling hits me hard?")));
+        assertFalse(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "Are you going first or should I take the first shot?")),
+                "학습자에게 선택을 주는 질문은 통과");
+        assertFalse(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "How many bullets will you start with?")));
+        assertFalse(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "Did the boss really send you?")));
+        assertTrue(service.buildStaticSystemPrompt(newSession()).contains("THE QUESTION IS ABOUT THE LEARNER, NEVER ABOUT YOU"));
+    }
+
+    @Test
+    @DisplayName("몰입 지시와 메타 질문 금지가 정적 프롬프트에 들어간다")
+    void immersionRulesInStaticPrompt() {
+        String prompt = service.buildStaticSystemPrompt(newSession());
+        assertTrue(prompt.contains("STAY IN THE DRAMA"));
+        assertTrue(prompt.contains("being stabbed is not \"whatever\""));
+        assertTrue(prompt.contains("NEVER ASK A META QUESTION ABOUT LANGUAGE"));
+        assertTrue(prompt.contains("정말 보스가 시킨 일이야?"), "사용자가 든 몰입 예시가 들어가야 한다");
+        assertFalse(prompt.contains("React to what the learner just said in one clause"));
     }
 
     @Test
