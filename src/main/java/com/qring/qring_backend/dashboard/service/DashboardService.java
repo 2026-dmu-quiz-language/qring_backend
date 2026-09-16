@@ -3,7 +3,6 @@ package com.qring.qring_backend.dashboard.service;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -18,11 +17,10 @@ import com.qring.qring_backend.domain.difficulty.DifficultyLevelRepository;
 import com.qring.qring_backend.domain.quiz.AchievementCommentRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
+import com.qring.qring_backend.domain.user.UserAsset;
+import com.qring.qring_backend.domain.user.UserAssetRepository;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.domain.user.UserprogressRepository;
-import com.qring.qring_backend.domain.user.UserAssetRepository;
-import com.qring.qring_backend.domain.user.UserAsset;
-import com.qring.qring_backend.dto.quiz.IncorrectResponseDto.WrongAnswerSummary;
 
 import lombok.RequiredArgsConstructor;
 
@@ -66,11 +64,13 @@ public class DashboardService {
                 .map(DifficultyLevel::getLevelDesc)
                 .orElse(null);
         }
-        
+
+        LocalDateTime sevenDaysAgo = LocalDate.now().minusDays(7).atStartOfDay();
+
         String incorrectAlarm = "";
         if (langCode != null) {
             boolean hasOldIncorrect = wrongAnswerRepository.existsByUserIdAndLangCodeAndOlderThan(
-                userId, langCode, LocalDate.now().minusDays(7).atStartOfDay()
+                userId, langCode, sevenDaysAgo
             );
             if (hasOldIncorrect) {
                 incorrectAlarm = "오답을 확인한 지 7일이 지났어요! 오답 노트를 확인해 보세요.";
@@ -93,7 +93,7 @@ public class DashboardService {
             }
         }
 
-        int incorrectQuizCount = (int) wrongAnswerRepository.countByUserIdAndLangCode(userId, langCode);
+        int incorrectQuizCount = (int) wrongAnswerRepository.countByUserIdAndLangCode(userId, langCode, sevenDaysAgo);
 
         return DashboardResponse.builder()
             .name(user.getNickname())
