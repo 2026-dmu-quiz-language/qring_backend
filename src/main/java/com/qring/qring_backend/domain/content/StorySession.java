@@ -68,6 +68,10 @@ public class StorySession {
      */
     private String speechLevel;
 
+    /** 모델 티어 ("standard" / "premium"). 시작 때 정해지고 이어하기에서도 바뀌지 않는다. */
+    @Builder.Default
+    private String modelTier = "standard";
+
     /**
      * 대화·퀴즈·채점 결과가 실제로 일어난 순서 그대로 쌓이는 열람용 통합 타임라인.
      * chatHistory(프롬프트용, 40개 제한)와 달리 절대 잘리지 않으며, 보관 시 이대로 저장된다.
@@ -205,9 +209,15 @@ public class StorySession {
 
     /** 이어하기 시점을 타임라인에 표시 (프론트가 구분선 등으로 렌더링 가능). */
     public void addExtensionMarker() {
+        addExtensionMarker(0);
+    }
+
+    /** 이어하기 시점 표시 + 그때 차감한 포인트 (이어하기 비용은 컬럼 없이 타임라인에 기록한다). */
+    public void addExtensionMarker(int chargedPoints) {
         Map<String, Object> event = new HashMap<>();
         event.put("type", "extension");
         event.put("quiz_limit", quizLimit);
+        event.put("charged_points", chargedPoints);
         timeline.add(event);
     }
 

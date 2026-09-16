@@ -33,7 +33,15 @@ public class StoryStartResponse {
     @JsonProperty("ai_first_translation")
     private String aiFirstTranslation;
 
-    @Schema(description = "사용자 남은 포인트 (-30pt 차감 후)", example = "70")
+    @Schema(description = "사용자 남은 포인트 (시작 비용 차감 후)", example = "1200")
     @JsonProperty("user_remaining_points")
     private Integer userRemainingPoints;
+
+    @Schema(description = "이 세션의 모델 티어: standard(기본 모델) / premium(프리미엄 모델)", example = "premium")
+    @JsonProperty("model_tier")
+    private String modelTier;
+
+    @Schema(description = "시작 시 차감된 포인트 (기본 400, 프리미엄 550)", example = "550")
+    @JsonProperty("charged_points")
+    private Integer chargedPoints;
 }

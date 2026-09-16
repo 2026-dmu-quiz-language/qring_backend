@@ -53,6 +53,7 @@ public class StorySessionMapper {
         runtime.put("wrongAttempts", session.getWrongAttempts());
         runtime.put("speechLevel", session.getSpeechLevel());
         runtime.put("askedQuestions", session.getAskedQuestions());
+        runtime.put("modelTier", session.getModelTier());
         entity.setRuntimeState(writeJson(runtime));
 
         // 턴이 정상 처리되어 전체 상태를 저장하는 시점에는 응답 대기 중인 메시지가 없다
@@ -101,6 +102,7 @@ public class StorySessionMapper {
         Object level = runtime.get("speechLevel");
         session.setSpeechLevel(level instanceof String s && !s.isBlank() ? s : null);
         session.setAskedQuestions(castStringList(runtime.get("askedQuestions")));
+        session.setModelTier(readModelTier(runtime));
         return session;
     }
 
@@ -121,6 +123,22 @@ public class StorySessionMapper {
             return objectMapper.readValue(json, type);
         } catch (Exception e) {
             throw new IllegalStateException("세션 상태 역직렬화 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /** runtime_state 의 modelTier. 티어 도입 전 세션(값 없음)은 기본 모델로 본다. */
+    public static String readModelTier(Map<String, Object> runtime) {
+        Object tier = runtime == null ? null : runtime.get("modelTier");
+        return tier instanceof String s && !s.isBlank() ? s : StoryModelTier.STANDARD;
+    }
+
+    /** DB 행에서 바로 티어만 읽는다 (보관 목록·상세용). */
+    public String readModelTier(StorySessionEntity entity) {
+        try {
+            Map<String, Object> runtime = readJson(entity.getRuntimeState(), new TypeReference<>() {});
+            return readModelTier(runtime);
+        } catch (RuntimeException e) {
+            return StoryModelTier.STANDARD;
         }
     }
 

@@ -28,4 +28,8 @@ public class StoryStartRequest {
 
     @Schema(description = "학습 대상 언어", example = "English")
     private String targetLanguage = "English";
+
+    @Schema(description = "모델 티어. \"standard\"(기본 모델, 400pt) 또는 \"premium\"(프리미엄 모델, 550pt). 생략 시 standard",
+            example = "premium", allowableValues = {"standard", "premium"})
+    private String modelTier;
 }

@@ -48,7 +48,18 @@ qring:
     dev-mode: ${QRING_EMAIL_DEV_MODE:false}
   openai:
     api-key: ${OPENAI_API_KEY:}
-    model: ${OPENAI_MODEL:gpt-4.1-mini}
+    model: ${OPENAI_MODEL:gpt-4.1-mini}   # 하위 호환: tiers.standard.model 의 기본값으로 쓰인다
+    # 인터랙티브 스토리 모델 티어 (설계: INTERACTIVE_STORY_MODEL_TIER_DESIGN.md).
+    # 가격의 원본은 여기이며 프론트는 같은 값을 하드코딩한다 (조회 API 없음, 팀 결정 2026-09-16).
+    tiers:
+      standard:
+        model: ${OPENAI_MODEL_STANDARD:${qring.openai.model}}
+        start-cost: 400
+        extend-cost: 100
+      premium:
+        model: ${OPENAI_MODEL_PREMIUM:gpt-4.1}
+        start-cost: 550     # 기본 400 + 업그레이드 150
+        extend-cost: 100    # 프리미엄 인상 여부는 팀 논의 후 결정 (보류)
   admin:
     # 관리자 전용 API(/admin/**) 허용 userId 목록 (쉼표 구분). 비어 있으면 아무도 접근 불가.
     user-ids: ${ADMIN_USER_IDS:}

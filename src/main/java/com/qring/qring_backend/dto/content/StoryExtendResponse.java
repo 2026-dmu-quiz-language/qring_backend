@@ -36,4 +36,12 @@ public class StoryExtendResponse {
 
     @JsonProperty("user_remaining_points")
     private Integer userRemainingPoints;
+
+    @Schema(description = "세션의 모델 티어 (이어하기는 시작 때 고른 티어를 그대로 따른다)", example = "standard")
+    @JsonProperty("model_tier")
+    private String modelTier;
+
+    @Schema(description = "이어하기에 차감된 포인트", example = "100")
+    @JsonProperty("charged_points")
+    private Integer chargedPoints;
 }

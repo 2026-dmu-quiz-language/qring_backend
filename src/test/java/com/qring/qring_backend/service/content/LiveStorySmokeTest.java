@@ -17,7 +17,7 @@ import java.util.Map;
 @EnabledIfEnvironmentVariable(named = "STORY_LIVE_TEST", matches = "1")
 class LiveStorySmokeTest {
 
-    private static final String[] SCRIPT = {
+    private static final String[] WALK_SCRIPT = {
             "이번 주에 좋아하는 가수 콘서트를 가",
             "바운디라는 가순데 알아?",
             "장르가 다양하고 취향이 잘 맞는거같아",
@@ -26,6 +26,18 @@ class LiveStorySmokeTest {
             "응 주로 미드 해",
             "요즘은 바빠서 주말에만 해",
             "아 배고프다",
+    };
+
+    /** 실제 사용자 세션(2026-09-16, user 1)의 입력을 그대로 옮긴 몰입 검증용 스크립트. */
+    private static final String[] PRISON_SCRIPT = {
+            "미안 제임스. 나는 널 죽여야만 해",
+            "하지만 넌 구속되어있어. 손발이 자유롭지 못한 널 처리하는 것은 내겐 누워서 떡먹기라고.",
+            "네 여자친구 셀레나 기억해?",
+            "난 네 말을 더이상 믿을 수 없어. 셀레나도 그렇게 생각해.",
+            "나는 사실 보스에게서 널 처리하라는 부탁을 받고 왔어",
+            "그래. 제임스를 칼로 찌른다",
+            "뭐 네 시체를 뒤지던가 하겠지",
+            "잘가. 제임스.",
     };
 
     @Test
@@ -38,13 +50,21 @@ class LiveStorySmokeTest {
                 .findFirst().orElseThrow();
         String model = System.getenv().getOrDefault("STORY_LIVE_MODEL", "gpt-4.1-mini");
         set(service, "apiKey", apiKey);
-        set(service, "modelName", model);
+        service.overrideModelForTests(model);
         System.out.println("=== MODEL: " + model);
 
-        StorySession session = StorySession.builder()
-                .sessionId("live").userId(1L).characterName("영")
-                .situationDescription("산책하다 만난 친구와 일상 대화").tone("다정하게")
-                .targetLanguage("English").levelCode(1).build();
+        boolean prison = "prison".equals(System.getenv("STORY_LIVE_SCENARIO"));
+        String[] script = prison ? PRISON_SCRIPT : WALK_SCRIPT;
+        StorySession session = prison
+                ? StorySession.builder()
+                        .sessionId("live").userId(1L).characterName("제임스")
+                        .situationDescription("같은 보스를 섬기던 제임스와 나. 최근 보스가 저지른 살인에 제임스는 누명을 쓰고 대신 교도소에 수감되고 만다. "
+                                + "그렇게 한 달이 지나고 나는 교도소에 수감되어있는 제임스의 면회를 간다. 제임스를 처리하라는 보스의 명을 받고.")
+                        .tone("까칠하게").targetLanguage("English").levelCode(1).build()
+                : StorySession.builder()
+                        .sessionId("live").userId(1L).characterName("영")
+                        .situationDescription("산책하다 만난 친구와 일상 대화").tone("다정하게")
+                        .targetLanguage("English").levelCode(1).build();
 
         Map<String, Object> opening = service.generateOpening(session);
         session.addAssistantMessage(str(opening.get("ai_message")), str(opening.get("translation")));
@@ -68,7 +88,7 @@ class LiveStorySmokeTest {
                 }
             } else {
                 attemptsOnCurrent = 0;
-                userMessage = scriptIndex < SCRIPT.length ? SCRIPT[scriptIndex++] : "응 좋아";
+                userMessage = scriptIndex < script.length ? script[scriptIndex++] : "응 좋아";
             }
             System.out.println("USER> " + userMessage);
 
@@ -101,7 +121,8 @@ class LiveStorySmokeTest {
                     session.repeatPendingQuiz();
                 }
             }
-            if (session.getPendingQuiz() == null && Boolean.TRUE.equals(res.get("is_quiz")) && res.get("quiz") instanceof Map<?, ?> q) {
+            if (session.getPendingQuiz() == null && session.getTurnsSinceLastQuiz() >= 2
+                    && Boolean.TRUE.equals(res.get("is_quiz")) && res.get("quiz") instanceof Map<?, ?> q) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> quiz = OpenAiStoryService.sanitizeQuiz((Map<String, Object>) q);
                 String reason = rejection(session, aiMsg, quiz);
@@ -120,6 +141,8 @@ class LiveStorySmokeTest {
                 }
                 System.out.println("    [QUIZ" + (reason == null ? "" : " REJECTED AGAIN: " + reason) + "] " + quiz);
                 if (reason == null) {
+                    quiz = OpenAiStoryService.ensureQuestionQuotesMeaning(quiz);
+                    aiMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(aiMsg);
                     if (quiz.get("correct_answer") != null) {
                         session.addTestedQuizSubject(String.valueOf(quiz.get("correct_answer")));
                     }
@@ -145,6 +168,15 @@ class LiveStorySmokeTest {
         }
         if (OpenAiStoryService.isReaskOfRecentUserMessage(session.recentUserMessages(OpenAiStoryService.ALREADY_KNOWN_MESSAGES), quiz)) {
             return "re-ask: reply_meaning=" + quiz.get("reply_meaning");
+        }
+        if (OpenAiStoryService.isDescriptiveReplyMeaning(quiz)) {
+            return "descriptive reply_meaning: " + quiz.get("reply_meaning");
+        }
+        if (OpenAiStoryService.isQuestionAboutAiItself(quiz)) {
+            return "about AI itself: " + quiz.get("asked");
+        }
+        if (OpenAiStoryService.isMetaLanguageQuestion(aiMsg, quiz)) {
+            return "meta question: " + quiz.get("asked");
         }
         if (OpenAiStoryService.isQuestionAlreadyAsked(session.getChatHistory(), quiz)) {
             return "already asked: " + quiz.get("asked");
