@@ -35,6 +35,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class QuestionResultService {
 
+    /** 스토리 학습 완료 시 지급되는 포인트의 상한 (포인트표 확정값). */
+    private static final int STORY_LEARNING_POINT_CAP = 100;
+
     private final QuizService quizService;
     private final QuizDetailRepository quizDetailRepository;
     private final QuizResultRepository quizResultRepository;
@@ -119,11 +122,6 @@ public class QuestionResultService {
             studyLog.setLangCode(language);
             userStudyLogRepository.save(studyLog);
 
-            // 포인트 적립: 최초 완료(재학습 아님)일 때만 지급
-            if (!alreadyCompleted) {
-                userAssetRepository.addPoints(userId, score);
-            }
-
             // wrong_answer 처리: 유저 언어 + quizId로 quiz_content_id 조회
             if (language != null) {
                 quizContentRepository.findByQuizIdAndLangCode(result.getQuizId(), language)
@@ -149,6 +147,14 @@ public class QuestionResultService {
                             }
                         });
             }
+        }
+
+        // 스토리 학습 포인트 지급: 최초 완료(재학습 아님)일 때만, 최대 100p로 캡 (포인트표 확정값)
+        // 퀴즈 개별 점수(quiz_result.score, totalScore)는 캡 없이 그대로 기록/응답하고,
+        // 실제로 유저 포인트에 적립되는 금액만 상한을 건다.
+        if (!alreadyCompleted) {
+            int storyPoints = Math.min(totalScore, STORY_LEARNING_POINT_CAP);
+            userAssetRepository.addPoints(userId, storyPoints);
         }
 
         // story_progress 저장 (언어별 스토리 완료 처리)
@@ -182,7 +188,7 @@ public class QuestionResultService {
                         return p;
                     });
 
-            // 해당 언어의 첫 스토리 완료 시 30점 추가 부여
+            // 해당 언어의 첫 스토리 완료 시 30점 추가 부여 (언어 추가 30p — 언어 변경 후 그 언어로 처음 완료한 스토리에 지급)
             if (progress.getProgressRate() == null || progress.getProgressRate() < 100) {
                 if (language != null) {
                     long completed = userprogressRepository.countCompletedStories(userId, language);
