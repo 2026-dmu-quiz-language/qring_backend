@@ -1,5 +1,6 @@
 package com.qring.qring_backend.auth.config;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -33,6 +34,16 @@ public class GlobalExceptionHandler {
             "success", false,
             "code", "VALIDATION_ERROR",
             "message", msg
+        ));
+    }
+
+    /** DB 제약 조건 위반(유니크/FK 등) → 409. SQL문·제약조건 이름은 응답에 노출하지 않는다. */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+            "success", false,
+            "code", "DATA_CONFLICT",
+            "message", "이미 존재하는 데이터이거나 제약 조건을 위반했습니다."
         ));
     }
 
