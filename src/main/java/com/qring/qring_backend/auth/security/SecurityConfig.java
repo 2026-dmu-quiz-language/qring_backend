@@ -46,7 +46,10 @@ public class SecurityConfig {
                     "/api/v1/auth/refresh",
                     "/api/v1/auth/check-email",
                     "/api/v1/auth/check-nickname",
-                    "/api/v1/auth/oauth/**"
+                    "/api/v1/auth/oauth/**",
+                    "/api/v1/auth/forgot-password",
+                    "/api/v1/auth/verify-reset-code",
+                    "/api/v1/auth/reset-password"
                 ).permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers(

@@ -25,6 +25,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserRepository userRepository;
+    private final com.qring.qring_backend.auth.security.JwtTokenProvider tokenProvider;
 
     /* ---------- 로컬 회원가입 & 이메일 인증 ---------- */
 
@@ -45,6 +46,38 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> resendCode(@Valid @RequestBody AuthRequest.ResendCode request) {
         authService.resendCode(request);
         return ResponseEntity.ok(Map.of("message", "인증 코드가 재발송되었습니다."));
+    }
+
+    /* ---------- 비밀번호 찾기 (PASSWORD_RESET_DESIGN.md) ---------- */
+
+    /** 1단계: 재설정 코드 발송. LOCAL·이메일 인증 완료 계정만. 60초 안 재요청은 CODE_RESEND_COOLDOWN. */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, Object>> forgotPassword(@Valid @RequestBody AuthRequest.ForgotPassword request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(Map.of(
+            "message", "인증 코드를 이메일로 전송했습니다. 10분 안에 입력해 주세요.",
+            "emailSent", true
+        ));
+    }
+
+    /** 2단계: 재설정 코드 검증 → 재설정 토큰 발급 (10분, 1회용). 오답 5회면 TOO_MANY_ATTEMPTS. */
+    @PostMapping("/verify-reset-code")
+    public ResponseEntity<Map<String, Object>> verifyResetCode(@Valid @RequestBody AuthRequest.VerifyResetCode request) {
+        String resetToken = authService.verifyResetCode(request);
+        return ResponseEntity.ok(Map.of(
+            "resetToken", resetToken,
+            "expiresInSeconds", tokenProvider.getResetTokenValidityMs() / 1000
+        ));
+    }
+
+    /** 3단계: 재설정 토큰으로 새 비밀번호 저장. 자동 로그인은 하지 않는다. */
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, Object>> resetPassword(@Valid @RequestBody AuthRequest.ResetPassword request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요."
+        ));
     }
 
     /* ---------- 로그인 / 로그아웃 / 리프레시 ---------- */
