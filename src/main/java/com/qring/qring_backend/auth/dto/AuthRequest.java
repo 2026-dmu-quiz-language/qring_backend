@@ -12,6 +12,12 @@ import lombok.Data;
 /** 인증 관련 요청 DTO 모음 — 회원가입·로그인·이메일 인증·소셜 로그인·토큰 갱신 등. */
 public class AuthRequest {
 
+    /** 비밀번호 규칙 (가입·재설정 공통): 8자 이상, 소문자·숫자 포함, 대문자 또는 특수문자 포함. */
+    public static final String PASSWORD_PATTERN =
+        "^(?=.*[a-z])(?=.*\\d)(?=.*[A-Z]|.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,}$";
+    public static final String PASSWORD_MESSAGE =
+        "Password must contain at least one lowercase, one digit, and one uppercase or special character";
+
     /** 로컬 회원가입 요청. 학습 설정(language/levelCode)은 선택. */
     @Data
     public static class SignUp {
@@ -21,10 +27,7 @@ public class AuthRequest {
 
         @NotBlank
         @Size(min = 8, max = 100)
-        @Pattern(
-            regexp = "^(?=.*[a-z])(?=.*\\d)(?=.*[A-Z]|.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,}$",
-            message = "Password must contain at least one lowercase, one digit, and one uppercase or special character"
-        )
+        @Pattern(regexp = PASSWORD_PATTERN, message = PASSWORD_MESSAGE)
         private String password;
 
         @NotBlank
@@ -105,5 +108,37 @@ public class AuthRequest {
     public static class RefreshToken {
         @NotBlank
         private String refreshToken;
+    }
+
+    /* ---------- 비밀번호 찾기 (PASSWORD_RESET_DESIGN.md) ---------- */
+
+    /** 1단계: 재설정 코드 발송 요청. */
+    @Data
+    public static class ForgotPassword {
+        @Email @NotBlank
+        private String email;
+    }
+
+    /** 2단계: 재설정 코드 검증 요청. 성공 시 재설정 토큰을 받는다. */
+    @Data
+    public static class VerifyResetCode {
+        @Email @NotBlank
+        private String email;
+
+        @NotBlank
+        @Size(min = 6, max = 6)
+        private String code;
+    }
+
+    /** 3단계: 재설정 토큰으로 새 비밀번호 설정. 규칙은 가입과 같다. */
+    @Data
+    public static class ResetPassword {
+        @NotBlank
+        private String resetToken;
+
+        @NotBlank
+        @Size(min = 8, max = 100)
+        @Pattern(regexp = PASSWORD_PATTERN, message = PASSWORD_MESSAGE)
+        private String newPassword;
     }
 }

@@ -28,8 +28,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
-            // 서명/만료 검증에 통과하면 토큰에서 userId를 꺼내 인증 정보로 등록
-            if (tokenProvider.validateToken(token)) {
+            // 서명/만료 검증에 통과하면 토큰에서 userId를 꺼내 인증 정보로 등록.
+            // 비밀번호 재설정 토큰(type=reset)은 재설정 API 전용이라 인증 수단으로 쓰지 못한다.
+            if (tokenProvider.validateToken(token)
+                    && !JwtTokenProvider.TYPE_RESET.equals(tokenProvider.getTokenType(token))) {
                 Long userId = tokenProvider.getUserIdFromToken(token);
                 UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(userId, null, List.of());
