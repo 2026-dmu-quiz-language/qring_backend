@@ -40,14 +40,15 @@ public class CompetitionMatchController {
     @GetMapping("/bot/pause")
     public ResponseEntity<BotPauseResponseDto> togglePause(
             Authentication authentication,
+            @RequestParam("matchId") Long matchId,
             @RequestParam("botPause") boolean botPause) {
 
         Long userId = (Long) authentication.getPrincipal();
-        CompetitionMatch match = competitionMatchService.togglePause(userId, botPause);
+        CompetitionMatch match = competitionMatchService.togglePause(userId, matchId, botPause);
         return ResponseEntity.ok(new BotPauseResponseDto(match.getMatchId(), match.getStatus().name()));
     }
 
-    @Operation(summary = "봇 컴피티션 결과 저장 - 정답/오답 정보 저장 후 점수/포인트 계산")
+    @Operation(summary = "봇 컴피티션 결과 저장 - 정답/오답 정보 저장 후 점수/포인트 계산, 승리 시에만 보상 지급")
     @PostMapping("/bot/result")
     public ResponseEntity<BotResultDto.Response> saveResult(
             Authentication authentication,
