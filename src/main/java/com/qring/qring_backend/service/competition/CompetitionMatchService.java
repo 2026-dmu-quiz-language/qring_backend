@@ -52,11 +52,10 @@ public class CompetitionMatchService {
     private static final int QUESTIONS_PER_TYPE = 7;
     private static final int STORY_QUESTION_COUNT = 4;
 
-    // 레벨별 기본 보상 (상/중/하)
-    private static final Map<Integer, Integer> BASE_REWARD = Map.of(1, 100, 2, 140, 3, 200);
+    // 레벨별 우승 보상 (상/중/하) — 참가만으로는 지급되지 않음, 승리해야 지급
+    private static final Map<Integer, Integer> WIN_REWARD = Map.of(1, 100, 2, 140, 3, 200);
 
     // 레벨별 입장 비용 — 반드시 서버가 결정한다.
-    // (기존에는 프론트가 보낸 entryCost 를 그대로 차감해서 0/음수 조작으로 무료 입장·포인트 증식이 가능했음)
     private static final Map<Integer, Integer> ENTRY_COST = Map.of(1, 50, 2, 70, 3, 100);
 
     private final UserRepository userRepository;
@@ -76,7 +75,6 @@ public class CompetitionMatchService {
     public BotLevelDto.Response startMatch(Long userId, BotLevelDto.Request request) {
 
         int level = mapBotLevelToInt(request.getBotLevel());
-        // 입장 비용은 서버가 레벨로 결정한다. 요청의 entryCost 는 신뢰하지 않는다 (위조 방지).
         int entryCost = ENTRY_COST.get(level);
         if (request.getEntryCost() != null && request.getEntryCost() != entryCost) {
             log.warn("[Competition] 프론트 entryCost({})와 서버 기준({}) 불일치 - 서버 값으로 차감. userId: {}",
@@ -90,10 +88,8 @@ public class CompetitionMatchService {
         UserAsset asset = userAssetRepository.findByUserUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저 자산 정보를 찾을 수 없습니다."));
 
-        // 1. 문제 선정: 스토리 4문제 + 신규 17문제 (유형별 정확히 7개씩)
         List<CompetitionQuizItemDto> questions = selectQuestions(level, langCode);
 
-        // 2. 매치 row 생성
         CompetitionMatch match = new CompetitionMatch();
         match.setUserId(userId);
         match.setLevel(level);
@@ -104,7 +100,6 @@ public class CompetitionMatchService {
         match.setStartedAt(LocalDateTime.now());
         competitionMatchRepository.save(match);
 
-        // 3. entry_cost 차감 (원자적 — 잔액 부족/동시 요청 시 여기서 거절) + 이력 기록
         int deducted = userAssetRepository.tryDeductPoints(userId, entryCost);
         if (deducted == 0) {
             throw new IllegalArgumentException("포인트가 부족합니다.");
@@ -123,20 +118,18 @@ public class CompetitionMatchService {
     }
 
     /**
-     * 매치 일시정지/재개 토글. 유저당 진행 중인 매치는 1개라고 보고 status로 찾음.
+     * 매치 일시정지/재개 토글. matchId로 특정 매치를 지정해서 처리.
      * 일시정지는 포인트 변동 없음 (결정사항).
      */
     @Transactional
-    public CompetitionMatch togglePause(Long userId, boolean pause) {
-        List<CompetitionMatch> activeMatches = competitionMatchRepository.findAllByUserIdAndStatusIn(
-                userId,
-                List.of(CompetitionMatch.MatchStatus.IN_PROGRESS, CompetitionMatch.MatchStatus.PAUSED));
+    public CompetitionMatch togglePause(Long userId, Long matchId, boolean pause) {
+        CompetitionMatch match = competitionMatchRepository.findByMatchIdAndUserId(matchId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("매치를 찾을 수 없습니다."));
 
-        if (activeMatches.isEmpty()) {
-            throw new IllegalArgumentException("진행 중인 매치가 없습니다.");
+        if (match.getStatus() != CompetitionMatch.MatchStatus.IN_PROGRESS
+                && match.getStatus() != CompetitionMatch.MatchStatus.PAUSED) {
+            throw new IllegalArgumentException("일시정지/재개할 수 없는 매치 상태입니다.");
         }
-
-        CompetitionMatch match = activeMatches.get(0);
 
         if (pause && match.getStatus() == CompetitionMatch.MatchStatus.IN_PROGRESS) {
             match.setStatus(CompetitionMatch.MatchStatus.PAUSED);
@@ -145,40 +138,44 @@ public class CompetitionMatchService {
             match.setStatus(CompetitionMatch.MatchStatus.IN_PROGRESS);
             match.setPausedAt(null);
         }
-        // 이미 같은 상태면 그대로 idempotent 처리
 
         return competitionMatchRepository.save(match);
     }
 
     /**
      * 매치 결과 저장 + 점수/포인트 계산.
-     * 프론트가 판정한 정답 여부를 그대로 신뢰하고 저장 (재검증 없음).
+     * matchId로 매치를 특정해서 조회 (활성 매치 중 첫 번째를 가져오던 기존 버그 수정).
+     * 승패 판정: 라운드 승수가 봇보다 많아야 승리. 무승부/패배는 보상 없음.
      */
     @Transactional
     public BotResultDto.Response saveResult(Long userId, BotResultDto.Request request) {
 
-        List<CompetitionMatch> activeMatches = competitionMatchRepository.findAllByUserIdAndStatusIn(
-                userId,
-                List.of(CompetitionMatch.MatchStatus.IN_PROGRESS, CompetitionMatch.MatchStatus.PAUSED));
+        CompetitionMatch match = competitionMatchRepository
+                .findByMatchIdAndUserId(request.getMatchId(), userId)
+                .orElseThrow(() -> new IllegalArgumentException("매치를 찾을 수 없습니다."));
 
-        if (activeMatches.isEmpty()) {
-            throw new IllegalArgumentException("진행 중인 매치가 없습니다.");
+        if (match.getStatus() != CompetitionMatch.MatchStatus.IN_PROGRESS
+                && match.getStatus() != CompetitionMatch.MatchStatus.PAUSED) {
+            throw new IllegalArgumentException("이미 종료되었거나 처리할 수 없는 매치입니다.");
         }
-        CompetitionMatch match = activeMatches.get(0);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
         String langCode = user.getLanguage();
 
         int correctCount = 0;
+        int userRoundWins = 0;
+        int botRoundWins = 0;
 
         for (BotResultDto.AnswerItem item : request.getAnswers()) {
 
             String roundWinner;
             if (item.isUserIsCorrect() && !item.isBotIsCorrect()) {
                 roundWinner = "USER";
+                userRoundWins++;
             } else if (!item.isUserIsCorrect() && item.isBotIsCorrect()) {
                 roundWinner = "BOT";
+                botRoundWins++;
             } else {
                 roundWinner = "DRAW";
             }
@@ -199,7 +196,6 @@ public class CompetitionMatchService {
                 continue;
             }
 
-            // 오답 저장 (출처별로 다른 테이블)
             if ("STORY".equals(item.getSourceType())) {
                 saveStoryWrongAnswer(userId, item.getSourceQuizContentId());
             } else {
@@ -209,10 +205,16 @@ public class CompetitionMatchService {
 
         int wrongCount = request.getAnswers().size() - correctCount;
 
-        // 보상 계산: 기본 보상 + 스트릭 보너스 (연속구간마다 계산해서 합산 - 옵션 B)
-        int baseReward = BASE_REWARD.getOrDefault(match.getLevel(), 0);
-        int streakBonus = calculateStreakBonusFromAnswers(request.getAnswers());
-        int rewardPoint = baseReward + streakBonus;
+        boolean isWin = userRoundWins > botRoundWins;
+
+        int rewardPoint;
+        if (isWin) {
+            int winReward = WIN_REWARD.getOrDefault(match.getLevel(), 0);
+            int streakBonus = calculateStreakBonusFromAnswers(request.getAnswers());
+            rewardPoint = winReward + streakBonus;
+        } else {
+            rewardPoint = 0;
+        }
 
         match.setStatus(CompetitionMatch.MatchStatus.COMPLETED);
         match.setCorrectCount(correctCount);
@@ -220,35 +222,32 @@ public class CompetitionMatchService {
         match.setCompletedAt(LocalDateTime.now());
         competitionMatchRepository.save(match);
 
-        // 매치 완료 시 학습 로그 1줄 저장 (연속 학습일수 계산이 user_study_log 날짜 기준이라 필요)
         UserStudyLog studyLog = new UserStudyLog();
         studyLog.setUser(user);
-        studyLog.setQuiz(null); // 스토리 문제와 무관한 활동이라 quiz 연결 없음
+        studyLog.setQuiz(null);
         studyLog.setLangCode(langCode);
         userStudyLogRepository.save(studyLog);
 
-        // 보상 지급 + 이력 기록
         UserAsset asset = userAssetRepository.findByUserUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저 자산 정보를 찾을 수 없습니다."));
-        userAssetRepository.addPoints(userId, rewardPoint);
-        int balanceAfter = asset.getCurrentPoints() + rewardPoint;
 
-        UserAssetHistory history = new UserAssetHistory();
-        history.setUserId(userId);
-        history.setChangeAmount(rewardPoint);
-        history.setBalanceAfter(balanceAfter);
-        history.setSourceType(SourceType.COMPETITION_REWARD);
-        history.setReferenceId(match.getMatchId());
-        userAssetHistoryRepository.save(history);
+        int balanceAfter = asset.getCurrentPoints();
+        if (rewardPoint > 0) {
+            userAssetRepository.addPoints(userId, rewardPoint);
+            balanceAfter = asset.getCurrentPoints() + rewardPoint;
+
+            UserAssetHistory history = new UserAssetHistory();
+            history.setUserId(userId);
+            history.setChangeAmount(rewardPoint);
+            history.setBalanceAfter(balanceAfter);
+            history.setSourceType(SourceType.COMPETITION_REWARD);
+            history.setReferenceId(match.getMatchId());
+            userAssetHistoryRepository.save(history);
+        }
 
         return new BotResultDto.Response(match.getMatchId(), correctCount, wrongCount, rewardPoint, balanceAfter);
     }
 
-    /**
-     * 21문제(roundNo 순서)를 훑어서 끊기지 않는 연속 정답 구간(run)을 찾고,
-     * 구간마다 도달한 최고 티어 보너스를 각각 계산해서 합산.
-     * 예: 7연속 -> 오답 -> 7연속 이면 +10 + +10 = +20
-     */
     private int calculateStreakBonusFromAnswers(List<BotResultDto.AnswerItem> answers) {
         List<BotResultDto.AnswerItem> sorted = answers.stream()
                 .sorted((a, b) -> Integer.compare(a.getRoundNo(), b.getRoundNo()))
@@ -265,13 +264,13 @@ public class CompetitionMatchService {
                 currentRun = 0;
             }
         }
-        totalBonus += streakTierBonus(currentRun); // 마지막 구간 처리
+        totalBonus += streakTierBonus(currentRun);
 
         return totalBonus;
     }
 
     private int streakTierBonus(int runLength) {
-        if (runLength >= TOTAL_QUESTIONS) return 35; // 21문제 올백
+        if (runLength >= TOTAL_QUESTIONS) return 35;
         if (runLength >= 14) return 25;
         if (runLength >= 7) return 10;
         return 0;
@@ -321,7 +320,6 @@ public class CompetitionMatchService {
 
     private List<CompetitionQuizItemDto> selectQuestions(int level, String langCode) {
 
-        // 1) 스토리 문제 4개 랜덤 추출 (유형 무관, 난이도만 매칭)
         List<QuizDetail> storyPool = quizDetailRepository.findAllByDifficulty(level);
         Collections.shuffle(storyPool);
 
@@ -332,7 +330,6 @@ public class CompetitionMatchService {
                     .ifPresent(storyPicked::add);
         }
 
-        // 2) 스토리에서 뽑힌 문제의 유형별 개수 집계 (fill_in_blank -> subjective로 매핑)
         Map<String, Long> storyTypeCounts = storyPicked.stream()
                 .collect(Collectors.groupingBy(
                         qc -> normalizeType(qc.getQuizDetail().getQuizType()),
@@ -340,9 +337,8 @@ public class CompetitionMatchService {
 
         int mcNeeded = QUESTIONS_PER_TYPE - storyTypeCounts.getOrDefault("multiple_choice", 0L).intValue();
         int subjNeeded = QUESTIONS_PER_TYPE - storyTypeCounts.getOrDefault("subjective", 0L).intValue();
-        int wordNeeded = QUESTIONS_PER_TYPE; // 스토리에 word_arrange 없음, 항상 신규에서 전부
+        int wordNeeded = QUESTIONS_PER_TYPE;
 
-        // 3) 신규(컴피티션) 문제 풀에서 유형별로 부족한 만큼 랜덤 추출
         List<CompetitionQuizContent> compPool = competitionQuizContentRepository
                 .findAllByLevelAndLangCode(level, langCode);
 
@@ -350,12 +346,10 @@ public class CompetitionMatchService {
         List<CompetitionQuizContent> subjPicked = pickByType(compPool, "subjective", subjNeeded);
         List<CompetitionQuizContent> wordPicked = pickByType(compPool, "word_arrange", wordNeeded);
 
-        // 4) 봇 정답률 프로필 조회
         int correctRate = competitionBotProfileRepository.findById(level)
                 .map(CompetitionBotProfile::getCorrectRate)
-                .orElse(50); // 프로필 없으면 기본 50%
+                .orElse(50);
 
-        // 5) 최종 문제 리스트 조립 + 봇 시뮬레이션
         List<CompetitionQuizItemDto> result = new ArrayList<>();
         for (QuizContent qc : storyPicked) {
             result.add(toDto("STORY", qc, correctRate));
