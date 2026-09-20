@@ -599,6 +599,54 @@ class OpenAiStoryServiceTest {
     }
 
     @Test
+    @DisplayName("퀴즈 페이싱: 2~3턴은 자연스러울 때만(MAY), 4턴부터 필수(MUST), 8턴이면 마무리, 강제 비퀴즈 턴")
+    void pacingWindowAndForcedClose() {
+        StorySession session = newSession();
+        session.incrementTurnsSinceLastQuiz();
+        session.incrementTurnsSinceLastQuiz();
+        String may = service.buildTurnDirective(session, "hi");
+        assertTrue(may.contains("You MAY present a quiz this turn"));
+        assertTrue(may.contains("REQUIRED QUIZ TYPE FOR THIS QUIZ"));
+        assertFalse(may.contains("You MUST present a quiz"));
+
+        session.incrementTurnsSinceLastQuiz();
+        session.incrementTurnsSinceLastQuiz();
+        String must = service.buildTurnDirective(session, "hi");
+        assertTrue(must.contains("You MUST present a quiz this turn"));
+        assertFalse(OpenAiStoryService.isOverdueForClose(session));
+
+        for (int i = 0; i < 4; i++) {
+            session.incrementTurnsSinceLastQuiz();
+        }
+        assertTrue(OpenAiStoryService.isOverdueForClose(session), "8턴이면 상한");
+        String close = service.buildTurnDirective(session, "hi");
+        assertTrue(close.contains("THE SCENE HAS RUN LONG"));
+        assertTrue(close.contains("`is_completed: true`"));
+        assertFalse(close.contains("REQUIRED QUIZ TYPE"));
+        assertTrue(InteractiveStoryService.shouldForceComplete(session), "서버도 같은 턴에 완결 처리한다");
+
+        String plain = service.buildTurnDirective(newSession(), "hi", true);
+        assertTrue(plain.contains("NO QUIZ THIS TURN"));
+    }
+
+    @Test
+    @DisplayName("이야기 메모(story_so_far)가 이번 턴 블록에 들어가고, 대화 주도권 규칙이 정적 프롬프트에 있다")
+    void storySoFarAndLearnerSteers() {
+        StorySession session = newSession();
+        assertTrue(service.buildTurnDirective(session, "hi").contains("STORY SO FAR"));
+        assertTrue(service.buildTurnDirective(session, "hi").contains("(nothing yet - the scene just started)"));
+        session.setStorySoFar("시험 끝나고 같이 점심 먹기로 함. 7시에 노래방.");
+        assertTrue(service.buildTurnDirective(session, "hi").contains("시험 끝나고 같이 점심 먹기로 함. 7시에 노래방."));
+
+        String prompt = service.buildStaticSystemPrompt(session);
+        assertTrue(prompt.contains("THE LEARNER STEERS"));
+        assertTrue(prompt.contains("\"story_so_far\""));
+        assertTrue(prompt.contains("Never brush it off with \"let's keep it friendly\""));
+        assertFalse(prompt.contains("the next choice in the activity (size, side, seat, time, route)"), "카페 템플릿 목록은 삭제");
+        assertTrue(prompt.contains("the question asks for '노래방', not '노래방 가자'"));
+    }
+
+    @Test
     @DisplayName("AI 가 이미 했던 질문을 다시 퀴즈로 내면 판별한다")
     void detectsRepeatedQuestion() {
         List<Map<String, String>> history = List.of(

@@ -33,6 +33,15 @@ public class OpenAiStoryService {
     /** 채점 분류값: 시도 자체가 아님 (딴 얘기, 보기 밖 자유 입력 등). 퀴즈는 그대로 대기한다. */
     public static final String NOT_ATTEMPT = "not_attempt";
 
+    /** 퀴즈 턴 창: 마지막 퀴즈 후 이 턴부터 퀴즈를 낼 수 있고(자연스러운 자리가 있을 때), */
+    public static final int QUIZ_ALLOWED_FROM_TURN = 2;
+    /** 이 턴부터는 반드시 내야 한다. */
+    public static final int QUIZ_REQUIRED_FROM_TURN = 4;
+    /** 퀴즈 턴이 이만큼 연속 실패하면 부드러운 검사(되묻기·메타·자기질문 등)를 풀고 구조 검사만 남긴다. */
+    public static final int RELAX_CHECKS_AFTER_FAILED_QUIZ_TURNS = 2;
+    /** 마지막 퀴즈 후 이만큼 턴이 지나도 퀴즈가 안 나오면 서버가 장면을 닫는다 (무한 대화 방지, 실측 사례). */
+    public static final int MAX_TURNS_WITHOUT_QUIZ = 8;
+
     @Value("${qring.openai.api-key:}")
     private String apiKey;
 
@@ -236,6 +245,21 @@ public class OpenAiStoryService {
     }
 
     /**
+     * 퀴즈가 재생성까지 거부됐을 때의 마지막 안전판: 이번 턴을 "퀴즈 없는 일반 턴"으로 다시 받는다.
+     * 거부된 퀴즈용 대사(메타 질문 등)가 사용자에게 나가지 않게 하려는 것이다.
+     */
+    public Map<String, Object> generateNonQuizTurn(StorySession session, String userMessage, String recordedAnswerResult) {
+        String directive = buildTurnDirective(session, userMessage, true)
+                + String.format("""
+
+            NOTE: your quiz attempts for this turn were rejected by the server. This turn is now a plain conversation turn:
+            "is_quiz": false, no question that exists only to set up a quiz. Just respond to the learner in character.
+            The learner's answer to the previous quiz has already been recorded as "%s" - keep "answer_result" as "%s".
+            """, recordedAnswerResult, recordedAnswerResult);
+        return generateTurn(session, buildStaticSystemPrompt(session), directive);
+    }
+
+    /**
      * 서버가 퀴즈를 거부했을 때의 재생성 호출. 거부 사유를 붙여 대사와 퀴즈를 함께 다시 받는다.
      * 답안 판정(answerResult)은 첫 응답 기준으로 이미 확정되었으므로 그대로 유지하라고 알린다.
      */
@@ -378,17 +402,18 @@ public class OpenAiStoryService {
               they said "차가운거 가자" and you asked "Do you prefer your drink hot or iced?"; they said "난 기본이 좋더라"
               and you asked "Do you usually prefer the original flavor?". Each of these asks a question that was just
               answered. Instead: "Fries it is! Want ketchup or mayo with them?" -> quiz the reply to THAT.
-            - HOW TO FIND THE NEXT THING (do this instead of grabbing their last sentence): pick the NEXT BEAT OF THIS
-              STORY that has not happened yet, and make your question the thing your character genuinely needs to ask
-              at that moment. The learner's reply (the quiz) is their in-story decision.
-                * In a dramatic scene: a demand, an accusation, a plea, a bargain, a last request, a question that
-                  digs into what they just revealed. Example [meaning] - the learner says they came on the boss's
-                  orders to kill you -> you: "크윽... 정말 보스가 시킨 일이야?" -> the quiz is THEIR reply, e.g.
-                  word_arrange for [meaning: "미안하지만 사실 내 야망이 시킨 일이야"], or multiple_choice between
-                  [meaning: "그래, 보스 명령이야" / "아니, 내가 원해서 왔어" / "그건 말할 수 없어"].
-                * In an everyday scene: the next choice in the activity (size, side, seat, time, route), the next step
-                  (ordering -> paying -> leaving), or a related preference they have not mentioned.
-              Never ask about logistics or trivia while the scene is dramatic.
+            - THE LEARNER STEERS. The next beat of the story is whatever follows from THEIR last message - their topic,
+              their joke, their provocation, their question, their plan. You never have a plan of your own for where the
+              conversation should go, and you never steer it back to something you wanted to ask. If they change the
+              subject, the story changed subject. If they ask you something, answer it properly first.
+              Example [meaning] - the learner says they came on the boss's orders to kill you -> you:
+              "크윽... 정말 보스가 시킨 일이야?" -> the quiz is THEIR reply, e.g. word_arrange for
+              [meaning: "미안하지만 사실 내 야망이 시킨 일이야"], or multiple_choice between [meaning: "그래, 보스 명령이야" / "아니, 내가 원해서 왔어" / "그건 말할 수 없어"].
+            - When the learner is playful, rude, hostile, absurd, or off-script ("I'm going to hit you", "you're broken"),
+              your character REACTS to that as a person would - surprised, annoyed, amused, hurt, teasing back - and the
+              scene follows it. Never brush it off with "let's keep it friendly" and return to your previous question.
+            - Do not manufacture a sequence of small choices (drink -> dessert -> cake flavour...). One quiz per moment,
+              taken from where the learner actually is.
             - reply_meaning is the learner's actual spoken LINE in Korean, written as speech ("그래, 보스 명령이야",
               "다른 계획이 있어", "창가 자리로 할게"), never a description of it ("무엇을 할지", "이유를 말하기",
               "보스가 시킨 이유"). The server rejects descriptions.
@@ -462,6 +487,9 @@ public class OpenAiStoryService {
                    - acceptable_answers: [that expression, plus natural variants if any].
                    - The answer is ONE word or a phrase of at most 3 words. NEVER ask the learner to type a full sentence -
                      typing long sentences is tiring on a phone.
+                   - The question must ask for EXACTLY the expression in acceptable_answers. If the answer is "karaoke",
+                     the question asks for '노래방', not '노래방 가자'. If the reply you want is a whole sentence, use
+                     word_arrange instead.
                  Format D (fill in the blank as multiple_choice):
                    - question: "다음을 완성해 보세요. '<reply with one blank>' (<Korean meaning of the blank>)" ; options: 3 candidates
             3. QUIZ TYPE VARIETY:
@@ -491,6 +519,8 @@ public class OpenAiStoryService {
             OUTPUT FORMAT (Strict JSON - keep EXACTLY this field order; decide the quiz BEFORE you write the line):
             {
               "answer_result": "correct" | "incorrect" | "none",
+              "story_so_far": "1-2 Korean lines: the facts and agreements established so far in this scene (who decided what,
+                               plans, feelings), updated from the STORY SO FAR notes in the THIS TURN block. Never drop an agreement.",
               "is_quiz": boolean,
               "quiz": { ... } (include ONLY if is_quiz is true),
               "ai_message": "Natural in-character reaction, 100%% in the Target Language, at the speech level the relationship calls for.
@@ -515,22 +545,41 @@ public class OpenAiStoryService {
 
     /** 이번 턴에만 해당하는 블록: 채점, 페이싱, 이미 아는 것 목록, 기출 표현. 히스토리 뒤에 system 메시지로 붙는다. */
     String buildTurnDirective(StorySession session, String userMessage) {
+        return buildTurnDirective(session, userMessage, false);
+    }
+
+    /** 마지막 퀴즈 후 턴 수가 상한을 넘어 서버가 장면을 닫아야 하는 턴인지. */
+    static boolean isOverdueForClose(StorySession session) {
+        return session.getPendingQuiz() == null
+                && session.getQuizCount() < session.getQuizLimit()
+                && session.getTurnsSinceLastQuiz() >= MAX_TURNS_WITHOUT_QUIZ;
+    }
+
+    String buildTurnDirective(StorySession session, String userMessage, boolean forceNoQuiz) {
         int currentQuizCount = session.getQuizCount();
         int quizLimit = session.getQuizLimit() > 0 ? session.getQuizLimit() : MAX_QUIZ_COUNT;
         int turnsSinceLastQuiz = session.getTurnsSinceLastQuiz();
         boolean quizBudgetLeft = currentQuizCount < quizLimit;
         boolean quizPending = session.getPendingQuiz() != null;
-        boolean allowQuiz = turnsSinceLastQuiz >= 2 && quizBudgetLeft && !quizPending;
+        boolean overdue = isOverdueForClose(session);
+        boolean allowQuiz = !forceNoQuiz && !overdue && turnsSinceLastQuiz >= QUIZ_ALLOWED_FROM_TURN && quizBudgetLeft && !quizPending;
+        boolean quizRequired = turnsSinceLastQuiz >= QUIZ_REQUIRED_FROM_TURN;
 
         // 한도의 마지막 퀴즈를 채점하는 턴인지 — 정답이면 이 턴이 스토리의 마지막 대사가 된다
         boolean gradingFinalQuiz = quizPending && currentQuizCount >= quizLimit;
 
         String pacingDirective;
-        if (allowQuiz) {
+        if (forceNoQuiz) {
+            pacingDirective = "NO QUIZ THIS TURN. Set `is_quiz: false`. Respond to the learner in character; a question is optional and must be a real one, never a quiz set-up.";
+        } else if (overdue && quizBudgetLeft) {
+            pacingDirective = String.format("THE SCENE HAS RUN LONG (%d turns without a quiz). Do NOT present a quiz. Bring the scene to a warm, natural close IN THIS MESSAGE (react to what they just said, then wrap up the way this scene would really end), and set `is_completed: true`. No new question.", turnsSinceLastQuiz);
+        } else if (allowQuiz) {
             String requiredType = pickNextQuizType(session.getUsedQuizTypes());
-            pacingDirective = String.format("PACING RULE: Sufficient dialogue turns have passed (%d turns since last quiz). You SHOULD now present a quiz by setting `is_quiz: true`. REQUIRED QUIZ TYPE FOR THIS QUIZ: \"%s\" - set `quiz_type` to exactly this value and design the quiz in that format. Your ai_message for this turn MUST end with the ONE closed in-story question that the quiz answer replies to (see THE MOST IMPORTANT QUIZ RULE). "
-                    + "React to what the learner just said fully and in character, then end with a question about the NEXT BEAT of the story that is not in the ALREADY KNOWN list below. The server rejects a quiz that re-asks anything already known, and rejects meta questions about language.",
-                    turnsSinceLastQuiz, requiredType);
+            String must = quizRequired
+                    ? String.format("PACING RULE: %d turns have passed since the last quiz. You MUST present a quiz this turn by setting `is_quiz: true`.", turnsSinceLastQuiz)
+                    : String.format("PACING RULE: %d turns have passed since the last quiz. You MAY present a quiz this turn IF the learner's last message gives you a natural closed question to ask; if the moment does not fit, set `is_quiz: false`, respond naturally, and you will get another chance next turn (a quiz becomes mandatory from turn %d).", turnsSinceLastQuiz, QUIZ_REQUIRED_FROM_TURN);
+            pacingDirective = must + String.format(" REQUIRED QUIZ TYPE FOR THIS QUIZ: \"%s\" - set `quiz_type` to exactly this value and design the quiz in that format. On a quiz turn your ai_message MUST end with the ONE closed in-story question that the quiz answer replies to (see THE MOST IMPORTANT QUIZ RULE). ", requiredType)
+                    + "React to what the learner just said fully and in character; the question comes from THEIR thread, not from a plan of yours, and must not be in the ALREADY KNOWN list below. The server rejects a quiz that re-asks anything already known, and rejects meta questions about language.";
         } else if (quizPending) {
             pacingDirective = "A quiz is still pending. Follow section 1 (grading) for this turn. Do NOT design a new quiz; set `is_quiz: false` (the app re-shows the pending quiz by itself when needed).";
         } else if (gradingFinalQuiz) {
@@ -561,13 +610,18 @@ public class OpenAiStoryService {
                - Questions you already asked as quizzes (never ask them again, even rephrased):
             %s
                - Expressions already tested (never the focus or answer of a quiz again): %s
-            5. The learner's latest message: "%s"
+            5. STORY SO FAR (your own notes from the previous turn - facts and agreements that are settled; keep them true):
+               %s
+            6. The learner's latest message: "%s"
                React to THIS first, in character, before anything else. If it introduces a person, an event, a threat, a
-               confession or an accusation, this whole turn is about that - do not change the subject.
+               confession, an accusation, a joke or a provocation, this whole turn is about that - do not change the subject
+               and do not go back to anything you wanted to ask before.
             """, quizContextDirective, pacingDirective, currentQuizCount, quizLimit, quizLimit,
                 bulletList(session.recentUserMessages(ALREADY_KNOWN_MESSAGES)),
                 bulletList(session.getAskedQuestions()),
-                testedSubjectsDirective, userMessage);
+                testedSubjectsDirective,
+                session.getStorySoFar() == null || session.getStorySoFar().isBlank() ? "(nothing yet - the scene just started)" : session.getStorySoFar().trim(),
+                userMessage);
     }
 
     /** "이미 아는 것" 목록에 넣는 최근 사용자 발화 수. 되묻기 검사(isReaskOfRecentUserMessage)도 같은 범위를 본다. */

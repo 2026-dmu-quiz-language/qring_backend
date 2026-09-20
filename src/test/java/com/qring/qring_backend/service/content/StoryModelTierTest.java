@@ -72,6 +72,25 @@ class StoryModelTierTest {
     }
 
     @Test
+    @DisplayName("이야기 메모와 퀴즈 턴 실패 횟수도 runtime_state 로 저장·복원된다")
+    void storyNotesSurvivePersistence() {
+        StorySessionMapper mapper = new StorySessionMapper();
+        StorySession session = StorySession.builder()
+                .sessionId("sess-2").userId(1L).characterName("피카츄").situationDescription("시험장")
+                .tone("다정하게").targetLanguage("English").levelCode(1).build();
+        session.setStorySoFar("같이 점심 먹기로 함");
+        session.setFailedQuizTurns(2);
+        session.addAssistantMessage("Hey.", "야.");
+
+        StorySession restored = mapper.toDomain(mapper.toNewEntity(session));
+        assertEquals("같이 점심 먹기로 함", restored.getStorySoFar());
+        assertEquals(2, restored.getFailedQuizTurns());
+
+        restored.recordQuiz(Map.of("quiz_type", "subjective", "correct_answer", "karaoke"));
+        assertEquals(0, restored.getFailedQuizTurns(), "퀴즈가 수락되면 실패 횟수는 0");
+    }
+
+    @Test
     @DisplayName("이어하기 표시에 차감 포인트가 남는다")
     void extensionMarkerRecordsCharge() {
         StorySession session = StorySession.builder().sessionId("s").build();

@@ -173,7 +173,8 @@ public class InteractiveStoryService {
             throw e;
         }
 
-        String aiMsg = textOrDefault(turnResponse.get("ai_message"), "Got it!");
+        String aiMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(textOrDefault(turnResponse.get("ai_message"), "Got it!"));
+        rememberStorySoFar(session, turnResponse);
         // 번역이 비면 빈 문자열로 둔다 — 엉뚱한 기본 문구("알겠어!")가 영어 대사 밑에 붙지 않게
         String translation = textOrDefault(turnResponse.get("translation"), "");
         if (translation.isEmpty()) {
@@ -246,12 +247,18 @@ public class InteractiveStoryService {
         boolean isNewQuiz = false;
         // 페이싱은 서버가 강제한다: 마지막 퀴즈(또는 시작) 후 2턴이 지나야 새 퀴즈를 받는다.
         // 3회 오답 공개 턴이나 정답 직후 턴에 모델이 새 퀴즈를 끼워 넣던 실측 사례 방지.
-        boolean pacingAllowsQuiz = session.getTurnsSinceLastQuiz() >= 2;
+        boolean pacingAllowsQuiz = session.getTurnsSinceLastQuiz() >= OpenAiStoryService.QUIZ_ALLOWED_FROM_TURN
+                && !OpenAiStoryService.isOverdueForClose(session);
+        // 퀴즈 턴이 연속으로 실패하면 부드러운 검사를 풀어 준다 (실측: 메타 질문 12턴 연속 거부 → 세션이 안 끝남)
+        boolean relaxedChecks = session.getFailedQuizTurns() >= OpenAiStoryService.RELAX_CHECKS_AFTER_FAILED_QUIZ_TURNS;
+        if (relaxedChecks) {
+            log.info("[InteractiveStory] 세션 {} 퀴즈 턴 {}회 연속 실패 - 구조 검사만 적용", sessionId, session.getFailedQuizTurns());
+        }
         if (!isRetry && modelWantsQuiz && !pacingAllowsQuiz) {
             log.info("[InteractiveStory] 세션 {} 페이싱 미달({}턴)인데 모델이 퀴즈를 냄 - 무시", sessionId, session.getTurnsSinceLastQuiz());
         }
         if (!isRetry && modelWantsQuiz && pacingAllowsQuiz && session.getQuizCount() < session.getQuizLimit()) {
-            String rejection = rejectionReason(session, aiMsg, modelQuiz);
+            String rejection = rejectionReason(session, aiMsg, modelQuiz, relaxedChecks);
             if (rejection != null) {
                 // 거부된 퀴즈를 그냥 버리면 "질문만 나가고 퀴즈는 없는" 턴이 되고, 다음 턴에 같은 질문이 반복된다 (실측).
                 // 거부 사유를 붙여 한 번 다시 받아 대사와 퀴즈를 함께 교체한다. 답안 판정은 이미 확정된 값을 유지한다.
@@ -260,26 +267,36 @@ public class InteractiveStoryService {
                 try {
                     Map<String, Object> redo = openAiStoryService.regenerateTurnWithCorrection(
                             session, request.getUserMessage(), rejection, answerResult);
-                    String redoMsg = textOrDefault(redo.get("ai_message"), "");
+                    String redoMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(textOrDefault(redo.get("ai_message"), ""));
                     @SuppressWarnings("unchecked")
                     Map<String, Object> redoQuiz = redo.get("quiz") instanceof Map
                             ? OpenAiStoryService.sanitizeQuiz((Map<String, Object>) redo.get("quiz"))
                             : null;
                     boolean redoWantsQuiz = toBoolean(redo.get("is_quiz")) && redoQuiz != null;
-                    String redoRejection = redoWantsQuiz ? rejectionReason(session, redoMsg, redoQuiz) : "no quiz";
-                    if (!redoMsg.isEmpty()) {
+                    String redoRejection = redoWantsQuiz ? rejectionReason(session, redoMsg, redoQuiz, relaxedChecks) : "no quiz";
+                    if (redoRejection == null) {
                         aiMsg = redoMsg;
                         translation = textOrDefault(redo.get("translation"), "");
-                    }
-                    if (redoRejection == null) {
+                        rememberStorySoFar(session, redo);
                         modelQuiz = redoQuiz;
                         rejection = null;
                     } else {
-                        log.warn("[InteractiveStory] 세션 {} 재생성 퀴즈도 거부 ({}) - 이번 턴은 퀴즈 없이 진행", sessionId, redoRejection);
+                        // 두 번 다 거부: 퀴즈용 대사(메타 질문 등)를 내보내지 않고, 이번 턴을 퀴즈 없는 일반 턴으로 다시 받는다
+                        log.warn("[InteractiveStory] 세션 {} 재생성 퀴즈도 거부 ({}) - 퀴즈 없는 일반 턴으로 대체", sessionId, redoRejection);
+                        Map<String, Object> plain = openAiStoryService.generateNonQuizTurn(session, request.getUserMessage(), answerResult);
+                        String plainMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(textOrDefault(plain.get("ai_message"), ""));
+                        if (!plainMsg.isEmpty()) {
+                            aiMsg = plainMsg;
+                            translation = textOrDefault(plain.get("translation"), "");
+                            rememberStorySoFar(session, plain);
+                        }
                     }
                 } catch (RuntimeException e) {
-                    log.warn("[InteractiveStory] 세션 {} 퀴즈 재생성 호출 실패 - 첫 대사로 퀴즈 없이 진행: {}", sessionId, e.getMessage());
+                    log.warn("[InteractiveStory] 세션 {} 퀴즈 재생성/대체 호출 실패 - 첫 대사로 퀴즈 없이 진행: {}", sessionId, e.getMessage());
                 }
+            }
+            if (rejection != null) {
+                session.setFailedQuizTurns(session.getFailedQuizTurns() + 1);
             }
             if (rejection == null) {
                 isNewQuiz = true;
@@ -642,8 +659,18 @@ public class InteractiveStoryService {
 
     /** 퀴즈 한도를 모두 소진했고 마지막 퀴즈의 채점까지 끝났는지 (서버 강제 종료 조건). */
     static boolean shouldForceComplete(StorySession session) {
-        return session.getQuizCount() >= session.getQuizLimit()
+        boolean allQuizzesGraded = session.getQuizCount() >= session.getQuizLimit()
                 && session.getPendingQuiz() == null;
+        // 마지막 퀴즈 후 턴 수가 상한을 넘으면 퀴즈가 남았어도 닫는다 (무한 대화 방지). 프롬프트도 같은 턴에 마무리를 지시한다.
+        return allQuizzesGraded || OpenAiStoryService.isOverdueForClose(session);
+    }
+
+    /** 모델이 매 턴 갱신하는 "지금까지의 이야기" 메모를 세션에 저장한다 (비어 있으면 이전 값 유지). */
+    private static void rememberStorySoFar(StorySession session, Map<String, Object> response) {
+        String note = textOrDefault(response.get("story_so_far"), "");
+        if (!note.isEmpty()) {
+            session.setStorySoFar(note.length() > 600 ? note.substring(0, 600) : note);
+        }
     }
 
     /**
@@ -745,6 +772,14 @@ public class InteractiveStoryService {
      * 재생성 호출 때 모델에게 그대로 전달되므로 영어로 쓴다.
      */
     private static String rejectionReason(StorySession session, String aiMsg, Map<String, Object> quiz) {
+        return rejectionReason(session, aiMsg, quiz, false);
+    }
+
+    /**
+     * @param relaxed 퀴즈 턴이 연속 실패한 뒤에는 true. 구조 검사(기출 중복·앵무새·대사 연결)만 남기고
+     *                되묻기·질문 반복·메타·자기질문·설명형 검사는 건너뛴다 (세션이 영원히 안 끝나는 것보다 낫다).
+     */
+    private static String rejectionReason(StorySession session, String aiMsg, Map<String, Object> quiz, boolean relaxed) {
         if (isDuplicateQuizSubject(session.getTestedQuizSubjects(), quiz)) {
             // 이미 다뤘던 표현을 형식만 바꿔 다시 낸 퀴즈 (프롬프트 금지 지시를 모델이 어긴 경우)
             return "the answer \"" + quiz.get("correct_answer") + "\" repeats an expression that was already tested in this session";
@@ -761,6 +796,9 @@ public class InteractiveStoryService {
             // 학습자가 방금 한 말(한국어)을 그대로 퀴즈로 되묻는 경우 (실측: "응 주로 미드 해" → "주로 미드 해")
             return "the quiz just re-asks what the learner already told you (reply_meaning \"" + quiz.get("reply_meaning")
                     + "\" repeats their recent message), so it asks for nothing new";
+        }
+        if (relaxed) {
+            return null;
         }
         if (OpenAiStoryService.isDescriptiveReplyMeaning(quiz)) {
             // reply_meaning 이 대사가 아니라 설명이면 퀴즈 질문이 뜻을 잃는다
