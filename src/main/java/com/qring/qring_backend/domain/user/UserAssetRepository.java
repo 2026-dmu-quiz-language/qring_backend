@@ -20,4 +20,9 @@ public interface UserAssetRepository extends JpaRepository<UserAsset, Long> {
     @Query("UPDATE UserAsset ua SET ua.currentPoints = ua.currentPoints - :points " +
            "WHERE ua.user.userId = :userId AND ua.currentPoints >= :points")
     int tryDeductPoints(@Param("userId") Long userId, @Param("points") int points);
+
+    /** 회원 탈퇴: 사용자의 row 전부 삭제 (UserWithdrawalService 전용, 서비스 트랜잭션 안에서 호출). */
+    @Modifying
+    @Query("DELETE FROM UserAsset ua WHERE ua.user.userId = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 }

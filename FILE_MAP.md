@@ -27,10 +27,12 @@ qring_backend/
    │     │
    │     ├─ auth/                                — 인증/계정 도메인 (회원가입·로그인·소셜·JWT)
    │     │  ├─ controller/                       — HTTP 엔드포인트 진입점
-   │     │  │  └─ AuthController.java            — /api/v1/auth/** 라우팅
+   │     │  │  ├─ AuthController.java            — /api/v1/auth/** 라우팅
+   │     │  │  └─ UserController.java            — DELETE /api/v1/users/withdraw 회원 탈퇴 (프론트 호환 경로 2개 추가)
    │     │  │
    │     │  ├─ service/                          — 인증 비즈니스 로직
    │     │  │  ├─ AuthService.java               — 가입·로그인·소셜·토큰 재발급·학습 설정 핵심 로직
+   │     │  │  ├─ UserWithdrawalService.java     — 회원 탈퇴: 사용자 데이터 전 테이블 하드 삭제 → users 삭제 (단일 트랜잭션)
    │     │  │  ├─ EmailService.java              — 이메일 인증 코드 생성·발송·검증 (메모리 맵 기반)
    │     │  │  ├─ OAuthService.java              — Google/Kakao/LINE 외부 OAuth 통신 및 토큰 검증
    │     │  │  └─ DisposableEmailService.java    — 일회용/임시 이메일 도메인 차단 판별기

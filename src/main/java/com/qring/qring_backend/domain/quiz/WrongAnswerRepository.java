@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -78,4 +79,9 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
             @Param("userId") Long userId,
             @Param("contentId") Long contentId,
             @Param("cutoff") LocalDateTime cutoff);
+
+    /** 회원 탈퇴: 사용자의 row 전부 삭제 (UserWithdrawalService 전용, 서비스 트랜잭션 안에서 호출). */
+    @Modifying
+    @Query("DELETE FROM WrongAnswer wa WHERE wa.userId = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 }

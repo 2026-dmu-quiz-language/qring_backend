@@ -249,6 +249,11 @@ public class AuthService {
     private final java.util.concurrent.ConcurrentHashMap<Long, String> issuedResetTokens =
         new java.util.concurrent.ConcurrentHashMap<>();
 
+    /** 회원 탈퇴 시 메모리에 남은 재설정 토큰 서명을 지운다 (UserWithdrawalService 에서 호출). */
+    public void discardResetToken(Long userId) {
+        issuedResetTokens.remove(userId);
+    }
+
     private static String signatureOf(String jwt) {
         int dot = jwt.lastIndexOf('.');
         return dot < 0 ? jwt : jwt.substring(dot + 1);

@@ -3,6 +3,7 @@ package com.qring.qring_backend.domain.competition;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,4 +19,9 @@ public interface CompetitionMatchAnswerRepository extends JpaRepository<Competit
 
     // 다음 라운드 번호 계산용
     long countByMatchMatchId(Long matchId);
+
+    /** 회원 탈퇴: 사용자의 row 전부 삭제 (UserWithdrawalService 전용, 서비스 트랜잭션 안에서 호출). */
+    @Modifying
+    @Query("DELETE FROM CompetitionMatchAnswer a WHERE a.match.matchId IN (SELECT m.matchId FROM CompetitionMatch m WHERE m.userId = :userId)")
+    void deleteAllByMatchUserId(@Param("userId") Long userId);
 }

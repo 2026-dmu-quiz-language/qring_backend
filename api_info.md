@@ -24,6 +24,22 @@ Base URL: http://localhost:8080/api/v1/auth
 |---|---|---|
 | GET | /me | 내 정보 조회 |
 | PUT | /preferences | 학습 설정(언어/레벨) 업데이트 — Onboarding 화면용 |
+| DELETE | /api/v1/users/withdraw (Base URL 밖, 절대 경로) | 회원 탈퇴 — 사용자 데이터 전부 하드 삭제 (아래 상세) |
+
+회원 탈퇴 (2026-09-20 추가)
+
+DELETE /api/v1/users/withdraw   (Authorization: Bearer <accessToken>, 본문 없음)
+   응답  { "success": true, "message": "탈퇴 처리가 완료되었습니다." }
+   오류  USER_NOT_FOUND(400) / 토큰 없음·만료(403)
+   동작  한 트랜잭션에서 아래 순서로 하드 삭제한다. 중간 실패 시 전부 롤백.
+         competition_match_answer → competition_match → competition_wrong_answer → story_session
+         → user_content_unlock → quiz_result → story_progress → wrong_answer → User_Study_Log
+         → User_Progress → user_asset_history → User_Asset → user_language_level → users
+         이후 서버 메모리의 인증 코드·재설정 토큰도 폐기. 같은 이메일로 즉시 재가입 가능.
+   경로  프론트 BASE_URL 조합 차이 때문에 /api/users/withdraw, /api/v1/api/users/withdraw 도 임시로 받는다.
+         프론트가 `${BASE_URL}/users/withdraw` (BASE_URL=https://q-ring.app/api/v1) 로 정리되면 두 경로는 제거 예정.
+   주의  액세스 토큰은 무상태라 만료 전까지 형식상 유효하다. 탈퇴 후 /me 등은 USER_NOT_FOUND(400) 를 돌려주므로
+         프론트는 탈퇴 성공 시 AsyncStorage 의 토큰·유저 정보를 지워야 한다.
 
 비밀번호 찾기 (2026-09-18 추가, 설계: PASSWORD_RESET_DESIGN.md)
 

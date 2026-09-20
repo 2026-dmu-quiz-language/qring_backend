@@ -24,4 +24,9 @@ public interface StorySessionRepository extends JpaRepository<StorySessionEntity
     @Transactional
     @Query("DELETE FROM StorySessionEntity s WHERE s.status = :status AND s.updatedAt < :cutoff")
     int deleteExpired(@Param("status") String status, @Param("cutoff") LocalDateTime cutoff);
+
+    /** 회원 탈퇴: 사용자의 row 전부 삭제 (UserWithdrawalService 전용, 서비스 트랜잭션 안에서 호출). */
+    @Modifying
+    @Query("DELETE FROM StorySessionEntity s WHERE s.userId = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 }
