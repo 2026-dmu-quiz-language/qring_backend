@@ -8,6 +8,7 @@ import com.qring.qring_backend.auth.dto.UserDto;
 import com.qring.qring_backend.auth.dto.VerifyEmailResponse;
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.auth.service.AuthService;
+import com.qring.qring_backend.auth.service.EmailDomainService;
 import com.qring.qring_backend.domain.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserRepository userRepository;
+    private final EmailDomainService emailDomainService;
     private final com.qring.qring_backend.auth.security.JwtTokenProvider tokenProvider;
 
     /* ---------- 로컬 회원가입 & 이메일 인증 ---------- */
@@ -125,9 +127,15 @@ public class AuthController {
 
     /* ---------- 중복 체크 / 내 정보 ---------- */
 
-    /** 이메일 사용 가능 여부 확인 (미인증 상태로만 존재하는 이메일은 재사용 가능). */
+    /**
+     * 이메일 사용 가능 여부 확인 (미인증 상태로만 존재하는 이메일은 재사용 가능).
+     * 도메인이 유효하지 않으면(형식·예약 도메인·임시메일·DNS MX 없음) 에러 대신 available=false 로 응답한다.
+     */
     @GetMapping("/check-email")
     public ResponseEntity<Map<String, Boolean>> checkEmail(@RequestParam String email) {
+        if (!emailDomainService.isAllowed(email)) {
+            return ResponseEntity.ok(Map.of("available", false));
+        }
         boolean available = userRepository.findByEmail(email)
             .map(u -> !Boolean.TRUE.equals(u.getEmailVerified()))
             .orElse(true);

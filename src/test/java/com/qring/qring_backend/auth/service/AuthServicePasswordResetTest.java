@@ -52,7 +52,7 @@ class AuthServicePasswordResetTest {
         tokenProvider.init();
 
         authService = new AuthService(userRepository, passwordEncoder, tokenProvider, emailService,
-                mock(OAuthService.class), mock(DisposableEmailService.class),
+                mock(OAuthService.class), mock(EmailDomainService.class),
                 mock(UserLanguageLevelRepository.class), mock(UserPointService.class),
                 mock(TransactionTemplate.class));
 

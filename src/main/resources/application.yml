@@ -46,6 +46,13 @@ qring:
   email:
     # true 이면 실제 메일 전송 없이 로그에만 인증 코드를 출력 (로컬/데모용)
     dev-mode: ${QRING_EMAIL_DEV_MODE:false}
+    # 가입·check-email 시 이메일 도메인의 DNS MX 레코드 실존 여부 검증 (로컬/CI 에서는 끌 수 있음)
+    dns-check:
+      enabled: ${QRING_EMAIL_DNS_CHECK:true}
+      timeout-ms: 2000        # 1회 질의 타임아웃
+      retries: 1
+      cache-ttl-valid: 24h    # MX 있음 판정 캐시
+      cache-ttl-invalid: 1h   # MX 없음 판정 캐시 (DNS 를 막 고친 도메인이 오래 막히지 않게 짧게)
   openai:
     api-key: ${OPENAI_API_KEY:}
     model: ${OPENAI_MODEL:gpt-4.1-mini}   # 하위 호환: tiers.standard.model 의 기본값으로 쓰인다

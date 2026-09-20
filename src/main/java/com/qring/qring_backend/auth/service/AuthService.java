@@ -34,7 +34,7 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final EmailService emailService;
     private final OAuthService oAuthService;
-    private final DisposableEmailService disposableEmailService;
+    private final EmailDomainService emailDomainService;
     private final UserLanguageLevelRepository userLanguageLevelRepository;
     private final UserPointService userPointService;
     private final TransactionTemplate transactionTemplate;
@@ -47,10 +47,8 @@ public class AuthService {
      * 메일 발송이 트랜잭션 안에 있으면 동일 이메일의 동시 요청이 유니크 제약 충돌(500)로 실패한다.
      */
     public SignUpResponse signUp(AuthRequest.SignUp request) {
-        // 일회용(임시) 이메일은 가입 차단
-        if (disposableEmailService.isDisposable(request.getEmail())) {
-            throw new IllegalArgumentException("DISPOSABLE_EMAIL_NOT_ALLOWED");
-        }
+        // 도메인 검증: 형식·예약 도메인·임시메일·DNS MX (INVALID_EMAIL_DOMAIN / DISPOSABLE_EMAIL_NOT_ALLOWED)
+        emailDomainService.validateOrThrow(request.getEmail());
 
         try {
             transactionTemplate.executeWithoutResult(status -> registerPendingUser(request));
