@@ -54,6 +54,8 @@ public class StorySessionMapper {
         runtime.put("speechLevel", session.getSpeechLevel());
         runtime.put("askedQuestions", session.getAskedQuestions());
         runtime.put("modelTier", session.getModelTier());
+        runtime.put("failedQuizTurns", session.getFailedQuizTurns());
+        runtime.put("storySoFar", session.getStorySoFar());
         entity.setRuntimeState(writeJson(runtime));
 
         // 턴이 정상 처리되어 전체 상태를 저장하는 시점에는 응답 대기 중인 메시지가 없다
@@ -103,6 +105,10 @@ public class StorySessionMapper {
         session.setSpeechLevel(level instanceof String s && !s.isBlank() ? s : null);
         session.setAskedQuestions(castStringList(runtime.get("askedQuestions")));
         session.setModelTier(readModelTier(runtime));
+        Object failed = runtime.get("failedQuizTurns");
+        session.setFailedQuizTurns(failed instanceof Number n ? n.intValue() : 0);
+        Object story = runtime.get("storySoFar");
+        session.setStorySoFar(story instanceof String s && !s.isBlank() ? s : null);
         return session;
     }
 

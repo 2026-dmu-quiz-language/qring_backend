@@ -27,10 +27,12 @@ qring_backend/
    │     │
    │     ├─ auth/                                — 인증/계정 도메인 (회원가입·로그인·소셜·JWT)
    │     │  ├─ controller/                       — HTTP 엔드포인트 진입점
-   │     │  │  └─ AuthController.java            — /api/v1/auth/** 라우팅
+   │     │  │  ├─ AuthController.java            — /api/v1/auth/** 라우팅
+   │     │  │  └─ UserController.java            — DELETE /api/v1/users/withdraw 회원 탈퇴 (프론트 호환 경로 2개 추가)
    │     │  │
    │     │  ├─ service/                          — 인증 비즈니스 로직
    │     │  │  ├─ AuthService.java               — 가입·로그인·소셜·토큰 재발급·학습 설정 핵심 로직
+   │     │  │  ├─ UserWithdrawalService.java     — 회원 탈퇴: 사용자 데이터 전 테이블 하드 삭제 → users 삭제 (단일 트랜잭션)
    │     │  │  ├─ EmailService.java              — 이메일 인증 코드 생성·발송·검증 (메모리 맵 기반)
    │     │  │  ├─ OAuthService.java              — Google/Kakao/LINE 외부 OAuth 통신 및 토큰 검증
    │     │  │  └─ DisposableEmailService.java    — 일회용/임시 이메일 도메인 차단 판별기
@@ -56,7 +58,7 @@ qring_backend/
    │     │  ├─ controller/
    │     │  │  └─ DashboardController.java       — /api/v1/dash 엔드포인트
    │     │  ├─ service/
-   │     │  │  └─ DashboardService.java          — 진도율·연속일·완료 스토리·코멘트 집계
+   │     │  │  └─ DashboardService.java          — 진도율·연속일·완료 스토리·코멘트 집계·15일 연속 보상(UserPointService 경유)
    │     │  └─ dto/
    │     │     └─ DashboardResponse.java         — 대시보드 응답 DTO
    │     │
@@ -64,7 +66,8 @@ qring_backend/
    │        │
    │        ├─ user/                             — 사용자 및 학습 활동 관련 엔티티
    │        │  ├─ User.java                      — 사용자 엔티티 (로컬/소셜 공용)
-   │        │  ├─ UserAsset.java                 — 사용자 자산 (포인트·경험치·연속 학습일), User와 1:1
+   │        │  ├─ UserAsset.java                 — 사용자 자산 (포인트·경험치·streak_days=마지막 15일 보상 지급 연속일), User와 1:1
+   │        │  ├─ UserAssetHistory.java          — 포인트 변동 이력 (모든 적립·차감은 service/user/UserPointService 를 거쳐 기록)
    │        │  ├─ Userprogress.java              — 사용자별 콘텐츠 진행 상태 (최근 챕터·진도율)
    │        │  ├─ UserStudyLog.java              — 퀴즈 풀이 로그 (응답·정답 여부·시각)
    │        │  ├─ UserprogressRepository.java    — 평균 진도율, 완료 스토리 수 조회

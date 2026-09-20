@@ -28,6 +28,20 @@ class LiveStorySmokeTest {
             "아 배고프다",
     };
 
+    /** 실제 세션(2026-09-20, 피카츄·전기기사 시험)의 입력: 화제 전환, 기억 확인, 도발, 케이크 나열. 대화 주도권 검증용. */
+    private static final String[] EXAM_SCRIPT = {
+            "긴장돼. 너는 어때? 잘 볼 수 있을 것 같아?",
+            "그래. 예상되는 문제 있어? 뭐가 나올 것 같아?",
+            "근데 너는 준비 열심히 했으니까 거의 합격 아니야?",
+            "아니 같이 밥먹자 그랬었잖아",
+            "같이 노래방이나 갈래?",
+            "기출문제중에 어떤 문제를 많이 틀렸어? 전압 측정? 전류 측정?",
+            "난 널 때릴거야",
+            "널 마구 때릴거라니까",
+            "컵케익",
+            "너 왜 고장났어",
+    };
+
     /** 실제 사용자 세션(2026-09-16, user 1)의 입력을 그대로 옮긴 몰입 검증용 스크립트. */
     private static final String[] PRISON_SCRIPT = {
             "미안 제임스. 나는 널 죽여야만 해",
@@ -53,9 +67,16 @@ class LiveStorySmokeTest {
         service.overrideModelForTests(model);
         System.out.println("=== MODEL: " + model);
 
-        boolean prison = "prison".equals(System.getenv("STORY_LIVE_SCENARIO"));
-        String[] script = prison ? PRISON_SCRIPT : WALK_SCRIPT;
-        StorySession session = prison
+        String scenario = System.getenv().getOrDefault("STORY_LIVE_SCENARIO", "walk");
+        boolean prison = "prison".equals(scenario);
+        boolean exam = "exam".equals(scenario);
+        String[] script = prison ? PRISON_SCRIPT : exam ? EXAM_SCRIPT : WALK_SCRIPT;
+        StorySession session = exam
+                ? StorySession.builder()
+                        .sessionId("live").userId(1L).characterName("피카츄")
+                        .situationDescription("전기기사 자격증 시험을 보러 왔는데 같은 기수 수험생인 피카츄랑 대화를 나누는 상황")
+                        .tone("다정하게").targetLanguage("English").levelCode(1).build()
+                : prison
                 ? StorySession.builder()
                         .sessionId("live").userId(1L).characterName("제임스")
                         .situationDescription("같은 보스를 섬기던 제임스와 나. 최근 보스가 저지른 살인에 제임스는 누명을 쓰고 대신 교도소에 수감되고 만다. "
@@ -73,7 +94,7 @@ class LiveStorySmokeTest {
 
         int scriptIndex = 0;
         int attemptsOnCurrent = 0;
-        for (int turn = 0; turn < 14 && !session.isCompleted(); turn++) {
+        for (int turn = 0; turn < 16 && !session.isCompleted(); turn++) {
             String userMessage;
             Map<String, Object> pending = session.getPendingQuiz();
             if (pending != null) {
@@ -96,7 +117,10 @@ class LiveStorySmokeTest {
             session.incrementTurnsSinceLastQuiz();
             Map<String, Object> res = service.generateTurnResponse(session, userMessage);
 
-            String aiMsg = str(res.get("ai_message"));
+            String aiMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(str(res.get("ai_message")));
+            if (res.get("story_so_far") != null && !str(res.get("story_so_far")).isBlank()) {
+                session.setStorySoFar(str(res.get("story_so_far")));
+            }
             System.out.println("AI> " + aiMsg + "\n    (" + res.get("translation") + ")  answer_result=" + res.get("answer_result")
                     + " is_quiz=" + res.get("is_quiz") + " completed=" + res.get("is_completed")
                     + (OpenAiStoryService.hasUnexpectedHangul("English", aiMsg) ? "  !!HANGUL IN AI_MESSAGE" : ""));
@@ -138,6 +162,17 @@ class LiveStorySmokeTest {
                             ? OpenAiStoryService.sanitizeQuiz((Map<String, Object>) q2) : null;
                     quiz = redoQuiz;
                     reason = quiz == null ? "no quiz" : rejection(session, aiMsg, quiz);
+                    if (reason != null) {
+                        Map<String, Object> plain = service.generateNonQuizTurn(session, userMessage, recorded);
+                        aiMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(str(plain.get("ai_message")));
+                        res = plain;
+                        System.out.println("AI(plain)> " + aiMsg + "\n    (" + plain.get("translation") + ")");
+                        session.setFailedQuizTurns(session.getFailedQuizTurns() + 1);
+                    }
+                }
+                if (OpenAiStoryService.isOverdueForClose(session)) {
+                    System.out.println("    [SERVER] overdue for close -> completed");
+                    session.setCompleted(true);
                 }
                 System.out.println("    [QUIZ" + (reason == null ? "" : " REJECTED AGAIN: " + reason) + "] " + quiz);
                 if (reason == null) {

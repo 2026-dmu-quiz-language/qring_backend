@@ -66,6 +66,13 @@ public class EmailService {
 
     private final Map<String, Entry> store = new ConcurrentHashMap<>();
 
+    /** 회원 탈퇴 시 해당 이메일로 발급된 코드(가입·비밀번호 재설정)를 모두 폐기한다. */
+    public void discardCodes(String email) {
+        for (Purpose purpose : Purpose.values()) {
+            store.remove(key(email, purpose));
+        }
+    }
+
     /* ------------------------------ 가입 인증 (기존 API 유지) ------------------------------ */
 
     /** 가입 인증 코드 발송. (기존 호출부 호환) */

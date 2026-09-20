@@ -72,6 +72,13 @@ public class StorySession {
     @Builder.Default
     private String modelTier = "standard";
 
+    /** 퀴즈 턴인데 모델의 퀴즈가 (재생성까지) 거부된 횟수. 연속으로 쌓이면 서버가 부드러운 검사를 풀어 준다. 퀴즈가 수락되면 0. */
+    @Builder.Default
+    private int failedQuizTurns = 0;
+
+    /** 모델이 매 턴 갱신하는 "지금까지의 이야기" 메모 (한국어 한두 줄). 다음 턴 프롬프트에 넣어 합의된 사실을 기억하게 한다. */
+    private String storySoFar;
+
     /**
      * 대화·퀴즈·채점 결과가 실제로 일어난 순서 그대로 쌓이는 열람용 통합 타임라인.
      * chatHistory(프롬프트용, 40개 제한)와 달리 절대 잘리지 않으며, 보관 시 이대로 저장된다.
@@ -155,6 +162,7 @@ public class StorySession {
         this.turnsSinceLastQuiz = 0;
         this.pendingQuiz = quiz;
         this.wrongAttempts = 0;
+        this.failedQuizTurns = 0;
         if (quiz != null && quiz.get("quiz_type") != null) {
             usedQuizTypes.add(String.valueOf(quiz.get("quiz_type")));
         }

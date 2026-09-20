@@ -4,8 +4,8 @@ import com.qring.qring_backend.auth.dto.AuthRequest;
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.auth.security.JwtTokenProvider;
 import com.qring.qring_backend.domain.user.User;
-import com.qring.qring_backend.domain.user.UserAssetRepository;
 import com.qring.qring_backend.domain.user.UserLanguageLevelRepository;
+import com.qring.qring_backend.service.user.UserPointService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,7 @@ class AuthServicePasswordResetTest {
 
         authService = new AuthService(userRepository, passwordEncoder, tokenProvider, emailService,
                 mock(OAuthService.class), mock(DisposableEmailService.class),
-                mock(UserLanguageLevelRepository.class), mock(UserAssetRepository.class),
+                mock(UserLanguageLevelRepository.class), mock(UserPointService.class),
                 mock(TransactionTemplate.class));
 
         localUser = User.builder().userId(1L).email(EMAIL).password(passwordEncoder.encode("OldPass1!"))

@@ -1,6 +1,7 @@
 package com.qring.qring_backend.domain.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,4 +19,9 @@ public interface UserprogressRepository extends JpaRepository<Userprogress, Long
     /** progressRate=100 인 콘텐츠 개수 (= 완료한 스토리 수). */
     @Query("SELECT COUNT(up) FROM Userprogress up WHERE up.user.userId = :userId AND up.progressRate = 100 AND up.language = :language")
     long countCompletedStories(@Param("userId") Long userId, @Param("language") String language);
+
+    /** 회원 탈퇴: 사용자의 row 전부 삭제 (UserWithdrawalService 전용, 서비스 트랜잭션 안에서 호출). */
+    @Modifying
+    @Query("DELETE FROM Userprogress up WHERE up.user.userId = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 }

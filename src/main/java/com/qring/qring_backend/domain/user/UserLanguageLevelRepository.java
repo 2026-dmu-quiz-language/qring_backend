@@ -22,4 +22,9 @@ public interface UserLanguageLevelRepository extends JpaRepository<UserLanguageL
     @Query("UPDATE UserLanguageLevel u SET u.bonusAwarded = true " +
            "WHERE u.userId = :userId AND u.language = :language AND u.bonusAwarded = false")
     int awardBonusIfFirstTime(@Param("userId") Long userId, @Param("language") String language);
+
+    /** 회원 탈퇴: 사용자의 row 전부 삭제 (UserWithdrawalService 전용, 서비스 트랜잭션 안에서 호출). */
+    @Modifying
+    @Query("DELETE FROM UserLanguageLevel u WHERE u.userId = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 }
