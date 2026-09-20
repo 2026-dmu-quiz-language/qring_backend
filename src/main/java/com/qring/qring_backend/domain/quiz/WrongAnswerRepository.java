@@ -88,4 +88,20 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
     @Modifying
     @Query("DELETE FROM WrongAnswer wa WHERE wa.userId = :userId")
     void deleteAllByUserId(@Param("userId") Long userId);
+
+    /**
+     * 오답 N일차 푸시 대상 (PUSH_NOTIFICATION_DESIGN.md).
+     * [start, end) 에 생성돼 아직 지워지지 않은(다시 풀지 않은) 오답을 사용자별로 센다.
+     * 대시보드 오답 알람과 같은 스코프 — 사용자의 현재 학습 언어 오답만. 푸시를 끈 사용자는 제외.
+     * (pushEnabled 가 null 인 옛 row 는 MyPageService 와 같이 켜진 것으로 본다.)
+     */
+    @Query("SELECT wa.userId AS userId, COUNT(wa) AS wrongCount FROM WrongAnswer wa " +
+           "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
+           "JOIN User u ON u.userId = wa.userId " +
+           "WHERE qc.langCode = u.language " +
+           "AND (u.pushEnabled IS NULL OR u.pushEnabled = true) " +
+           "AND wa.createdAt >= :start AND wa.createdAt < :end " +
+           "GROUP BY wa.userId")
+    List<WrongAnswerReminderTarget> findReminderTargetsCreatedBetween(@Param("start") LocalDateTime start,
+                                                                      @Param("end") LocalDateTime end);
 }

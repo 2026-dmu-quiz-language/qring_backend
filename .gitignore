@@ -47,3 +47,7 @@ cloudflared/credentials.json
 ### JVM crash dumps ###
 hs_err_pid*.log
 replay_pid*.log
+
+### Firebase 서비스 계정 키 (시크릿, PUSH_NOTIFICATION_DESIGN.md) ###
+*firebase-adminsdk*.json
+firebase-service-account*.json

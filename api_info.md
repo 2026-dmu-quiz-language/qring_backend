@@ -59,3 +59,40 @@ DELETE /api/v1/users/withdraw   (Authorization: Bearer <accessToken>, 본문 없
    오류  INVALID_RESET_TOKEN(위조·타입 불일치) / RESET_TOKEN_EXPIRED(만료 또는 이미 사용) / VALIDATION_ERROR
 
 참고: 가입 인증 코드(/verify-email)에도 오답 5회 폐기(TOO_MANY_ATTEMPTS)와 재발송 60초 쿨다운(CODE_RESEND_COOLDOWN)이 같이 적용된다.
+
+푸시 알림 (2026-09-21 추가, 설계: PUSH_NOTIFICATION_DESIGN.md) — Base URL 밖, 절대 경로
+
+기기 토큰 (Authorization: Bearer <accessToken>)
+| Method | Path | 설명 |
+|---|---|---|
+| POST | /api/v1/push/token | FCM 기기 토큰 등록. 로그인 직후·토큰 갱신 시 호출. 같은 토큰은 소유자·시각만 갱신 |
+| POST | /api/v1/push/token/delete | 기기 토큰 해제 (로그아웃 시). 본인 토큰만 삭제 |
+
+1) POST /api/v1/push/token
+   요청  { "token": "<fcm registration token>", "platform": "ANDROID" }   (platform 선택: ANDROID / IOS / WEB)
+   응답  { "registered": true }
+   오류  VALIDATION_ERROR(token 비어 있음 / 512자 초과) / 토큰 없음·만료(403)
+
+2) POST /api/v1/push/token/delete
+   요청  { "token": "<fcm registration token>" }
+   응답  { "removed": true }   (본인 토큰이 아니거나 없으면 false, 오류 아님)
+
+관리자 (ADMIN_USER_IDS 등록 계정만, 그 외 400 FORBIDDEN_ADMIN_ONLY)
+| Method | Path | 설명 |
+|---|---|---|
+| POST | /admin/push/test | 사용자 기기 전부에 테스트 푸시 |
+| POST | /admin/push/wrong-answer-reminder/run | 오답 6일차 리마인더 즉시 실행 |
+
+3) POST /admin/push/test
+   요청  { "userId": 12, "title": "(선택)", "body": "(선택)" }
+   응답  { "tokens": 2, "success": 2, "failure": 0, "removedInvalidTokens": 0 }
+
+4) POST /admin/push/wrong-answer-reminder/run?createdDate=2026-09-15   (createdDate 생략 시 오늘-6일)
+   응답  { "createdDate": "2026-09-15", "targetUsers": 3, "notifiedUsers": 2, "skippedNoToken": 1,
+           "sentMessages": 3, "failedMessages": 0, "removedTokens": 0 }
+
+자동 발송  매일 20:00 Asia/Seoul (QRING_PUSH_WRONG_ANSWER_REMINDER_CRON). 대상 = 6일 전 생성돼 아직 다시 풀지 않은
+           현재 학습 언어 오답이 있는 사용자 중 pushEnabled≠false 이고 기기 토큰이 있는 사용자.
+           알림 data: { "type": "WRONG_ANSWER_REMINDER", "screen": "incorrect", "wrongCount": "3", "createdDate": "2026-09-15" }
+설정      QRING_PUSH_ENABLED=false(기본) 면 실제 발송 없이 로그만 출력. true 면 FIREBASE_CREDENTIALS_JSON(base64/원문) 또는
+           FIREBASE_CREDENTIALS_PATH 필수 (둘 다 없으면 기동 실패).

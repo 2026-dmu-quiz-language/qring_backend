@@ -23,7 +23,9 @@ qring_backend/
    │     ├─ QringBackendApplication.java         — Spring Boot 진입점, 엔티티는 domain에서 스캔
    │     │
    │     ├─ config/                              — 전역 설정 (Swagger 등 인프라성 빈)
-   │     │  └─ OpenApiConfig.java                — springdoc 설정, Swagger UI에 JWT Bearer 스킴 등록
+   │     │  ├─ OpenApiConfig.java                — springdoc 설정, Swagger UI에 JWT Bearer 스킴 등록
+   │     │  ├─ FirebaseConfig.java               — Firebase Admin 초기화 (qring.push.enabled=true 일 때만, 키는 PATH/JSON 환경변수)
+   │     │  └─ SchedulingConfig.java             — @EnableScheduling (오답 6일차 푸시 스케줄러용)
    │     │
    │     ├─ auth/                                — 인증/계정 도메인 (회원가입·로그인·소셜·JWT)
    │     │  ├─ controller/                       — HTTP 엔드포인트 진입점
@@ -62,6 +64,24 @@ qring_backend/
    │     │  └─ dto/
    │     │     └─ DashboardResponse.java         — 대시보드 응답 DTO
    │     │
+   │     ├─ push/                                — 푸시 알림 도메인 (FCM, 설계: PUSH_NOTIFICATION_DESIGN.md)
+   │     │  ├─ controller/
+   │     │  │  ├─ PushTokenController.java       — POST /api/v1/push/token, /token/delete (기기 토큰 등록·해제)
+   │     │  │  └─ PushAdminController.java       — POST /admin/push/test, /admin/push/wrong-answer-reminder/run (관리자 실기기 검증용)
+   │     │  ├─ service/
+   │     │  │  ├─ PushSender.java                — 발송 인터페이스 (PushMessage → PushSendResult)
+   │     │  │  ├─ FcmPushSender.java             — FCM multicast 발송, UNREGISTERED/INVALID_ARGUMENT 토큰 분류 (enabled=true)
+   │     │  │  ├─ LogPushSender.java             — 발송 대신 로그만 (enabled=false 기본값, 로컬/CI)
+   │     │  │  ├─ PushTokenService.java          — 토큰 upsert(소유자 재배정)·해제·사용자별 묶음 조회·무효 토큰 삭제
+   │     │  │  ├─ WrongAnswerReminderService.java — 오답 생성 6일차 리마인더: 대상 집계 → 사용자별 발송 → 무효 토큰 정리
+   │     │  │  ├─ PushMessage.java / PushSendResult.java — 발송 메시지·결과 record
+   │     │  ├─ scheduler/
+   │     │  │  └─ WrongAnswerReminderScheduler.java — 매일 20:00 Asia/Seoul cron 진입점
+   │     │  └─ dto/
+   │     │     ├─ PushTokenRequest.java          — 토큰 등록/해제 요청 (token 필수, platform 선택)
+   │     │     ├─ PushTestRequest.java           — 관리자 테스트 발송 요청
+   │     │     └─ WrongAnswerReminderRunResult.java — 리마인더 1회 실행 결과 (대상·발송·건너뜀·삭제 토큰 수)
+   │     │
    │     └─ domain/                              — 핵심 도메인 엔티티/리포지토리 (DB 모델 계층)
    │        │
    │        ├─ user/                             — 사용자 및 학습 활동 관련 엔티티
@@ -70,6 +90,8 @@ qring_backend/
    │        │  ├─ UserAssetHistory.java          — 포인트 변동 이력 (모든 적립·차감은 service/user/UserPointService 를 거쳐 기록)
    │        │  ├─ Userprogress.java              — 사용자별 콘텐츠 진행 상태 (최근 챕터·진도율)
    │        │  ├─ UserStudyLog.java              — 퀴즈 풀이 로그 (응답·정답 여부·시각)
+   │        │  ├─ UserDeviceToken.java           — 푸시용 FCM 기기 토큰 (1 사용자 : N 기기, token UNIQUE)
+   │        │  ├─ UserDeviceTokenRepository.java — 토큰 조회·본인 토큰 해제·무효 토큰 일괄 삭제·탈퇴 시 전부 삭제
    │        │  ├─ UserprogressRepository.java    — 평균 진도율, 완료 스토리 수 조회
    │        │  └─ UserStudyLogRepository.java    — 학습일 목록 조회 (연속 학습일 계산용)
    │        │
@@ -91,6 +113,7 @@ qring_backend/
    │        │  ├─ ScoreTableRepository.java      — 복합키 조건으로 점수 조회
    │        │  ├─ AchievementComment.java        — 진도율 구간별 성취 코멘트
    │        │  ├─ AchievementCommentRepository.java — 진도율로 코멘트 조회
+   │        │  ├─ WrongAnswerReminderTarget.java — 오답 6일차 푸시 대상 프로젝션 (userId, wrongCount)
    │        │  └─ QuizService.java               — (현재 빈 파일)
    │        │
    │        └─ script/                           — 스토리 스크립트 (대사·선택지)
@@ -98,14 +121,15 @@ qring_backend/
    │           └─ ScriptOption.java              — 스크립트 선택지 (다음 스크립트·엔딩 점수 가중치)
    │
    └─ test/java/com/qring/qring_backend/         — 테스트 코드
-      └─ QringBackendApplicationTests.java       — Spring Boot 컨텍스트 로드 테스트
+      ├─ QringBackendApplicationTests.java       — Spring Boot 컨텍스트 로드 테스트
+      └─ push/service/                           — 푸시: WrongAnswerReminderServiceTest, PushTokenServiceTest (발송기는 mock)
 ```
 
 ## 폴더 역할 요약
 
 | 폴더                 | 역할                                                             |
 | -------------------- | ---------------------------------------------------------------- |
-| `config/`            | 애플리케이션 전역 설정 (Swagger 등 인프라성 빈)                  |
+| `config/`            | 애플리케이션 전역 설정 (Swagger·Firebase·스케줄링 등 인프라성 빈) |
 | `auth/`              | 인증·계정 도메인. 로컬/소셜 가입, 로그인, JWT 발급 전부 담당     |
 | `auth/controller/`   | HTTP 엔드포인트 진입점                                           |
 | `auth/service/`      | 인증 비즈니스 로직 (이메일 인증, OAuth 검증 등 보조 서비스 포함) |
@@ -114,6 +138,7 @@ qring_backend/
 | `auth/dto/`          | 인증 관련 요청/응답 DTO                                          |
 | `auth/config/`       | auth 한정 설정 — 공통 예외 처리                                  |
 | `dashboard/`         | 학습 진행 통계 집계 및 응답                                      |
+| `push/`              | FCM 푸시 알림 — 기기 토큰 관리, 오답 6일차 리마인더 스케줄러      |
 | `domain/`            | 핵심 DB 모델 계층. 엔티티와 그에 직결된 리포지토리만 둠          |
 | `domain/user/`       | 사용자 정보·자산·진도·학습 로그                                  |
 | `domain/content/`    | 학습 콘텐츠(스토리)·챕터·카테고리 구조                           |

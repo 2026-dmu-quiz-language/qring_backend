@@ -67,6 +67,20 @@ qring:
         model: ${OPENAI_MODEL_PREMIUM:gpt-4.1}
         start-cost: 550     # 기본 400 + 업그레이드 150
         extend-cost: 100    # 프리미엄 인상 여부는 팀 논의 후 결정 (보류)
+  push:
+    # FCM 푸시 알림 (설계: PUSH_NOTIFICATION_DESIGN.md).
+    # false 면 FirebaseApp 을 만들지 않고 발송 내용을 로그로만 출력한다 (로컬/CI 기본값).
+    enabled: ${QRING_PUSH_ENABLED:false}
+    firebase:
+      # 서비스 계정 키. 둘 중 하나만 채운다 — 파일 경로 또는 JSON 원문(base64 도 허용).
+      credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+      credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
+    wrong-answer-reminder:
+      # 오답 생성 N일차 알림. 매일 cron 시각(Asia/Seoul)에 "오늘 - days-after" 날짜에 생긴 오답이
+      # 아직 남아 있는(다시 풀지 않은) 사용자에게 1회 발송한다. 7일이 지나면 오답 노트에서 사라지므로 하루 전 알림.
+      enabled: ${QRING_PUSH_WRONG_ANSWER_REMINDER_ENABLED:true}
+      cron: ${QRING_PUSH_WRONG_ANSWER_REMINDER_CRON:0 0 20 * * *}
+      days-after: 6
   admin:
     # 관리자 전용 API(/admin/**) 허용 userId 목록 (쉼표 구분). 비어 있으면 아무도 접근 불가.
     user-ids: ${ADMIN_USER_IDS:}

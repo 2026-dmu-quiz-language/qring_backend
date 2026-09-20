@@ -4,6 +4,8 @@ import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.dashboard.dto.DashboardResponse;
 import com.qring.qring_backend.domain.difficulty.DifficultyLevelRepository;
 import com.qring.qring_backend.domain.quiz.AchievementCommentRepository;
+import com.qring.qring_backend.domain.quiz.QuizResultRepository;
+import com.qring.qring_backend.domain.quiz.StoryProgressRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
@@ -54,7 +56,8 @@ class DashboardServiceStreakRewardTest {
 
         service = new DashboardService(userRepository, mock(UserprogressRepository.class), userStudyLogRepository,
                 mock(DifficultyLevelRepository.class), mock(AchievementCommentRepository.class),
-                mock(WrongAnswerRepository.class), userAssetRepository, userPointService);
+                mock(WrongAnswerRepository.class), userAssetRepository, userPointService,
+                mock(StoryProgressRepository.class), mock(QuizResultRepository.class));
 
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(
                 User.builder().userId(USER_ID).nickname("Yarr").language("EN").build()));

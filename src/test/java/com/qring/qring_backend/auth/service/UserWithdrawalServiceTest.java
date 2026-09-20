@@ -12,6 +12,7 @@ import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserAssetHistoryRepository;
 import com.qring.qring_backend.domain.user.UserAssetRepository;
+import com.qring.qring_backend.domain.user.UserDeviceTokenRepository;
 import com.qring.qring_backend.domain.user.UserLanguageLevelRepository;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.domain.user.UserprogressRepository;
@@ -52,6 +53,7 @@ class UserWithdrawalServiceTest {
     private UserAssetHistoryRepository userAssetHistoryRepository;
     private UserAssetRepository userAssetRepository;
     private UserLanguageLevelRepository userLanguageLevelRepository;
+    private UserDeviceTokenRepository userDeviceTokenRepository;
     private EmailService emailService;
     private AuthService authService;
     private UserWithdrawalService service;
@@ -72,6 +74,7 @@ class UserWithdrawalServiceTest {
         userAssetHistoryRepository = mock(UserAssetHistoryRepository.class);
         userAssetRepository = mock(UserAssetRepository.class);
         userLanguageLevelRepository = mock(UserLanguageLevelRepository.class);
+        userDeviceTokenRepository = mock(UserDeviceTokenRepository.class);
         emailService = mock(EmailService.class);
         authService = mock(AuthService.class);
 
@@ -81,7 +84,7 @@ class UserWithdrawalServiceTest {
                 quizResultRepository, storyProgressRepository, wrongAnswerRepository,
                 userStudyLogRepository, userprogressRepository,
                 userAssetHistoryRepository, userAssetRepository, userLanguageLevelRepository,
-                emailService, authService);
+                userDeviceTokenRepository, emailService, authService);
     }
 
     @Test
@@ -110,6 +113,7 @@ class UserWithdrawalServiceTest {
         verify(userStudyLogRepository).deleteAllByUserId(USER_ID);
         verify(userprogressRepository).deleteAllByUserId(USER_ID);
         verify(userLanguageLevelRepository).deleteAllByUserId(USER_ID);
+        verify(userDeviceTokenRepository).deleteAllByUserId(USER_ID);
 
         verify(emailService).discardCodes(EMAIL);
         verify(authService).discardResetToken(USER_ID);
@@ -128,6 +132,6 @@ class UserWithdrawalServiceTest {
                 competitionWrongAnswerRepository, storySessionRepository, userContentUnlockRepository,
                 quizResultRepository, storyProgressRepository, wrongAnswerRepository,
                 userStudyLogRepository, userprogressRepository, userAssetHistoryRepository,
-                userAssetRepository, userLanguageLevelRepository, emailService, authService);
+                userAssetRepository, userLanguageLevelRepository, userDeviceTokenRepository, emailService, authService);
     }
 }
