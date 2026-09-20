@@ -21,4 +21,8 @@ public class MyPageInfoResponse {
     private String languageCode;
     /** 학습 언어 한글명 (영어 / 일본어 / 중국어). 코드가 모르는 값이면 코드 그대로. */
     private String languageName;
+    /** 가입 경로: LOCAL / GOOGLE / KAKAO / LINE. */
+    private String authProvider;
+    /** 이메일·비밀번호(LOCAL) 가입자면 true, 소셜 가입자면 false. 비밀번호 변경 섹션 표시 여부에 쓴다. */
+    private Boolean isLocalUser;
 }

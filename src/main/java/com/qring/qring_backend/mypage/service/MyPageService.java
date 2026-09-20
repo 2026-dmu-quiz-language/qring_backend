@@ -59,7 +59,14 @@ public class MyPageService {
                 .language(languageCode == null ? null : languageCode.toLowerCase())
                 .languageCode(languageCode)
                 .languageName(languageName(languageCode))
+                .authProvider(user.getAuthProvider())
+                .isLocalUser(isLocalUser(user))
                 .build();
+    }
+
+    /** LOCAL(이메일·비밀번호) 가입자 여부. provider 가 비어 있는 옛 row 는 LOCAL 로 본다 (엔티티 기본값과 동일). */
+    static boolean isLocalUser(User user) {
+        return user.getAuthProvider() == null || "LOCAL".equalsIgnoreCase(user.getAuthProvider());
     }
 
     /** 언어 코드 정규화: 앞뒤 공백 제거 + 대문자 (서버 저장 형식). null/빈 값은 null. */
@@ -91,6 +98,8 @@ public class MyPageService {
                 .id(user.getEmail())
                 .pushEnabled(user.getPushEnabled() != null ? user.getPushEnabled() : true)
                 .hasPassword(user.getPassword() != null && !user.getPassword().isEmpty())
+                .authProvider(user.getAuthProvider())
+                .isLocalUser(isLocalUser(user))
                 .build();
     }
 

@@ -63,6 +63,23 @@ class MyPageServiceLanguageTest {
     }
 
     @Test
+    @DisplayName("/mypage, /mypage/setting: 가입 경로와 로컬 사용자 여부를 내려준다 (LOCAL → true, 소셜 → false, 비어 있으면 LOCAL)")
+    void info_and_setting_exposeAuthProvider() {
+        user.setAuthProvider("LOCAL");
+        assertEquals("LOCAL", service.getMyPageInfo(USER_ID).getAuthProvider());
+        assertEquals(true, service.getMyPageInfo(USER_ID).getIsLocalUser());
+        assertEquals(true, service.getMyPageSetting(USER_ID).getIsLocalUser());
+
+        user.setAuthProvider("KAKAO");
+        assertEquals("KAKAO", service.getMyPageSetting(USER_ID).getAuthProvider());
+        assertEquals(false, service.getMyPageSetting(USER_ID).getIsLocalUser());
+        assertEquals(false, service.getMyPageInfo(USER_ID).getIsLocalUser());
+
+        user.setAuthProvider(null);   // provider 가 비어 있는 옛 row
+        assertEquals(true, service.getMyPageSetting(USER_ID).getIsLocalUser());
+    }
+
+    @Test
     @DisplayName("/mypage: DB 값이 소문자·공백이어도 같은 결과, 언어 없으면 전부 null")
     void info_normalizesStoredValue() {
         user.setLanguage(" zh ");
