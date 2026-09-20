@@ -12,6 +12,7 @@ import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserAssetHistoryRepository;
 import com.qring.qring_backend.domain.user.UserAssetRepository;
+import com.qring.qring_backend.domain.user.UserDeviceTokenRepository;
 import com.qring.qring_backend.domain.user.UserLanguageLevelRepository;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.domain.user.UserprogressRepository;
@@ -49,6 +50,7 @@ public class UserWithdrawalService {
     private final UserAssetHistoryRepository userAssetHistoryRepository;
     private final UserAssetRepository userAssetRepository;
     private final UserLanguageLevelRepository userLanguageLevelRepository;
+    private final UserDeviceTokenRepository userDeviceTokenRepository;
     private final EmailService emailService;
     private final AuthService authService;
 
@@ -72,6 +74,7 @@ public class UserWithdrawalService {
         userAssetHistoryRepository.deleteAllByUserId(userId);
         userAssetRepository.deleteAllByUserId(userId);
         userLanguageLevelRepository.deleteAllByUserId(userId);
+        userDeviceTokenRepository.deleteAllByUserId(userId); // 탈퇴한 기기로 푸시가 가지 않게
 
         // 2) 계정 삭제 (이메일·닉네임 유니크가 풀리므로 같은 이메일로 재가입 가능)
         userRepository.delete(user);
