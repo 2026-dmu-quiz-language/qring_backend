@@ -310,6 +310,16 @@ public class CompetitionMatchService {
         List<CompetitionQuizContent> compPool = competitionQuizContentRepository
                 .findAllByLevelAndLangCode(level, langCode);
 
+        // detail.quiz_type 은 첫 언어 파일 기준으로 고정돼 있어 ja/zh 본문과 어긋난 row 가 있다 (2026-09-20 확인).
+        // 출제는 본문 모양(effectiveType)으로 판정하므로 동작엔 영향 없지만, 데이터 정정 여부를 볼 수 있게 남긴다.
+        long typeMismatch = compPool.stream()
+                .filter(qc -> !effectiveType(qc).equals(qc.getQuizDetail().getQuizType()))
+                .count();
+        if (typeMismatch > 0) {
+            log.warn("[Competition] quiz_type 과 본문 모양이 다른 문제 {}건 (level {}, lang {}) — 본문 기준으로 출제",
+                    typeMismatch, level, langCode);
+        }
+
         List<CompetitionQuizContent> mcPicked = pickByType(compPool, "multiple_choice", mcNeeded);
         List<CompetitionQuizContent> subjPicked = pickByType(compPool, "subjective", subjNeeded);
         List<CompetitionQuizContent> wordPicked = pickByType(compPool, "word_arrange", wordNeeded);
@@ -338,10 +348,35 @@ public class CompetitionMatchService {
 
     private List<CompetitionQuizContent> pickByType(List<CompetitionQuizContent> pool, String type, int count) {
         List<CompetitionQuizContent> filtered = pool.stream()
-                .filter(qc -> type.equals(qc.getQuizDetail().getQuizType()))
+                .filter(qc -> type.equals(effectiveType(qc)))
                 .collect(Collectors.toList());
         Collections.shuffle(filtered);
         return filtered.stream().limit(Math.max(count, 0)).collect(Collectors.toList());
+    }
+
+    /**
+     * 컴피티션 문제의 실제 유형. detail.quiz_type 이 아니라 본문에 무엇이 들어 있는지로 판정한다:
+     * tiles 가 있으면 word_arrange, options 가 있으면 multiple_choice, 둘 다 없으면 subjective.
+     * quiz_type 은 (level, origin_id) 단위로 첫 import 언어의 값이 고정되는 구조라 다른 언어 본문과 어긋날 수 있고,
+     * 그 경우 프론트는 "객관식인데 선택지 없음 / 배열인데 타일 없음" 을 받게 된다. 본문 기준이면 항상 그릴 수 있다.
+     */
+    static String effectiveType(CompetitionQuizContent qc) {
+        if (hasJsonItems(qc.getTiles())) {
+            return "word_arrange";
+        }
+        if (hasJsonItems(qc.getOptions())) {
+            return "multiple_choice";
+        }
+        return "subjective";
+    }
+
+    /** JSON 배열 문자열에 원소가 있는지 (null, 빈 문자열, "[]", "null" 은 없음). */
+    static boolean hasJsonItems(String json) {
+        if (json == null) {
+            return false;
+        }
+        String trimmed = json.trim();
+        return !trimmed.isEmpty() && !trimmed.equals("[]") && !trimmed.equalsIgnoreCase("null");
     }
 
     private String normalizeType(String rawType) {
@@ -376,7 +411,7 @@ public class CompetitionMatchService {
         return new CompetitionQuizItemDto(
                 sourceType,
                 qc.getQuizContentId(),
-                qc.getQuizDetail().getQuizType(),
+                effectiveType(qc),
                 qc.getQuestion(),
                 qc.getKorean(),
                 qc.getTiles(),
