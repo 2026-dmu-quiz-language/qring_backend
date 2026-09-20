@@ -18,7 +18,7 @@ import com.qring.qring_backend.domain.quiz.StoryProgressRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswer;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
-import com.qring.qring_backend.domain.user.UserAssetRepository;
+import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
 import com.qring.qring_backend.domain.user.UserStudyLog;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.domain.user.Userprogress;
@@ -26,6 +26,7 @@ import com.qring.qring_backend.domain.user.UserprogressRepository;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto.QuizResultDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultResponseDto;
+import com.qring.qring_backend.service.user.UserPointService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +44,7 @@ public class QuestionResultService {
     private final QuizResultRepository quizResultRepository;
     private final QuizContentRepository quizContentRepository;
     private final WrongAnswerRepository wrongAnswerRepository;
-    private final UserAssetRepository userAssetRepository;
+    private final UserPointService userPointService;
     private final UserStudyLogRepository userStudyLogRepository;
     private final UserprogressRepository userprogressRepository;
     private final UserRepository userRepository;
@@ -154,7 +155,8 @@ public class QuestionResultService {
         // 실제로 유저 포인트에 적립되는 금액만 상한을 건다.
         if (!alreadyCompleted) {
             int storyPoints = Math.min(totalScore, STORY_LEARNING_POINT_CAP);
-            userAssetRepository.addPoints(userId, storyPoints);
+            userPointService.earn(userId, storyPoints, SourceType.STORY_LEARNING,
+                    content != null ? content.getContentId() : null);
         }
 
         // story_progress 저장 (언어별 스토리 완료 처리)
@@ -193,7 +195,7 @@ public class QuestionResultService {
                 if (language != null) {
                     long completed = userprogressRepository.countCompletedStories(userId, language);
                     if (completed == 0) {
-                        userAssetRepository.addPoints(userId, 30);
+                        userPointService.earn(userId, 30, SourceType.STORY_COMPLETE_BONUS, finalContent.getContentId());
                     }
                 }
             }

@@ -5,6 +5,7 @@ import com.qring.qring_backend.domain.content.StorySession;
 import com.qring.qring_backend.domain.content.StorySessionEntity;
 import com.qring.qring_backend.domain.content.StorySessionRepository;
 import com.qring.qring_backend.domain.user.User;
+import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
 import com.qring.qring_backend.dto.content.StoryArchiveDetailResponse;
 import com.qring.qring_backend.dto.content.StoryArchiveListResponse;
 import com.qring.qring_backend.dto.content.StoryArchiveResponse;
@@ -78,13 +79,15 @@ public class InteractiveStoryService {
         String modelTier = StoryModelTier.normalize(request.getModelTier());
         int startCost = modelTiers.startCostFor(modelTier);
 
+        // 세션 id 를 먼저 정해 두어야 차감 히스토리가 이 세션을 가리킬 수 있다
+        String sessionId = "sess-" + UUID.randomUUID();
+
         // 1. 포인트 선 차감 (짧은 트랜잭션, 원자적 — 잔액 부족 시 여기서 거절)
-        int remainingPoints = pointManager.deduct(userId, startCost);
+        int remainingPoints = pointManager.deduct(userId, startCost, SourceType.INTERACTIVE_STORY_CREATE, sessionId);
         log.info("[InteractiveStory] 사용자(ID: {}) 스토리 세션 시작 포인트 차감 완료: -{} pt (잔액 {} pt, 티어 {}, 모델 {})",
                 userId, startCost, remainingPoints, modelTier, modelTiers.modelFor(modelTier));
 
         // 2. 세션 객체 생성
-        String sessionId = "sess-" + UUID.randomUUID();
         StorySession session = StorySession.builder()
                 .sessionId(sessionId)
                 .userId(userId)
@@ -400,7 +403,7 @@ public class InteractiveStoryService {
 
         // 1. 연장 비용 선 차감 (짧은 트랜잭션, 원자적 — 잔액 부족 시 여기서 거절). 티어는 시작 때 것을 따른다 (업그레이드 없음)
         int extendCost = modelTiers.extendCostFor(session.getModelTier());
-        int remainingPoints = pointManager.deduct(userId, extendCost);
+        int remainingPoints = pointManager.deduct(userId, extendCost, SourceType.INTERACTIVE_STORY_EXTEND, sessionId);
 
         // 2. 마무리된 장면을 다시 여는 연결 대사 생성 — 트랜잭션 밖. 실패 시 환불, 세션은 완결 상태 그대로
         Map<String, Object> continuation;
@@ -459,7 +462,7 @@ public class InteractiveStoryService {
         }
 
         // 보관 비용 차감 (0 이면 차감 없이 잔액만 조회)
-        int remainingPoints = pointManager.deduct(userId, STORY_ARCHIVE_COST);
+        int remainingPoints = pointManager.deduct(userId, STORY_ARCHIVE_COST, SourceType.INTERACTIVE_STORY_ARCHIVE, sessionId);
 
         try {
             entity.setStatus(StorySessionEntity.STATUS_ARCHIVED);
@@ -645,7 +648,7 @@ public class InteractiveStoryService {
     /** 환불 시도. 환불마저 실패하면 수동 복구가 가능하도록 상세 로그를 남긴다 (원래 오류 전달은 호출부 몫). */
     private void refundSafely(Long userId, int amount, String sessionId, String reason) {
         try {
-            pointManager.refund(userId, amount);
+            pointManager.refund(userId, amount, sessionId);
         } catch (Exception refundError) {
             log.error("[InteractiveStory] !! 포인트 환불 실패 - 수동 복구 필요 !! userId: {}, amount: {} pt, sessionId: {}, 사유: {}",
                     userId, amount, sessionId, reason, refundError);

@@ -18,8 +18,7 @@ import com.qring.qring_backend.auth.security.JwtTokenProvider;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserLanguageLevel;
 import com.qring.qring_backend.domain.user.UserLanguageLevelRepository;
-import com.qring.qring_backend.domain.user.UserAsset;
-import com.qring.qring_backend.domain.user.UserAssetRepository;
+import com.qring.qring_backend.service.user.UserPointService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +36,7 @@ public class AuthService {
     private final OAuthService oAuthService;
     private final DisposableEmailService disposableEmailService;
     private final UserLanguageLevelRepository userLanguageLevelRepository;
-    private final UserAssetRepository userAssetRepository;
+    private final UserPointService userPointService;
     private final TransactionTemplate transactionTemplate;
 
     /**
@@ -391,15 +390,8 @@ public class AuthService {
         }
     }
 
-    /** 신규 유저 가입 시 초기 자산(포인트 50점) 설정. 이미 자산이 있다면 건너뜀. */
+    /** 신규 유저 가입 시 초기 자산(포인트 50점) 설정 + SIGNUP_BONUS 히스토리. 이미 자산이 있다면 건너뜀. */
     private void initUserAsset(User user) {
-        if (userAssetRepository.findByUserUserId(user.getUserId()).isEmpty()) {
-            UserAsset asset = new UserAsset();
-            asset.setUser(user);
-            asset.setCurrentPoints(50);
-            asset.setTotalExp(0);
-            asset.setStreakDays(0);
-            userAssetRepository.save(asset);
-        }
+        userPointService.initAssetIfAbsent(user);
     }
 }

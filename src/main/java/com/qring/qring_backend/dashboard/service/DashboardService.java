@@ -17,10 +17,11 @@ import com.qring.qring_backend.domain.difficulty.DifficultyLevelRepository;
 import com.qring.qring_backend.domain.quiz.AchievementCommentRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
-import com.qring.qring_backend.domain.user.UserAsset;
+import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
 import com.qring.qring_backend.domain.user.UserAssetRepository;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.domain.user.UserprogressRepository;
+import com.qring.qring_backend.service.user.UserPointService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,6 +31,10 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class DashboardService {
 
+    /** 연속 학습 보상 주기(일)와 금액. 15·30·45… 일째 대시보드 조회 시 지급. */
+    static final int STREAK_REWARD_INTERVAL_DAYS = 15;
+    static final int STREAK_REWARD_POINTS = 30;
+
     private final UserRepository userRepository;
     private final UserprogressRepository userprogressRepository;
     private final UserStudyLogRepository userStudyLogRepository;
@@ -38,6 +43,7 @@ public class DashboardService {
 
     private final WrongAnswerRepository wrongAnswerRepository;
     private final UserAssetRepository userAssetRepository;
+    private final UserPointService userPointService;
 
     /** 사용자별 대시보드 응답 조립. 평균 진도율은 반올림 정수, 코멘트/레벨 설명은 옵션. */
     @Transactional
@@ -77,19 +83,20 @@ public class DashboardService {
             }
         }
 
+        // 잔액·가드값은 UserAsset 엔티티가 아니라 스칼라로 읽는다. 엔티티를 들고 있다가 save 하면
+        // 벌크 UPDATE 로 올린 포인트를 옛 값으로 덮어써서, 보상이 응답에는 찍히고 DB 에는 남지 않았다.
         boolean isConsecutivePointReceived = false;
-        Integer currentPoints = 0;
-        UserAsset asset = userAssetRepository.findByUserUserId(userId).orElse(null);
-        if (asset != null) {
-            currentPoints = asset.getCurrentPoints();
-            if (consecutiveDays > 0 && consecutiveDays % 15 == 0) {
-                if (asset.getStreakDays() == null || asset.getStreakDays() < consecutiveDays) {
-                    userAssetRepository.addPoints(userId, 30);
-                    asset.setStreakDays((int) consecutiveDays);
-                    userAssetRepository.save(asset);
-                    isConsecutivePointReceived = true;
-                    currentPoints += 30;
-                }
+        Integer currentPoints = userAssetRepository.findCurrentPointsByUserId(userId).orElse(null);
+        if (currentPoints == null) {
+            currentPoints = 0;
+        } else if (consecutiveDays > 0 && consecutiveDays % STREAK_REWARD_INTERVAL_DAYS == 0) {
+            // streak_days = 마지막으로 보상한 연속일. 같은 배수에서 재조회해도 두 번 주지 않는다.
+            int lastRewardedStreak = userAssetRepository.findStreakDaysByUserId(userId).orElse(0);
+            if (lastRewardedStreak < consecutiveDays) {
+                currentPoints = userPointService.earn(userId, STREAK_REWARD_POINTS,
+                        SourceType.STREAK_REWARD, consecutiveDays);
+                userAssetRepository.updateStreakDays(userId, (int) consecutiveDays);
+                isConsecutivePointReceived = true;
             }
         }
 

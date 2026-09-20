@@ -29,16 +29,13 @@ import com.qring.qring_backend.domain.quiz.QuizDetailRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswer;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
-import com.qring.qring_backend.domain.user.UserAsset;
-import com.qring.qring_backend.domain.user.UserAssetHistory;
 import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
-import com.qring.qring_backend.domain.user.UserAssetHistoryRepository;
-import com.qring.qring_backend.domain.user.UserAssetRepository;
 import com.qring.qring_backend.domain.user.UserStudyLog;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.dto.competition.BotLevelDto;
 import com.qring.qring_backend.dto.competition.BotResultDto;
 import com.qring.qring_backend.dto.competition.CompetitionQuizItemDto;
+import com.qring.qring_backend.service.user.UserPointService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,8 +56,7 @@ public class CompetitionMatchService {
     private static final Map<Integer, Integer> ENTRY_COST = Map.of(1, 50, 2, 70, 3, 100);
 
     private final UserRepository userRepository;
-    private final UserAssetRepository userAssetRepository;
-    private final UserAssetHistoryRepository userAssetHistoryRepository;
+    private final UserPointService userPointService;
     private final CompetitionMatchRepository competitionMatchRepository;
     private final CompetitionMatchAnswerRepository competitionMatchAnswerRepository;
     private final CompetitionQuizContentRepository competitionQuizContentRepository;
@@ -85,9 +81,6 @@ public class CompetitionMatchService {
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
         String langCode = user.getLanguage();
 
-        UserAsset asset = userAssetRepository.findByUserUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("유저 자산 정보를 찾을 수 없습니다."));
-
         List<CompetitionQuizItemDto> questions = selectQuestions(level, langCode);
 
         CompetitionMatch match = new CompetitionMatch();
@@ -100,19 +93,8 @@ public class CompetitionMatchService {
         match.setStartedAt(LocalDateTime.now());
         competitionMatchRepository.save(match);
 
-        int deducted = userAssetRepository.tryDeductPoints(userId, entryCost);
-        if (deducted == 0) {
-            throw new IllegalArgumentException("포인트가 부족합니다.");
-        }
-        int balanceAfter = asset.getCurrentPoints() - entryCost;
-
-        UserAssetHistory history = new UserAssetHistory();
-        history.setUserId(userId);
-        history.setChangeAmount(-entryCost);
-        history.setBalanceAfter(balanceAfter);
-        history.setSourceType(SourceType.COMPETITION_ENTRY);
-        history.setReferenceId(match.getMatchId());
-        userAssetHistoryRepository.save(history);
+        // 입장 비용 차감 + 히스토리 (잔액 부족이면 InsufficientPointsException → 400, 매치 insert 도 롤백)
+        int balanceAfter = userPointService.spend(userId, entryCost, SourceType.COMPETITION_ENTRY, match.getMatchId());
 
         return new BotLevelDto.Response(match.getMatchId(), questions, balanceAfter);
     }
@@ -228,22 +210,8 @@ public class CompetitionMatchService {
         studyLog.setLangCode(langCode);
         userStudyLogRepository.save(studyLog);
 
-        UserAsset asset = userAssetRepository.findByUserUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("유저 자산 정보를 찾을 수 없습니다."));
-
-        int balanceAfter = asset.getCurrentPoints();
-        if (rewardPoint > 0) {
-            userAssetRepository.addPoints(userId, rewardPoint);
-            balanceAfter = asset.getCurrentPoints() + rewardPoint;
-
-            UserAssetHistory history = new UserAssetHistory();
-            history.setUserId(userId);
-            history.setChangeAmount(rewardPoint);
-            history.setBalanceAfter(balanceAfter);
-            history.setSourceType(SourceType.COMPETITION_REWARD);
-            history.setReferenceId(match.getMatchId());
-            userAssetHistoryRepository.save(history);
-        }
+        // 승리 보상 적립 + 히스토리. 보상이 0 이면 기록 없이 잔액만 돌려준다.
+        int balanceAfter = userPointService.earn(userId, rewardPoint, SourceType.COMPETITION_REWARD, match.getMatchId());
 
         return new BotResultDto.Response(match.getMatchId(), correctCount, wrongCount, rewardPoint, balanceAfter);
     }
