@@ -69,8 +69,12 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
             @Param("cutoff") LocalDateTime cutoff);
 
     // contentId로 오답 문제 목록 조회 (quiz_content JOIN, 7일 이내만)
+    // quizType 은 ChatService.effectiveQuizType 과 같은 보정: options 없으면 subjective, 있는데 subjective 면 multiple_choice
     @Query("SELECT new com.qring.qring_backend.dto.quiz.IncorrectRetryResponseDto$IncorrectQuizDto(" +
-           "qc.quizContentId, qc.question, qc.options, qc.hint, qc.correctAnswer, qc.quizDetail.quizType) " +
+           "qc.quizContentId, qc.question, qc.options, qc.hint, qc.correctAnswer, " +
+           "CASE WHEN qc.options IS NULL OR qc.options = '' OR qc.options = '[]' THEN 'subjective' " +
+           "     WHEN qc.quizDetail.quizType = 'subjective' THEN 'multiple_choice' " +
+           "     ELSE qc.quizDetail.quizType END) " +
            "FROM WrongAnswer wa " +
            "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
            "WHERE wa.userId = :userId AND wa.contentId = :contentId " +

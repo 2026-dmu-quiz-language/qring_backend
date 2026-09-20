@@ -62,7 +62,7 @@ public class ChatService {
                 .map(qc -> new ChatResponseDto.QuizDto(
                         qc.getQuizDetail().getQuizId(),
                         qc.getQuizDetail().getScript().getScriptId(),
-                        qc.getQuizDetail().getQuizType(),
+                        effectiveQuizType(qc.getQuizDetail().getQuizType(), qc.getOptions()),
                         qc.getQuestion(),
                         shuffleOptions(qc.getOptions()),
                         qc.getCorrectAnswer(),
@@ -72,6 +72,24 @@ public class ChatService {
                 .toList();
 
         return new ChatResponseDto(scriptDtos, quizDtos);
+    }
+
+    /**
+     * 프론트가 그릴 유형. quiz_type 은 언어 공통(quiz_detail)인데 언어별 파일에서 같은 슬롯의 유형이 다른 경우가 있어
+     * (예: en 은 contextual(선택지 4개), zh 는 subjective) 본문 모양으로 보정한다: options 가 없으면 주관식,
+     * options 가 있는데 quiz_type 이 subjective 면 객관식, 그 외는 quiz_type 그대로 (fill_in_blank, contextual 등 표시용).
+     * 프론트 규칙: subjective 만 입력창, 나머지는 선택지형.
+     */
+    static String effectiveQuizType(String detailType, String optionsJson) {
+        boolean hasOptions = optionsJson != null && !optionsJson.isBlank()
+                && !optionsJson.trim().equals("[]") && !optionsJson.trim().equalsIgnoreCase("null");
+        if (!hasOptions) {
+            return "subjective";
+        }
+        if (detailType == null || "subjective".equals(detailType)) {
+            return "multiple_choice";
+        }
+        return detailType;
     }
 
     private String shuffleOptions(String optionsJson) {
