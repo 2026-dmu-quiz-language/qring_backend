@@ -49,14 +49,38 @@ public class MyPageService {
 
         long consecutiveDays = computeConsecutiveDays(userId);
 
+        String languageCode = normalizeLanguage(user.getLanguage());
         return MyPageInfoResponse.builder()
                 .nickname(user.getNickname())
                 .levelCode(levelCode)
                 .levelDesc(levelDesc)
                 .points(points)
                 .consecutiveDays(consecutiveDays)
-                .language(user.getLanguage())
+                .language(languageCode == null ? null : languageCode.toLowerCase())
+                .languageCode(languageCode)
+                .languageName(languageName(languageCode))
                 .build();
+    }
+
+    /** 언어 코드 정규화: 앞뒤 공백 제거 + 대문자 (서버 저장 형식). null/빈 값은 null. */
+    static String normalizeLanguage(String code) {
+        if (code == null || code.isBlank()) {
+            return null;
+        }
+        return code.trim().toUpperCase();
+    }
+
+    /** 대문자 코드 → 한글명. 모르는 코드는 그대로 돌려준다. */
+    static String languageName(String upperCode) {
+        if (upperCode == null) {
+            return null;
+        }
+        return switch (upperCode) {
+            case "EN" -> "영어";
+            case "JA" -> "일본어";
+            case "ZH" -> "중국어";
+            default -> upperCode;
+        };
     }
 
     public MyPageSettingResponse getMyPageSetting(Long userId) {
@@ -105,13 +129,19 @@ public class MyPageService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
 
-        if (request.getLanguage() != null && !request.getLanguage().isEmpty()) {
-            user.setLanguage(request.getLanguage());
+        // 요청 언어는 대문자로 정규화해 저장 (프론트가 en/EN 을 섞어 보내도 DB 값은 한 형식)
+        String requestedLanguage = normalizeLanguage(request.getLanguage());
+        log.info("[MyPageService] updateLearning userId={} 언어 {} → {}, 레벨 {} → {}",
+                userId, user.getLanguage(), requestedLanguage != null ? requestedLanguage : user.getLanguage(),
+                user.getLevelCode(), request.getLevelCode() != null ? request.getLevelCode() : user.getLevelCode());
+
+        if (requestedLanguage != null) {
+            user.setLanguage(requestedLanguage);
         }
         if (request.getLevelCode() != null) {
             user.setLevelCode(request.getLevelCode());
         }
-        
+
         String langToUpdate = user.getLanguage();
         Integer levelToUpdate = user.getLevelCode();
 
@@ -135,13 +165,15 @@ public class MyPageService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
 
-        if (request.getLanguage() != null && !request.getLanguage().isEmpty()) {
-            user.setLanguage(request.getLanguage());
-            
+        String requestedLanguage = normalizeLanguage(request.getLanguage());
+        if (requestedLanguage != null) {
+            log.info("[MyPageService] switchLanguage userId={} 언어 {} → {}", userId, user.getLanguage(), requestedLanguage);
+            user.setLanguage(requestedLanguage);
+
             // Sync levelCode with the selected language level if it exists
-            userLanguageLevelRepository.findByUserIdAndLanguage(userId, request.getLanguage())
+            userLanguageLevelRepository.findByUserIdAndLanguage(userId, requestedLanguage)
                     .ifPresent(ull -> user.setLevelCode(ull.getLevel()));
-                    
+
             userRepository.save(user);
         }
     }
