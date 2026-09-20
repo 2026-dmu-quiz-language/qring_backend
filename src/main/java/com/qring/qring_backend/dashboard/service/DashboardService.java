@@ -3,6 +3,7 @@ package com.qring.qring_backend.dashboard.service;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -15,6 +16,8 @@ import com.qring.qring_backend.dashboard.dto.DashboardResponse;
 import com.qring.qring_backend.domain.difficulty.DifficultyLevel;
 import com.qring.qring_backend.domain.difficulty.DifficultyLevelRepository;
 import com.qring.qring_backend.domain.quiz.AchievementCommentRepository;
+import com.qring.qring_backend.domain.quiz.QuizResultRepository;
+import com.qring.qring_backend.domain.quiz.StoryProgressRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
@@ -44,6 +47,8 @@ public class DashboardService {
     private final WrongAnswerRepository wrongAnswerRepository;
     private final UserAssetRepository userAssetRepository;
     private final UserPointService userPointService;
+    private final StoryProgressRepository storyProgressRepository;
+    private final QuizResultRepository quizResultRepository;
 
     /** 사용자별 대시보드 응답 조립. 평균 진도율은 반올림 정수, 코멘트/레벨 설명은 옵션. */
     @Transactional
@@ -55,7 +60,15 @@ public class DashboardService {
 
         int progressRate = computeWeeklyProgressRate(userId);
 
-        long completedStoryCount = userprogressRepository.countCompletedStories(userId, langCode);
+        // 완료 스토리 수는 콘텐츠 목록의 완료 표시와 같은 기준 — 현재 언어·현재 레벨에서 완료한 콘텐츠 수.
+        // 주 근거 quiz_result(난이도·언어별 풀이 기록) + 보조 근거 story_progress(마지막 완료 레벨) 의 합집합.
+        long completedStoryCount = 0;
+        if (langCode != null && user.getLevelCode() != null) {
+            Set<Long> completed = new HashSet<>(
+                    quizResultRepository.findCompletedContentIds(userId, langCode, user.getLevelCode()));
+            completed.addAll(storyProgressRepository.findCompletedContentIds(userId, langCode, user.getLevelCode()));
+            completedStoryCount = completed.size();
+        }
 
         String commentText = achievementCommentRepository.findCommentByRate(progressRate).orElse(null);
 

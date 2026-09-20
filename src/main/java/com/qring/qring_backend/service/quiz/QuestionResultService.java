@@ -62,16 +62,25 @@ public class QuestionResultService {
         int correctCount = 0;
         Content content = null;
 
-        // 이 스토리를 이미 완료한 적 있는지 먼저 확인 (재학습 시 포인트 재지급 방지)
+        // 이 스토리를 같은 언어·같은 레벨로 이미 완료한 적 있는지 먼저 확인 (재학습 시 포인트 재지급 방지).
+        // 레벨은 실제로 푼 문제 세트의 난이도로 본다 — 레벨을 올리면 다른 문제라 새 완료로 취급한다.
+        // 판정 근거: quiz_result 에 (사용자, 콘텐츠, 난이도, 언어) 풀이 기록이 있으면 완료 (결과 제출은 완주 시 1회).
+        // 보조 근거: story_progress 의 마지막 완료 레벨이 같은 경우 (옛 quiz_result 에 lang_code 가 없을 때 대비).
+        // quiz_result 는 아래에서 저장되므로 반드시 저장 전에 검사한다.
         boolean alreadyCompleted = false;
+        Integer storyLevel = null;
         if (request.getResults() != null && !request.getResults().isEmpty()) {
             QuizDetail firstQuizDetail = quizDetailRepository.findById(request.getResults().get(0).getQuizId())
                     .orElseThrow(() -> new IllegalArgumentException("퀴즈를 찾을 수 없습니다."));
             content = firstQuizDetail.getContent();
-            if (language != null) {
-                alreadyCompleted = storyProgressRepository
-                        .findByUserIdAndContentIdAndLanguage(userId, content.getContentId(), language)
-                        .map(StoryProgress::getIsCompleted)
+            storyLevel = firstQuizDetail.getDifficulty() != null ? firstQuizDetail.getDifficulty() : user.getLevelCode();
+            if (language != null && storyLevel != null) {
+                Long contentId = content.getContentId();
+                Integer level = storyLevel;
+                alreadyCompleted = quizResultRepository
+                        .existsByUserUserIdAndContentIdAndDifficultyAndLangCode(userId, contentId, level, language)
+                    || storyProgressRepository.findByUserIdAndContentIdAndLanguage(userId, contentId, language)
+                        .map(sp -> Boolean.TRUE.equals(sp.getIsCompleted()) && level.equals(sp.getLevel()))
                         .orElse(false);
             }
         }
@@ -159,8 +168,8 @@ public class QuestionResultService {
                     content != null ? content.getContentId() : null);
         }
 
-        // story_progress 저장 (언어별 스토리 완료 처리)
-        if (content != null && language != null) {
+        // story_progress 저장 — (사용자, 콘텐츠, 언어) 당 한 줄, level 은 마지막으로 완료한 레벨로 갱신
+        if (content != null && language != null && storyLevel != null) {
             Content finalContent = content;
             StoryProgress sp = storyProgressRepository
                     .findByUserIdAndContentIdAndLanguage(userId, finalContent.getContentId(), language)
@@ -169,9 +178,9 @@ public class QuestionResultService {
                         newSp.setUserId(userId);
                         newSp.setContentId(finalContent.getContentId());
                         newSp.setLanguage(language);
-                        newSp.setLevel(user.getLevelCode());
                         return newSp;
                     });
+            sp.setLevel(storyLevel);
             sp.setIsCompleted(true);
             sp.setCompletedAt(LocalDateTime.now());
             storyProgressRepository.save(sp);
