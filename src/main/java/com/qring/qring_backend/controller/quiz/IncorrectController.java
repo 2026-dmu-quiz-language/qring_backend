@@ -3,9 +3,9 @@ package com.qring.qring_backend.controller.quiz;
 import com.qring.qring_backend.dto.quiz.IncorrectResponseDto;
 import com.qring.qring_backend.dto.quiz.IncorrectResultRequestDto;
 import com.qring.qring_backend.dto.quiz.IncorrectResultResponseDto;
+import com.qring.qring_backend.dto.quiz.IncorrectRetryRequestDto;
 import com.qring.qring_backend.dto.quiz.IncorrectRetryResponseDto;
 import com.qring.qring_backend.service.quiz.IncorrectService;
-import com.qring.qring_backend.dto.quiz.IncorrectRetryResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +13,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import java.util.Map;
 
 
 @RestController
@@ -32,10 +31,10 @@ public class IncorrectController {
     @PostMapping("/retry")
     public ResponseEntity<IncorrectRetryResponseDto> getIncorrectQuizzes(
             Authentication authentication,
-            @RequestBody Map<String, Long> body) {
+            @RequestBody IncorrectRetryRequestDto request) {
         Long userId = (Long) authentication.getPrincipal();
-        Long contentId = body.get("contentId");
-        return ResponseEntity.ok(incorrectService.getIncorrectQuizzes(userId, contentId));
+        return ResponseEntity.ok(
+                incorrectService.getIncorrectQuizzes(userId, request.getSourceType(), request.getGroupId()));
     }
 
     @PostMapping("/result")

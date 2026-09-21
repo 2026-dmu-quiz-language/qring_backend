@@ -42,7 +42,7 @@ public class UserContentUnlock {
     private Content content;
 
     @Column(name = "language", nullable = false, length = 10)
-    private String language;   // UserLanguageLevel과 동일한 컨벤션 (예: "EN", "JA", "ZH")
+    private String language;
 
     @Column(name = "unlocked_at", nullable = false)
     private LocalDateTime unlockedAt;

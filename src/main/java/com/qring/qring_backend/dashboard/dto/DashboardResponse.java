@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import com.qring.qring_backend.dto.quiz.IncorrectResponseDto.WrongAnswerSummary;
+// import com.qring.qring_backend.dto.quiz.IncorrectResponseDto.WrongAnswerSummary;
 
 /** 대시보드 응답 — 닉네임, 연속 학습일, 진도율(%), 성취 코멘트, 완료 스토리 수, 레벨 정보, 주간 학습 현황. */
 @Getter
