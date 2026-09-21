@@ -9,7 +9,8 @@ import java.util.List;
 @NoArgsConstructor
 public class IncorrectResultRequestDto {
 
-    private Long contentId;
+    private String sourceType;   // STORY / COMPETITION
+    private Long contentId;      // STORY: content_id / COMPETITION: level
     private List<QuizResultDto> results;
 
     @Getter

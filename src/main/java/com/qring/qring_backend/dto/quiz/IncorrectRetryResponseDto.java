@@ -17,8 +17,9 @@ public class IncorrectRetryResponseDto {
         private Long quizContentId;
         private String question;
         private String options;
-        private String hint;
+        private String hint;          // COMPETITION 인 경우 항상 null (해당 필드 없음)
         private String correctAnswer;
         private String quizType;
+        private String sourceType;    // STORY / COMPETITION
     }
 }

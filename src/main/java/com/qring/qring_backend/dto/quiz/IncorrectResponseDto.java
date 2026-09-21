@@ -3,18 +3,21 @@ package com.qring.qring_backend.dto.quiz;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
 @AllArgsConstructor
 public class IncorrectResponseDto {
 
-    private List<WrongAnswerSummary> wrongAnswers;
+    private List<WrongAnswerItem> wrongAnswers;
 
     @Getter
     @AllArgsConstructor
-    public static class WrongAnswerSummary {
-        private Long contentId;
-        private String storyName;
+    public static class WrongAnswerItem {
+        private String sourceType;          // STORY / COMPETITION
+        private Long contentId;             // STORY: content_id / COMPETITION: level (재풀이 조회 시 구분용)
+        private String label;               // STORY: storyName / COMPETITION: "레벨 N 컴피티션"
+        private LocalDateTime latestWrongAt; // 정렬 기준
     }
 }

@@ -57,24 +57,29 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
                                                   @Param("langCode") String langCode,
                                                   @Param("sevenDaysAgo") LocalDateTime sevenDaysAgo);
 
-    // 오답 목록에서 contentId + storyName 중복 없이 조회 (7일 이내만)
-    @Query("SELECT DISTINCT new com.qring.qring_backend.dto.quiz.IncorrectResponseDto$WrongAnswerSummary(wa.contentId, wa.storyName) " +
+    // 오답 목록에서 contentId + storyName 중복 없이, 가장 최근 오답 시각 포함 조회 (7일 이내만)
+    // STORY/COMPETITION 통합 목록 정렬용으로 latestWrongAt(MAX createdAt)을 같이 내려준다.
+    @Query("SELECT new com.qring.qring_backend.dto.quiz.IncorrectResponseDto$WrongAnswerItem(" +
+           "'STORY', wa.contentId, wa.storyName, MAX(wa.createdAt)) " +
            "FROM WrongAnswer wa " +
            "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
            "WHERE wa.userId = :userId AND qc.langCode = :langCode " +
-           "AND wa.createdAt >= :cutoff")
-    List<IncorrectResponseDto.WrongAnswerSummary> findWrongAnswerSummaryByUserIdAndLangCode(
+           "AND wa.createdAt >= :cutoff " +
+           "GROUP BY wa.contentId, wa.storyName")
+    List<IncorrectResponseDto.WrongAnswerItem> findWrongAnswerSummaryByUserIdAndLangCode(
             @Param("userId") Long userId,
             @Param("langCode") String langCode,
             @Param("cutoff") LocalDateTime cutoff);
 
     // contentId로 오답 문제 목록 조회 (quiz_content JOIN, 7일 이내만)
     // quizType 은 ChatService.effectiveQuizType 과 같은 보정: options 없으면 subjective, 있는데 subjective 면 multiple_choice
+    // sourceType 은 항상 'STORY' 고정 (컴피티션은 IncorrectService 에서 별도 조회 후 조합)
     @Query("SELECT new com.qring.qring_backend.dto.quiz.IncorrectRetryResponseDto$IncorrectQuizDto(" +
            "qc.quizContentId, qc.question, qc.options, qc.hint, qc.correctAnswer, " +
            "CASE WHEN qc.options IS NULL OR qc.options = '' OR qc.options = '[]' THEN 'subjective' " +
            "     WHEN qc.quizDetail.quizType = 'subjective' THEN 'multiple_choice' " +
-           "     ELSE qc.quizDetail.quizType END) " +
+           "     ELSE qc.quizDetail.quizType END, " +
+           "'STORY') " +
            "FROM WrongAnswer wa " +
            "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
            "WHERE wa.userId = :userId AND wa.contentId = :contentId " +
