@@ -26,8 +26,15 @@ public class StoryStartRequest {
     @NotBlank(message = "대화 분위기를 선택해주세요.")
     private String tone;
 
-    @Schema(description = "학습 대상 언어", example = "English")
-    private String targetLanguage = "English";
+    /**
+     * @deprecated 학습 언어는 서버가 토큰의 사용자 설정(users.language: EN/JA/ZH)으로 정한다 (2026-09-22).
+     *             프론트는 이 값을 알 수 없어 늘 비어 있었고, 그 결과 모든 세션이 영어로 진행되던 문제의 원인이었다.
+     *             호환을 위해 필드만 남겨 두며, 값을 보내도 무시된다.
+     */
+    @Deprecated
+    @Schema(description = "(무시됨) 학습 언어는 로그인 사용자의 설정 언어로 서버가 정합니다. 호환을 위해 필드만 남아 있습니다.",
+            deprecated = true)
+    private String targetLanguage;
 
     @Schema(description = "모델 티어. \"standard\"(기본 모델, 400pt) 또는 \"premium\"(프리미엄 모델, 550pt). 생략 시 standard",
             example = "premium", allowableValues = {"standard", "premium"})

@@ -1,11 +1,15 @@
 package com.qring.qring_backend.service.content;
 
 import com.qring.qring_backend.domain.content.StorySession;
+import com.qring.qring_backend.domain.user.User;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -27,6 +31,68 @@ class InteractiveStoryServiceTest {
         assertTrue(InteractiveStoryService.isSameQuestion(pending, quiz("'녹차'를 뜻하는 표현은?")));
         assertTrue(InteractiveStoryService.isSameQuestion(pending, quiz("  '녹차'를  뜻하는   표현은?  ")));
         assertFalse(InteractiveStoryService.isSameQuestion(pending, quiz("'홍차'를 뜻하는 표현은?")));
+    }
+
+    @Test
+    @DisplayName("일본어 세션에서도 같은 표현을 다시 출제하면 기출 중복으로 잡는다")
+    void detectsDuplicateSubjectInNoSpaceLanguage() {
+        // 실측(2026-09-22): "続けてベットします" 를 내고 다시 "ベットを続けます" 를 냈다
+        assertTrue(InteractiveStoryService.isDuplicateQuizSubject(
+                List.of("続けてベットします"), Map.of("correct_answer", "ベットを続けます"), "Japanese"));
+        assertFalse(InteractiveStoryService.isDuplicateQuizSubject(
+                List.of("続けてベットします"), Map.of("correct_answer", "カードを引きます"), "Japanese"));
+        assertFalse(InteractiveStoryService.isDuplicateQuizSubject(
+                List.of("続けてベットします"), Map.of("correct_answer", "ベットを続けます"), "English"),
+                "영어 규칙은 낱말 단위 그대로다");
+    }
+
+    @Test
+    @DisplayName("이어하기는 생성 중인 턴을 기다리고, 제한 시간을 넘기면 진행 중으로 알린다")
+    void awaitsTurnInFlightBeforeAnswering() throws Exception {
+        CountDownLatch finished = new CountDownLatch(1);
+        finished.countDown();
+        assertFalse(InteractiveStoryService.awaitTurn(finished, Duration.ofMillis(50)),
+                "이미 끝난 턴은 기다리지 않는다");
+
+        CountDownLatch stuck = new CountDownLatch(1);
+        long startedAt = System.nanoTime();
+        assertTrue(InteractiveStoryService.awaitTurn(stuck, Duration.ofMillis(120)),
+                "제한 시간 안에 끝나지 않으면 아직 진행 중으로 본다");
+        assertTrue(System.nanoTime() - startedAt >= 90_000_000L, "제한 시간만큼은 기다려야 한다");
+
+        // 실측 사고(2026-09-22): 생성 중에 앱을 나갔다 들어오면 답 없는 내 메시지로 끝난 대화가 내려갔다
+        CountDownLatch finishesSoon = new CountDownLatch(1);
+        Thread turn = new Thread(() -> {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            finishesSoon.countDown();
+        });
+        turn.start();
+        assertFalse(InteractiveStoryService.awaitTurn(finishesSoon, Duration.ofSeconds(3)),
+                "턴이 끝나면 완성된 대화를 돌려준다");
+        turn.join();
+    }
+
+    @Test
+    @DisplayName("세션 언어는 사용자 설정(users.language)으로 정하고 요청의 targetLanguage 는 무시한다")
+    void resolvesTargetLanguageFromUserNotRequest() {
+        User japanese = User.builder().userId(1L).email("ja@example.com").language("JA").build();
+        assertEquals("Japanese", InteractiveStoryService.resolveTargetLanguage(japanese, "English"),
+                "프론트가 English 를 보내도 사용자 설정이 우선이다");
+        assertEquals("Japanese", InteractiveStoryService.resolveTargetLanguage(japanese, null));
+
+        User chinese = User.builder().userId(2L).email("zh@example.com").language("zh").build();
+        assertEquals("Chinese (Simplified)", InteractiveStoryService.resolveTargetLanguage(chinese, null));
+
+        User notOnboarded = User.builder().userId(3L).email("new@example.com").build();
+        assertEquals("English", InteractiveStoryService.resolveTargetLanguage(notOnboarded, "Japanese"),
+                "언어 미설정 사용자는 기본값 English (요청값으로 올리지 않는다)");
+
+        User unknownCode = User.builder().userId(4L).email("x@example.com").language("KO").build();
+        assertEquals("English", InteractiveStoryService.resolveTargetLanguage(unknownCode, null));
     }
 
     @Test

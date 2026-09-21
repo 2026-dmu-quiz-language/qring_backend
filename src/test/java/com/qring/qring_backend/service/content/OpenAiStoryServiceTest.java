@@ -74,6 +74,10 @@ class OpenAiStoryServiceTest {
         assertTrue(prompt.contains("QUIZ ANSWER GRADING"));
         assertTrue(prompt.contains("Correct answer: dessert"));
         assertTrue(prompt.contains("dessert | sweets"));
+        assertTrue(prompt.contains("Do NOT re-check their spelling, spacing or word order"),
+                "이미 정답인데 어순을 지적하던 실측 사고의 재발 방지");
+        assertTrue(prompt.contains("READ IT FROM THEIR SIDE"),
+                "학습자의 대사를 AI 쪽에서 읽어 뜻을 뒤집던 실측 사고의 재발 방지");
         assertTrue(prompt.contains("ALREADY graded this answer as CORRECT"),
                 "정답 제출 시 서버 판정 결과가 프롬프트에 통보되어야 한다");
     }
@@ -136,11 +140,13 @@ class OpenAiStoryServiceTest {
 
         assertTrue(prompt.contains("A QUIZ IS PART OF THE CONVERSATION, NOT A POP-UP TEST"));
         assertTrue(prompt.contains("Their correct answer IS their reply"));
-        assertTrue(prompt.contains("have they answered my question in the scene"),
+        assertTrue(prompt.contains("have they actually replied to your question in the scene?"),
                 "정답이 대화 답변이 되는지 자문하라는 검증 지시가 있어야 한다");
-        assertTrue(prompt.contains("MUST therefore be a CLOSED question"),
+        assertTrue(prompt.contains("HOW TO BUILD A QUIZ - follow these steps IN THIS ORDER"),
+                "예시 대신 퀴즈 제작 절차가 단계로 들어가야 한다");
+        assertTrue(prompt.contains("CLOSED: the set of sensible answers is small"),
                 "답이 정해지지 않은 열린 질문을 금지해야 한다");
-        assertTrue(prompt.contains("THE ANSWER MUST NOT APPEAR IN YOUR QUESTION"),
+        assertTrue(prompt.contains("Is the answer absent from your own question?"),
                 "자기 질문 속 단어를 정답으로 내는 앵무새 퀴즈를 금지해야 한다");
         assertTrue(prompt.contains("SHORT ANSWER ONLY"), "주관식은 단답만 내야 한다");
         assertTrue(prompt.contains("NEVER ask the learner to type a full sentence"));
@@ -174,6 +180,7 @@ class OpenAiStoryServiceTest {
 
         String prompt = service.buildTurnSystemPrompt(session, "black coffee");
 
+        assertTrue(prompt.contains("NEVER explain the word order"), "어순 설명 금지");
         assertTrue(prompt.contains("react briefly to that"),
                 "다른 뜻의 표현이면 그 뜻에 반응하라는 지시가 있어야 한다");
         assertTrue(prompt.contains("word-order or missing-word mistake"),
@@ -212,7 +219,8 @@ class OpenAiStoryServiceTest {
                 "correct_answer", "green tea", "options", List.of("green tea", "black coffee", "milk")));
         session.incrementTurnsSinceLastQuiz();
 
-        String prompt = service.buildTurnSystemPrompt(session, "바운디라는 가순데 알아?");
+        // 한국어 입력은 이제 오답으로 확정되므로(2026-09-22), 미시도는 대상 언어로 딴 얘기를 한 경우로 본다
+        String prompt = service.buildTurnSystemPrompt(session, "Do you know that singer?");
 
         assertTrue(prompt.contains("did NOT attempt the quiz"));
         assertTrue(prompt.contains("steer them back to your pending in-story question"));
@@ -228,20 +236,27 @@ class OpenAiStoryServiceTest {
                 "options", List.of("green tea", "black coffee", "milk"));
         assertEquals("correct", OpenAiStoryService.classifyAnswer(mc, "Green tea"));
         assertEquals("incorrect", OpenAiStoryService.classifyAnswer(mc, "black coffee"));
-        assertEquals(OpenAiStoryService.NOT_ATTEMPT, OpenAiStoryService.classifyAnswer(mc, "바운디라는 가순데 알아?"));
+        assertEquals(OpenAiStoryService.NOT_ATTEMPT, OpenAiStoryService.classifyAnswer(mc, "Do you know that singer?"));
+        assertEquals("incorrect", OpenAiStoryService.classifyAnswer(mc, "바운디라는 가순데 알아?"),
+                "대상 언어로 답해야 하는 자리에 한국어로 답하면 오답 (팀 결정 2026-09-22)");
 
         Map<String, Object> wa = Map.of("quiz_type", "word_arrange", "correct_answer", "I want to play mid",
                 "tiles", List.of("play", "I", "mid", "to", "want"));
         assertEquals("correct", OpenAiStoryService.classifyAnswer(wa, "I want to play mid"));
         assertEquals("incorrect", OpenAiStoryService.classifyAnswer(wa, "I want play mid"),
                 "타일 단어만으로 만든 다른 문장은 오답(시도)이다");
-        assertEquals(OpenAiStoryService.NOT_ATTEMPT, OpenAiStoryService.classifyAnswer(wa, "롤 알아?"),
+        assertEquals(OpenAiStoryService.NOT_ATTEMPT, OpenAiStoryService.classifyAnswer(wa, "do you know that game"),
                 "타일에 없는 단어를 쓴 입력은 시도가 아니다");
+        assertEquals("incorrect", OpenAiStoryService.classifyAnswer(wa, "롤 알아?"),
+                "한국어 입력은 오답으로 확정한다 (2026-09-22)");
 
         Map<String, Object> subj = Map.of("quiz_type", "subjective", "acceptable_answers", List.of("often"));
         assertEquals("correct", OpenAiStoryService.classifyAnswer(subj, "Often!"));
         assertNull(OpenAiStoryService.classifyAnswer(subj, "ofen"), "주관식 목록 밖 입력은 모델 위임");
-        assertNull(OpenAiStoryService.classifyAnswer(subj, "게임 얘기 할래?"), "주관식은 시도 여부도 모델이 가린다");
+        assertEquals("incorrect", OpenAiStoryService.classifyAnswer(subj, "게임 얘기 할래?"),
+                "주관식도 한국어 입력은 오답으로 확정한다 (2026-09-22)");
+        assertNull(OpenAiStoryService.classifyAnswer(subj, "do you want to talk about games"),
+                "대상 언어로 한 목록 밖 입력은 모델이 가린다");
     }
 
     @Test
@@ -388,6 +403,480 @@ class OpenAiStoryServiceTest {
         assertEquals("subjective", OpenAiStoryService.sanitizeQuiz(shortSubjective).get("quiz_type"));
     }
 
+    private StorySession japaneseSession() {
+        return StorySession.builder()
+                .sessionId("sess-ja").userId(1L).characterName("ゆい")
+                .situationDescription("東京のカフェで注文する状況").tone("다정하게")
+                .targetLanguage("Japanese").levelCode(1)
+                .build();
+    }
+
+    @Test
+    @DisplayName("일본어·중국어 세션의 프롬프트에만 띄어쓰기 없는 언어용 블록이 들어간다")
+    void noSpaceScriptDirectiveOnlyForNoSpaceLanguages() {
+        String japanese = service.buildOpeningSystemPrompt(japaneseSession());
+        assertTrue(japanese.contains("Target Language: Japanese (User Level Code: 1)"));
+        assertTrue(japanese.contains("SCRIPT RULES FOR Japanese"));
+        assertTrue(japanese.contains("at most " + OpenAiStoryService.MAX_SUBJECTIVE_CHARS + " characters"));
+
+        assertFalse(service.buildOpeningSystemPrompt(newSession()).contains("SCRIPT RULES FOR"));
+        assertFalse(service.buildTurnSystemPrompt(newSession(), "hi").contains("SCRIPT RULES FOR"));
+
+        StorySession chinese = japaneseSession();
+        chinese.setTargetLanguage("Chinese (Simplified)");
+        assertTrue(service.buildTurnSystemPrompt(chinese, "hi").contains("SCRIPT RULES FOR Chinese (Simplified)"));
+    }
+
+    @Test
+    @DisplayName("일본어 단어배열: 모델 타일을 그대로 두고 정답은 공백·끝 문장부호 없이 정리한다")
+    void japaneseWordArrangeKeepsModelTiles() {
+        Map<String, Object> quiz = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "私は コーヒーが 好きです。",
+                "tiles", List.of("好きです。", "私は", "コーヒーが"));
+        Map<String, Object> fixed = OpenAiStoryService.sanitizeQuiz(quiz, "Japanese");
+
+        assertEquals("私はコーヒーが好きです", fixed.get("correct_answer"));
+        assertEquals(List.of("好きです", "私は", "コーヒーが"), fixed.get("tiles"), "타일은 순서·내용 그대로, 끝 문장부호만 뗀다");
+        assertNull(OpenAiStoryService.structuralProblem(fixed, "Japanese"));
+
+        Map<String, Object> noAnswer = Map.of("quiz_type", "word_arrange",
+                "tiles", List.of("私は", "コーヒーが", "好きです"));
+        assertEquals("私はコーヒーが好きです", OpenAiStoryService.sanitizeQuiz(noAnswer, "Japanese").get("correct_answer"),
+                "정답이 없으면 타일을 공백 없이 이어 붙인다");
+
+        // 영어는 기존 규칙 그대로: 정답 단어로 타일을 다시 만든다
+        Map<String, Object> english = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "I like coffee", "tiles", List.of("I", "coffee"));
+        @SuppressWarnings("unchecked")
+        List<String> englishTiles = (List<String>) OpenAiStoryService.sanitizeQuiz(english, "English").get("tiles");
+        assertEquals(List.of("I", "coffee", "like"), englishTiles.stream().sorted().toList());
+    }
+
+    @Test
+    @DisplayName("일본어 구조 문제: 타일이 정답을 못 이루거나 하나뿐이면, 주관식이 10자를 넘으면 거부 사유를 돌려준다")
+    void japaneseStructuralProblems() {
+        Map<String, Object> missingTile = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "私はコーヒーが好きです", "tiles", List.of("私は", "好きです"));
+        String reason = OpenAiStoryService.structuralProblem(missingTile, "Japanese");
+        assertTrue(reason != null && reason.contains("do not join up"), reason);
+
+        Map<String, Object> singleTile = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "私はコーヒーが好きです", "tiles", List.of("私はコーヒーが好きです"));
+        String single = OpenAiStoryService.structuralProblem(singleTile, "Japanese");
+        assertTrue(single != null && single.contains("single tile"), single);
+
+        Map<String, Object> noTiles = Map.of("quiz_type", "word_arrange", "correct_answer", "私はコーヒーが好きです");
+        assertTrue(OpenAiStoryService.structuralProblem(noTiles, "Japanese") != null, "타일이 없으면 앱이 낼 수 없는 퀴즈다");
+
+        Map<String, Object> longSubjective = Map.of("quiz_type", "subjective",
+                "correct_answer", "毎晩ゲームをしているよ", "acceptable_answers", List.of("毎晩ゲームをしているよ"));
+        String tooLong = OpenAiStoryService.structuralProblem(longSubjective, "Japanese");
+        assertTrue(tooLong != null && tooLong.contains("at most " + OpenAiStoryService.MAX_SUBJECTIVE_CHARS), tooLong);
+
+        Map<String, Object> shortSubjective = Map.of("quiz_type", "subjective",
+                "correct_answer", "よく行くよ", "acceptable_answers", List.of("よく行くよ"));
+        assertNull(OpenAiStoryService.structuralProblem(shortSubjective, "Japanese"));
+
+        // 띄어쓰기를 쓰는 언어는 sanitizeQuiz 가 이미 고치므로 구조 검사가 없다
+        assertNull(OpenAiStoryService.structuralProblem(noTiles, "English"));
+    }
+
+    @Test
+    @DisplayName("일본어 채점: 공백·끝 문장부호를 무시하고, 단어배열은 타일 조립 여부로 시도/시도 아님을 가른다")
+    void japaneseClassifyAnswer() {
+        Map<String, Object> arrange = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "私はコーヒーが好きです", "tiles", List.of("好きです", "私は", "コーヒーが"));
+        assertEquals("correct", OpenAiStoryService.classifyAnswer(arrange, "私は コーヒーが 好きです", "Japanese"),
+                "앱이 타일을 공백으로 이어 보내도 정답이다");
+        assertEquals("correct", OpenAiStoryService.classifyAnswer(arrange, "私はコーヒーが好きです。", "Japanese"));
+        assertNull(OpenAiStoryService.classifyAnswer(arrange, "コーヒーが私は好きです", "Japanese"),
+                "타일을 모두 쓴 다른 순서는 자연스러울 수 있어 모델이 판정한다 (2026-09-22)");
+        assertEquals(OpenAiStoryService.NOT_ATTEMPT, OpenAiStoryService.classifyAnswer(arrange, "紅茶が好きです", "Japanese"),
+                "타일에 없는 글자가 섞이면 시도가 아니다");
+        assertEquals(OpenAiStoryService.NOT_ATTEMPT, OpenAiStoryService.classifyAnswer(arrange, "   ", "Japanese"));
+
+        Map<String, Object> choice = Map.of("quiz_type", "multiple_choice",
+                "correct_answer", "冷たいの", "options", List.of("冷たいの", "温かいの"));
+        assertEquals("correct", OpenAiStoryService.classifyAnswer(choice, "冷たいの！", "Japanese"));
+        assertEquals("incorrect", OpenAiStoryService.classifyAnswer(choice, "温かいの", "Japanese"));
+        assertEquals(OpenAiStoryService.NOT_ATTEMPT, OpenAiStoryService.classifyAnswer(choice, "うーん", "Japanese"));
+
+        Map<String, Object> subjective = Map.of("quiz_type", "subjective", "acceptable_answers", List.of("よく"));
+        assertEquals("correct", OpenAiStoryService.classifyAnswer(subjective, "よく", "Japanese"));
+        assertNull(OpenAiStoryService.classifyAnswer(subjective, "たまに", "Japanese"), "주관식 목록 밖 답은 모델에 위임");
+    }
+
+    @Test
+    @DisplayName("일본어 대사 연결·앵무새·중복 질문 검사는 문자열 포함과 문자 2-gram 겹침으로 본다")
+    void japaneseMessageChecks() {
+        String aiMsg = "いいね！コーヒーは好き？";
+        assertTrue(OpenAiStoryService.isQuizLinkedToMessage(aiMsg, Map.of("asked", "コーヒーは好き？"), "Japanese"));
+        assertTrue(OpenAiStoryService.isQuizLinkedToMessage(aiMsg, Map.of("asked", "コーヒーは好きなの？"), "Japanese"),
+                "어미가 조금 달라도 2-gram 이 70% 이상 겹치면 같은 질문이다");
+        assertFalse(OpenAiStoryService.isQuizLinkedToMessage(aiMsg, Map.of("asked", "紅茶にする？"), "Japanese"));
+
+        Map<String, Object> parrot = Map.of("quiz_type", "subjective", "acceptable_answers", List.of("よく"));
+        assertFalse(OpenAiStoryService.isAnswerEchoedInMessage("ゲームはよくするの？", parrot, "Japanese"),
+                "짧은 낱말은 질문에 나오는 것이 자연스러워 통과시킨다 (팀 결정 2026-09-22)");
+        Map<String, Object> longParrot = Map.of("quiz_type", "subjective",
+                "acceptable_answers", List.of("よく散歩させるよ"));
+        assertTrue(OpenAiStoryService.isAnswerEchoedInMessage("君はよく散歩させるよね？", longParrot, "Japanese"),
+                "긴 표현을 그대로 베끼게 하는 퀴즈는 여전히 거부한다");
+        Map<String, Object> choice = Map.of("quiz_type", "multiple_choice", "correct_answer", "冷たいのがいい");
+        assertFalse(OpenAiStoryService.isAnswerEchoedInMessage("温かいの？それとも冷たいのがいい？", choice, "Japanese"),
+                "선택형 질문(それとも)의 선택지는 질문에 나와도 정상이다");
+        assertTrue(OpenAiStoryService.isAnswerEchoedInMessage("冷たいのがいいよね？", choice, "Japanese"));
+        Map<String, Object> ownSentence = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "私はコーヒーが好きです", "tiles", List.of("私は", "コーヒーが", "好きです"));
+        assertTrue(OpenAiStoryService.isAnswerEchoedInMessage("私はコーヒーが好きです。あなたは？", ownSentence, "Japanese"),
+                "AI 자기 문장을 배열시키는 퀴즈는 거부한다");
+        assertFalse(OpenAiStoryService.isAnswerEchoedInMessage("何が好き？", ownSentence, "Japanese"));
+
+        assertEquals("ねえ、コーヒーは好きなの？",
+                OpenAiStoryService.removeDuplicateTrailingQuestion("コーヒーは好き？ねえ、コーヒーは好きなの？", "Japanese"),
+                "같은 질문이 두 번 붙으면 앞 것을 지운다");
+        assertEquals("今日は寒いね。コーヒーは好き？",
+                OpenAiStoryService.removeDuplicateTrailingQuestion("今日は寒いね。コーヒーは好き？", "Japanese"),
+                "질문이 아닌 앞 문장은 그대로 둔다");
+        assertEquals("コーヒーは好き？", OpenAiStoryService.removeDuplicateTrailingQuestion("コーヒーは好き？", "Japanese"));
+    }
+
+    @Test
+    @DisplayName("대상 언어로 써야 할 퀴즈 필드가 다른 문자로 쓰이면 걸러낸다")
+    void detectsWrongScriptInTargetLanguageFields() {
+        // 실측(2026-09-22): asked 를 한국어로 써서 대사 끝에 한국어 질문이 붙었다
+        assertEquals("asked", OpenAiStoryService.wrongScriptField("Japanese",
+                Map.of("asked", "왜 호타루 근처에서 조용해야 하는지 말해 줄래?", "correct_answer", "静かにしてね")));
+
+        // 실측(2026-09-22): asked 가 영어로 와서 일본어 대사 끝에 영어 문장이 붙었다
+        assertEquals("asked", OpenAiStoryService.wrongScriptField("Japanese",
+                Map.of("asked", "Is that friend from the Chiikawa series?", "correct_answer", "はい、そうです")));
+
+        // 실측(2026-09-22): 정답에 한글이 섞여 학습자가 만들 수 없는 문제가 됐다
+        assertEquals("correct_answer", OpenAiStoryService.wrongScriptField("Chinese (Simplified)",
+                Map.of("asked", "您看完后感觉怎么样？", "correct_answer", "看完中경삼림我感觉很特别")));
+        assertEquals("tiles", OpenAiStoryService.wrongScriptField("Chinese (Simplified)",
+                Map.of("asked", "您看完后感觉怎么样？", "correct_answer", "我感觉很特别",
+                        "tiles", List.of("我感觉", "很特别", "中경삼림"))));
+
+        assertNull(OpenAiStoryService.wrongScriptField("Japanese",
+                Map.of("asked", "コーヒーは好き？", "correct_answer", "うん、好きだよ",
+                        "question", "'응, 좋아해'를 뜻하는 표현은?", "hint", "좋아한다는 뜻이에요")),
+                "한국어로 써야 하는 question·hint 는 검사 대상이 아니다");
+        assertNull(OpenAiStoryService.wrongScriptField("Japanese",
+                Map.of("asked", "ポーカーは好き？", "correct_answer", "ロイヤルストレートフラッシュだよ")),
+                "가타카나 외래어는 로마자가 아니다");
+        assertNull(OpenAiStoryService.wrongScriptField("English",
+                Map.of("asked", "Do you play often?", "correct_answer", "Yes, quite often")),
+                "영어 세션의 로마자는 정상이다");
+    }
+
+    @Test
+    @DisplayName("단어배열에서 타일을 모두 쓴 다른 어순은 모델 판정에 맡긴다")
+    void wordArrangeRearrangementGoesToTheModel() {
+        // 실측(2026-09-22): 모델이 "다른 어순"이라며 일본어로 성립하지 않는 배열까지 정답 목록에 넣었다
+        Map<String, Object> japanese = Map.of("quiz_type", "word_arrange",
+                "reply_meaning", "베팅을 계속하겠습니다",
+                "question", "'베팅을 계속하겠습니다'가 되도록 단어를 배열해 보세요.",
+                "correct_answer", "ベットを続けます",
+                "acceptable_answers", List.of("続けますベットを"),
+                "options", List.of("ベットを続けます", "ベットをやめます"),
+                "tiles", List.of("ベットを", "続けます"));
+        Map<String, Object> fixed = OpenAiStoryService.sanitizeQuiz(japanese, "Japanese");
+
+        assertNull(fixed.get("acceptable_answers"), "믿을 수 없는 어순 목록은 쓰지 않는다");
+        assertNull(fixed.get("options"), "단어배열에 객관식 보기는 필요 없다");
+
+        assertEquals("correct", OpenAiStoryService.classifyAnswer(fixed, "ベットを 続けます", "Japanese"));
+        assertNull(OpenAiStoryService.classifyAnswer(fixed, "続けます ベットを", "Japanese"),
+                "타일을 모두 쓴 다른 어순은 서버가 확정하지 않고 모델이 판정한다");
+        assertEquals(OpenAiStoryService.NOT_ATTEMPT,
+                OpenAiStoryService.classifyAnswer(fixed, "カードを引きます", "Japanese"));
+
+        Map<String, Object> english = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "I usually eat out", "tiles", List.of("I", "usually", "eat", "out"));
+        assertNull(OpenAiStoryService.classifyAnswer(english, "Usually I eat out", "English"),
+                "영어도 같은 규칙으로 모델에 맡긴다");
+        assertEquals("incorrect", OpenAiStoryService.classifyAnswer(english, "I eat out", "English"),
+                "타일을 남긴 배열은 오답이다");
+    }
+
+    @Test
+    @DisplayName("한국어 안내문에 정답이 그대로 적혀 있으면 걸러낸다")
+    void detectsAnswerShownInsideTheQuestion() {
+        // 실측(2026-09-22): reply_meaning 이 한국어·일본어 혼용이라 안내문에 정답이 통째로 박혔고,
+        // 학습자는 안내문을 베껴 썼는데 미시도 처리됐다
+        Map<String, Object> leaked = Map.of("quiz_type", "subjective",
+                "question", "'나는駅前のカフェに行きたいよ。'를 뜻하는 표현은?",
+                "correct_answer", "駅前のカフェ", "acceptable_answers", List.of("駅前のカフェ"));
+        assertEquals("駅前のカフェ", OpenAiStoryService.answerEchoedInQuestion(leaked, "Japanese"));
+
+        Map<String, Object> fine = Map.of("quiz_type", "subjective",
+                "question", "'역 앞 카페'를 뜻하는 표현은?", "correct_answer", "駅前のカフェ");
+        assertNull(OpenAiStoryService.answerEchoedInQuestion(fine, "Japanese"));
+
+        Map<String, Object> english = Map.of("quiz_type", "multiple_choice",
+                "question", "'녹차'를 뜻하는 green tea 표현은?", "correct_answer", "green tea");
+        assertEquals("green tea", OpenAiStoryService.answerEchoedInQuestion(english, "English"));
+        assertNull(OpenAiStoryService.answerEchoedInQuestion(
+                Map.of("quiz_type", "multiple_choice", "question", "'녹차'를 뜻하는 표현은?",
+                        "correct_answer", "green tea"), "English"));
+    }
+
+    @Test
+    @DisplayName("한국어로 답하면 오답으로 확정한다")
+    void koreanSubmissionIsGradedIncorrect() {
+        // 실측(2026-09-22): "네 맞아요" 를 모델이 들쭉날쭉 판정해 기회 계산이 어긋났다
+        Map<String, Object> quiz = Map.of("quiz_type", "subjective",
+                "correct_answer", "はい", "acceptable_answers", List.of("はい", "うん"));
+        assertEquals("incorrect", OpenAiStoryService.classifyAnswer(quiz, "네 맞아요", "Japanese"));
+        assertEquals("incorrect", OpenAiStoryService.classifyAnswer(quiz, "네", "Japanese"));
+        assertEquals("correct", OpenAiStoryService.classifyAnswer(quiz, "はい", "Japanese"));
+        assertTrue(OpenAiStoryService.isKoreanSubmission("Japanese", "그거 무슨 뜻이야?"));
+        assertFalse(OpenAiStoryService.isKoreanSubmission("Japanese", "はい"));
+    }
+
+    @Test
+    @DisplayName("맞장구만 묻는 퀴즈와 반복 질문을 걸러낸다")
+    void detectsFillerAnswersAndRepeatedQuestions() {
+        // 실측(2026-09-22): 정답이 "はい" 하나인 퀴즈에 네 턴을 썼다
+        assertEquals("はい", OpenAiStoryService.fillerOnlyAnswer(Map.of("correct_answer", "はい")));
+        assertEquals("はい。", OpenAiStoryService.fillerOnlyAnswer(Map.of("correct_answer", "はい。")));
+        assertNull(OpenAiStoryService.fillerOnlyAnswer(Map.of("correct_answer", "はい、そうします")));
+
+        // 실측(2026-09-22): "次にどうしますか？" 가 그대로 두 번, 사실상 같은 질문이 네 번 나왔다
+        List<String> asked = List.of("次にどうしますか？");
+        assertTrue(OpenAiStoryService.isQuestionAlreadyAsked(List.of(), asked,
+                Map.of("asked", "次にどうしますか？"), "Japanese"));
+        assertTrue(OpenAiStoryService.isQuestionAlreadyAsked(List.of(), asked,
+                Map.of("asked", "次はどうしますか？"), "Japanese"), "어미만 바꾼 같은 질문도 잡는다");
+        assertFalse(OpenAiStoryService.isQuestionAlreadyAsked(List.of(), asked,
+                Map.of("asked", "コーヒーは好きですか？"), "Japanese"));
+
+        // 같은 내용을 어순만 바꿔 다시 출제하는 것도 잡는다
+        assertTrue(OpenAiStoryService.sameContentNoSpace("続けてベットします", "ベットを続けます"));
+        assertFalse(OpenAiStoryService.sameContentNoSpace("ベットを続けます", "カードを引きます"));
+    }
+
+    @Test
+    @DisplayName("정답과 어긋나는 글자 수 힌트는 버린다")
+    void dropsHintThatContradictsTheAnswer() {
+        // 실측(2026-09-22): 정답이 한 글자 '夜' 인데 힌트가 "2글자" 라, 힌트를 따른 학습자가 오답 처리됐다
+        Map<String, Object> misleading = Map.of("quiz_type", "subjective", "reply_meaning", "밤에",
+                "question", "'밤에'를 뜻하는 표현은?", "correct_answer", "夜",
+                "acceptable_answers", List.of("夜"), "hint", "2글자로 밤을 뜻하는 단어야");
+        assertNull(OpenAiStoryService.sanitizeQuiz(misleading, "Japanese").get("hint"));
+
+        Map<String, Object> koreanNumber = Map.of("quiz_type", "subjective", "reply_meaning", "처음이야",
+                "question", "'처음이야'를 뜻하는 표현은?", "correct_answer", "first time",
+                "acceptable_answers", List.of("first time"), "hint", "세 단어로 된 표현이에요");
+        assertNull(OpenAiStoryService.sanitizeQuiz(koreanNumber, "English").get("hint"),
+                "두 단어인데 세 단어라고 하면 버린다");
+
+        Map<String, Object> correctHint = Map.of("quiz_type", "subjective", "reply_meaning", "자주",
+                "question", "'자주'를 뜻하는 표현은?", "correct_answer", "often",
+                "acceptable_answers", List.of("often"), "hint", "o로 시작하는 한 단어예요");
+        assertEquals("o로 시작하는 한 단어예요",
+                OpenAiStoryService.sanitizeQuiz(correctHint, "English").get("hint"), "맞는 힌트는 그대로 둔다");
+    }
+
+    @Test
+    @DisplayName("대사가 한국어로 오면 대상 언어로 다시 쓰라는 지시문을 붙인다")
+    void buildsLanguageRetryDirective() {
+        String directive = service.buildLanguageRetryDirective(japaneseSession());
+
+        assertTrue(directive.contains("came back in Korean"));
+        assertTrue(directive.contains("Japanese"), "대상 언어가 지시문에 들어가야 한다");
+        assertTrue(directive.contains("ゆい"), "캐릭터 이름으로 역할을 상기시킨다");
+        assertTrue(directive.contains("never correct the learner like a teacher"),
+                "캐릭터가 한국어 선생으로 바뀌던 실측 사고의 재발 방지");
+    }
+
+    @Test
+    @DisplayName("asked 는 대상 언어로 쓰라는 규칙이 프롬프트에 있다")
+    void promptRequiresAskedInTargetLanguage() {
+        String prompt = service.buildStaticSystemPrompt(japaneseSession());
+
+        assertTrue(prompt.contains("Write \"asked\" IN THE TARGET LANGUAGE"));
+        assertTrue(prompt.contains("written IN THE TARGET LANGUAGE (never Korean)"));
+        assertTrue(prompt.contains("Leave acceptable_answers OUT for this format"),
+                "단어배열 어순 목록은 모델이 미리 적지 않는다 (판정은 그 턴에)");
+        assertTrue(prompt.contains("NOW FILL IN THE REST OF THE QUIZ OBJECT"),
+                "question 을 빠뜨리지 않게 하는 단계가 있어야 한다");
+        assertTrue(prompt.contains("THE ANSWER MUST CARRY CONTENT"));
+        assertTrue(prompt.contains("ANY CLUE YOU GIVE MUST BE TRUE OF correct_answer"));
+        assertFalse(prompt.contains("뜻하는 Japanese 표현은"),
+                "한국어 질문에 영어 언어명이 박히면 안 된다");
+    }
+
+    @Test
+    @DisplayName("띄어쓰기 없는 언어의 앵무새 검사는 통째로 이어진 겹침만 본다")
+    void noSpaceEchoUsesLongestCommonSubstring() {
+        // 실측(2026-09-22, 중국어 세션): 정상 퀴즈가 낱말 겹침 때문에 세 턴 연속 거부돼 퀴즈가 한참 늦게 나왔다
+        Map<String, Object> naturalReply = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "我经常听嘻哈音乐",
+                "tiles", List.of("我", "经常", "听", "嘻哈音乐"));
+        assertFalse(OpenAiStoryService.isAnswerEchoedInMessage(
+                        "您喜欢嘻哈音乐，真是很有个性。请告诉我，您经常听什么样的音乐？",
+                        naturalReply, "Chinese (Simplified)"),
+                "중국어는 대답이 질문의 낱말을 되받는 것이 자연스럽다");
+
+        // AI 가 자기 문장을 그대로 배열시키는 진짜 앵무새는 그대로 걸러야 한다
+        Map<String, Object> ownSentence = Map.of("quiz_type", "word_arrange",
+                "correct_answer", "是的，我去过加利福尼亚",
+                "tiles", List.of("是的", "我", "去过", "加利福尼亚"));
+        assertTrue(OpenAiStoryService.isAnswerEchoedInMessage(
+                "是的，我去过加利福尼亚。那里风景优美，文化多样。", ownSentence, "Chinese (Simplified)"));
+
+        assertEquals(3, OpenAiStoryService.longestCommonSubstringLength("我经常听嘻哈音乐", "您经常听什么样的音乐"),
+                "이어진 공통 구간은 '经常听' 세 글자뿐이다");
+        assertEquals(0, OpenAiStoryService.longestCommonSubstringLength("", "커피"));
+        assertEquals(0, OpenAiStoryService.longestCommonSubstringLength("커피", null));
+    }
+
+    @Test
+    @DisplayName("일본어 대사에 섞인 한글 문장은 전각 문장부호 기준으로 잘라 떼어 낸다")
+    void stripsHangulFromJapaneseMessage() {
+        assertEquals("コーヒーは好き？", OpenAiStoryService.stripHangulSentences("Japanese", "コーヒーは好き？커피 좋아해?"));
+        assertTrue(OpenAiStoryService.hasUnexpectedHangul("Japanese", "コーヒーは好き？커피 좋아해?"));
+        assertFalse(OpenAiStoryService.hasUnexpectedHangul("Japanese", "コーヒーは好き？"));
+    }
+
+    @Test
+    @DisplayName("일본어 단어배열 정답은 공백을 넣어 보내도 채점 지시문이 정답으로 내려간다")
+    void japaneseWordArrangeIsGradedCorrectInTheDirective() {
+        StorySession session = japaneseSession();
+        session.recordQuiz(Map.of("quiz_type", "word_arrange",
+                "question", "'커피가 좋아'가 되도록 단어를 배열해 보세요.",
+                "reply_meaning", "커피가 좋아",
+                "asked", "コーヒーは好き？",
+                "correct_answer", "俺の必殺技はスローストライクだ",
+                "tiles", List.of("俺の", "必殺技は", "スローストライクだ")));
+        session.incrementTurnsSinceLastQuiz();
+
+        // 앱이 타일을 공백으로 이어 보낸 형태 (실측 2026-09-22)
+        String submitted = "俺の 必殺技は スローストライクだ";
+        assertEquals("correct", OpenAiStoryService.serverVerdict(session, submitted));
+
+        String prompt = service.buildTurnSystemPrompt(session, submitted);
+        assertTrue(prompt.contains("ALREADY graded this answer as CORRECT"),
+                "서버 판정과 지시문 판정이 엇갈리면 안 된다");
+        assertFalse(prompt.contains("ALREADY graded this answer as INCORRECT"));
+
+        assertEquals("俺の必殺技はスローストライクだ",
+                OpenAiStoryService.normalizeSubmissionForPrompt(session, submitted),
+                "프롬프트 사본에서는 타일 구분용 공백을 뗀다");
+        assertEquals("知るわけないやん",
+                OpenAiStoryService.normalizeSubmissionForPrompt(session, "知るわけないやん"),
+                "답안이 아닌 입력은 그대로 둔다");
+    }
+
+    @Test
+    @DisplayName("채점 지시문에 학습자 답의 한국어 뜻이 들어간다")
+    void gradingDirectiveCarriesReplyMeaning() {
+        StorySession session = japaneseSession();
+        session.recordQuiz(Map.of("quiz_type", "multiple_choice",
+                "question", "'네가 더 지독해'를 뜻하는 표현은?",
+                "reply_meaning", "네가 더 지독해",
+                "asked", "どっちがもっとひどいと思う？",
+                "correct_answer", "お前のほうがひどい",
+                "options", List.of("俺のほうがひどい", "お前のほうがひどい", "どっちもひどい")));
+        session.incrementTurnsSinceLastQuiz();
+
+        String prompt = service.buildTurnSystemPrompt(session, "お前のほうがひどい");
+        assertTrue(prompt.contains("What they are telling you with it (Korean): 네가 더 지독해"));
+    }
+
+    @Test
+    @DisplayName("일본어·중국어 자기 질문과 언어 메타 질문을 걸러낸다")
+    void detectsCjkSelfAndMetaQuestions() {
+        assertTrue(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "俺のよく使う必殺技は何だと思う？")));
+        assertTrue(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "俺の必殺技に対抗するために使う必殺技は何だ？")));
+        assertTrue(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "我的必杀技是什么？")));
+        assertFalse(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "温かいの、それとも冷たいの？")),
+                "보기를 함께 제시한 선택 질문은 통과");
+        assertFalse(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "コーヒーは好き？")));
+
+        assertTrue(OpenAiStoryService.isMetaLanguageQuestion("", Map.of("asked", "これ、日本語で何て言う？")));
+        assertTrue(OpenAiStoryService.isMetaLanguageQuestion("", Map.of("asked", "用中文怎么说？")));
+        assertFalse(OpenAiStoryService.isMetaLanguageQuestion("", Map.of("asked", "コーヒーにする？")));
+    }
+
+    @Test
+    @DisplayName("대화에 나온 적 없는 가타카나 이름을 주관식 정답으로 내면 거부 대상이다")
+    void rejectsInventedKatakanaSubjectiveAnswer() {
+        StorySession session = japaneseSession();
+        session.addMessage("assistant", "俺に勝てると思うなよ。");
+
+        Map<String, Object> invented = Map.of("quiz_type", "subjective",
+                "acceptable_answers", List.of("シャドウバースト"), "correct_answer", "シャドウバースト");
+        assertEquals("シャドウバースト", OpenAiStoryService.unknownInventedTerm(session, invented));
+
+        session.addMessage("assistant", "俺の技はシャドウバーストだ。");
+        assertNull(OpenAiStoryService.unknownInventedTerm(session, invented),
+                "AI 가 먼저 말한 이름은 퀴즈로 쓸 수 있다");
+
+        Map<String, Object> multipleChoice = Map.of("quiz_type", "multiple_choice",
+                "correct_answer", "シャドウクロー", "options", List.of("シャドウクロー", "ライトニング"));
+        assertNull(OpenAiStoryService.unknownInventedTerm(session, multipleChoice),
+                "보기가 주어지는 객관식은 대상이 아니다");
+
+        StorySession english = newSession();
+        assertNull(OpenAiStoryService.unknownInventedTerm(english, invented), "일본어 세션에만 적용한다");
+    }
+
+    @Test
+    @DisplayName("정답이 학습자의 대사가 아니라 제3자 서술이면 걸러낸다")
+    void detectsThirdPersonNarration() {
+        assertTrue(OpenAiStoryService.isThirdPersonNarration(
+                Map.of("reply_meaning", "화가 난다", "correct_answer", "彼は怒っている")));
+        assertTrue(OpenAiStoryService.isThirdPersonNarration(
+                Map.of("reply_meaning", "그는 화가 났어", "correct_answer", "He is angry")));
+        assertTrue(OpenAiStoryService.isThirdPersonNarration(
+                Map.of("reply_meaning", "상대는 도망칠 거야", "correct_answer", "他会跑")));
+        assertFalse(OpenAiStoryService.isThirdPersonNarration(
+                Map.of("reply_meaning", "나는 화가 나", "correct_answer", "俺は怒ってる")));
+        assertFalse(OpenAiStoryService.isThirdPersonNarration(
+                Map.of("reply_meaning", "차가운 걸로", "correct_answer", "冷たいの")));
+    }
+
+    @Test
+    @DisplayName("한국어가 아닌 question 은 reply_meaning 으로 다시 쓰고, 한국어가 아닌 hint 는 버린다")
+    void rewritesNonKoreanLearnerFacingFields() {
+        Map<String, Object> japaneseFields = Map.of("quiz_type", "subjective",
+                "reply_meaning", "필살기 이름",
+                "question", "相手の必殺技に対抗するために使う必殺技は何ですか？",
+                "hint", "必殺技の名前、シャドウ＋何か",
+                "acceptable_answers", List.of("シャドウバースト"));
+        Map<String, Object> fixed = OpenAiStoryService.sanitizeQuiz(japaneseFields, "Japanese");
+
+        assertEquals("'필살기 이름'를 뜻하는 표현은?", fixed.get("question"));
+        assertNull(fixed.get("hint"), "한국어가 아닌 힌트는 학습자에게 쓸모가 없다");
+
+        Map<String, Object> arrange = Map.of("quiz_type", "word_arrange",
+                "reply_meaning", "커피가 좋아", "question", "コーヒーが好き",
+                "correct_answer", "コーヒーが好き", "tiles", List.of("コーヒーが", "好き"));
+        assertEquals("'커피가 좋아'가 되도록 단어를 배열해 보세요.",
+                OpenAiStoryService.sanitizeQuiz(arrange, "Japanese").get("question"));
+
+        Map<String, Object> korean = Map.of("quiz_type", "subjective",
+                "reply_meaning", "자주", "question", "'자주'를 뜻하는 표현은?", "hint", "o로 시작해요",
+                "acceptable_answers", List.of("often"));
+        Map<String, Object> untouched = OpenAiStoryService.sanitizeQuiz(korean, "English");
+        assertEquals("'자주'를 뜻하는 표현은?", untouched.get("question"));
+        assertEquals("o로 시작해요", untouched.get("hint"));
+    }
+
+    @Test
+    @DisplayName("한글 비율로 story_so_far 메모가 한국어인지 판별한다")
+    void measuresHangulRatio() {
+        assertTrue(OpenAiStoryService.hangulRatio("서로 깐죽거리며 디스배틀이 시작됐다") > 0.9);
+        assertTrue(OpenAiStoryService.hangulRatio("相手が必殺技はスローストライクだと言った") < 0.5);
+        assertEquals(0, OpenAiStoryService.hangulRatio(""));
+        assertTrue(OpenAiStoryService.hasHangul("커피"));
+        assertFalse(OpenAiStoryService.hasHangul("コーヒー"));
+    }
+
     @Test
     @DisplayName("오답 1~2회째는 정답을 공개하지 않고 힌트만 주라고 지시한다")
     void wrongAttemptsGiveHintsOnly() {
@@ -398,7 +887,8 @@ class OpenAiStoryServiceTest {
 
         String prompt = service.buildTurnSystemPrompt(session, "I eat usually out");
         assertTrue(prompt.contains("DO NOT REVEAL THE CORRECT ANSWER YET"));
-        assertTrue(prompt.contains("name the ONE word that is misplaced or missing"));
+        assertTrue(prompt.contains("NEVER explain the word order"),
+                "어순 설명이 틀려 학습자를 헷갈리게 하던 실측 사고의 재발 방지");
         assertFalse(prompt.contains("LAST allowed attempt"));
 
         session.recordWrongAttempt();
@@ -409,15 +899,45 @@ class OpenAiStoryServiceTest {
     }
 
     @Test
+    @DisplayName("프롬프트에 베낄 수 있는 장면 예시가 하나도 남아 있지 않다")
+    void staticPromptHasNoCopyableSceneExamples() {
+        String prompt = service.buildStaticSystemPrompt(newSession())
+                + service.buildOpeningSystemPrompt(newSession())
+                + service.buildContinuationSystemPrompt(newSession())
+                + service.buildTurnSystemPrompt(newSession(), "안녕");
+
+        // 실측(2026-09-22, 일본어 디스배틀 세션): 프롬프트의 "창가 자리" 예시가 장면과 무관하게 퀴즈로 나왔다
+        for (String leaked : List.of("창가 자리", "물레", "접시로 할래", "주로 저녁에 연습해", "처음이야",
+                                     "딸기 케이크", "감자튀김", "보스 명령이야", "window seat",
+                                     "fries or coleslaw", "pottery", "strawberry cake")) {
+            assertFalse(prompt.contains(leaked), "프롬프트에 베낄 수 있는 장면 예시가 남아 있다: " + leaked);
+        }
+    }
+
+    @Test
+    @DisplayName("학습자가 알 수 없는 것을 묻지 말라는 규칙과 한국어 필드 규칙이 들어간다")
+    void promptForbidsUnknowableQuizAndDemandsKoreanFields() {
+        String prompt = service.buildStaticSystemPrompt(newSession());
+
+        assertTrue(prompt.contains("NEVER QUIZ SOMETHING ONLY YOU COULD KNOW"));
+        assertTrue(prompt.contains("The learner cannot read your mind"));
+        assertTrue(prompt.contains("SAY IT YOURSELF in ai_message first"),
+                "지어낸 이름은 먼저 말한 뒤에야 퀴즈로 쓸 수 있다");
+        assertTrue(prompt.contains("Never a narration about a third"),
+                "제3자 서술을 정답으로 내지 말라는 규칙이 있어야 한다");
+        assertTrue(prompt.contains("EVERY EXPLANATORY FIELD IS WRITTEN IN KOREAN"));
+    }
+
+    @Test
     @DisplayName("퀴즈 재질문 금지와 재생성 지시문이 들어간다")
     void noReaskRuleAndCorrectionDirective() {
         String prompt = service.buildTurnSystemPrompt(newSession(), "감자튀김 좋다");
         assertTrue(prompt.contains("NEVER RE-ASK WHAT THEY ALREADY TOLD YOU"));
-        assertTrue(prompt.contains("Would you like fries or coleslaw?"), "실측 실패 사례가 금지 예시로 들어가야 한다");
+        assertTrue(prompt.contains("If their latest message already contains the answer, the quiz is wrong"));
         assertFalse(prompt.contains("[\"iced\", \"boiled\", \"hot\"]"), "베낄 수 있는 보기 예시는 없어야 한다");
         assertFalse(prompt.contains("correct_answer: \"often\""), "영어 예시 답은 프롬프트에 없어야 한다");
         assertFalse(prompt.contains("acceptable_answers: [\"often\"]"));
-        assertTrue(prompt.contains("THE ANSWER MUST NOT APPEAR IN YOUR QUESTION"));
+        assertTrue(prompt.contains("Is the answer absent from your own question?"));
 
         StorySession pending = newSession();
         pending.recordQuiz(Map.of("quiz_type", "subjective", "question", "'처음이야'를 뜻하는 표현은?",
@@ -483,7 +1003,7 @@ class OpenAiStoryServiceTest {
         assertFalse(staticBefore.contains("THIS TURN:"));
         assertTrue(staticBefore.contains("\"learner_told_me\""));
         assertTrue(staticBefore.contains("\"next_beat\""));
-        assertTrue(staticBefore.contains("THE ANSWER MUST NOT APPEAR IN YOUR QUESTION"));
+        assertTrue(staticBefore.contains("Is the answer absent from your own question?"));
 
         String turn = service.buildTurnDirective(session, "매운것도 좋아하긴 해");
         assertTrue(turn.startsWith("THIS TURN:"));
@@ -548,7 +1068,7 @@ class OpenAiStoryServiceTest {
         Map<String, Object> subjective = Map.of("quiz_type", "subjective", "reply_meaning", "꽤 자주 해",
                 "question", "'자주'를 뜻하는 o로 시작하는 단어는?", "correct_answer", "often");
         assertEquals("'자주'를 뜻하는 o로 시작하는 단어는?", OpenAiStoryService.ensureQuestionQuotesMeaning(subjective).get("question"),
-                "주관식은 손대지 않는다");
+                "주관식 질문은 단서를 담은 형태가 정상이라 손대지 않는다 (한국어가 아닐 때만 sanitizeQuiz 가 다시 쓴다)");
     }
 
     @Test
@@ -584,7 +1104,7 @@ class OpenAiStoryServiceTest {
                 "학습자에게 선택을 주는 질문은 통과");
         assertFalse(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "How many bullets will you start with?")));
         assertFalse(OpenAiStoryService.isQuestionAboutAiItself(Map.of("asked", "Did the boss really send you?")));
-        assertTrue(service.buildStaticSystemPrompt(newSession()).contains("THE QUESTION IS ABOUT THE LEARNER, NEVER ABOUT YOU"));
+        assertTrue(service.buildStaticSystemPrompt(newSession()).contains("FORBIDDEN: questions about YOU"));
     }
 
     @Test
@@ -593,13 +1113,13 @@ class OpenAiStoryServiceTest {
         String prompt = service.buildStaticSystemPrompt(newSession());
         assertTrue(prompt.contains("STAY IN THE DRAMA"));
         assertTrue(prompt.contains("being stabbed is not \"whatever\""));
-        assertTrue(prompt.contains("NEVER ASK A META QUESTION ABOUT LANGUAGE"));
-        assertTrue(prompt.contains("정말 보스가 시킨 일이야?"), "사용자가 든 몰입 예시가 들어가야 한다");
+        assertTrue(prompt.contains("FORBIDDEN: meta questions about language"));
+        assertTrue(prompt.contains("THE LEARNER STEERS"), "학습자가 흐름을 주도한다는 규칙이 있어야 한다");
         assertFalse(prompt.contains("React to what the learner just said in one clause"));
     }
 
     @Test
-    @DisplayName("퀴즈 페이싱: 2~3턴은 자연스러울 때만(MAY), 4턴부터 필수(MUST), 8턴이면 마무리, 강제 비퀴즈 턴")
+    @DisplayName("퀴즈 페이싱: 2턴은 자연스러울 때만(MAY), 3턴부터 필수(MUST), 8턴이면 마무리, 강제 비퀴즈 턴")
     void pacingWindowAndForcedClose() {
         StorySession session = newSession();
         session.incrementTurnsSinceLastQuiz();
@@ -609,13 +1129,13 @@ class OpenAiStoryServiceTest {
         assertTrue(may.contains("REQUIRED QUIZ TYPE FOR THIS QUIZ"));
         assertFalse(may.contains("You MUST present a quiz"));
 
-        session.incrementTurnsSinceLastQuiz();
+        // 2026-09-22: 퀴즈가 너무 늦게 나온다는 실사용 피드백으로 필수 시점을 4턴에서 3턴으로 당겼다
         session.incrementTurnsSinceLastQuiz();
         String must = service.buildTurnDirective(session, "hi");
         assertTrue(must.contains("You MUST present a quiz this turn"));
         assertFalse(OpenAiStoryService.isOverdueForClose(session));
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 5; i++) {   // 3턴 -> 8턴
             session.incrementTurnsSinceLastQuiz();
         }
         assertTrue(OpenAiStoryService.isOverdueForClose(session), "8턴이면 상한");
@@ -641,9 +1161,11 @@ class OpenAiStoryServiceTest {
         String prompt = service.buildStaticSystemPrompt(session);
         assertTrue(prompt.contains("THE LEARNER STEERS"));
         assertTrue(prompt.contains("\"story_so_far\""));
-        assertTrue(prompt.contains("Never brush it off with \"let's keep it friendly\""));
+        assertTrue(prompt.contains("off and return to your previous question."),
+                "도발·장난에도 캐릭터로 반응하라는 규칙이 있어야 한다");
         assertFalse(prompt.contains("the next choice in the activity (size, side, seat, time, route)"), "카페 템플릿 목록은 삭제");
-        assertTrue(prompt.contains("the question asks for '노래방', not '노래방 가자'"));
+        assertTrue(prompt.contains("The question must ask for EXACTLY the expression in acceptable_answers"),
+                "주관식은 허용 답 그대로 물어야 한다");
     }
 
     @Test
