@@ -1,6 +1,7 @@
 package com.qring.qring_backend.service.content;
 
 import com.qring.qring_backend.domain.content.StorySession;
+import com.qring.qring_backend.domain.user.LearningLanguage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
@@ -13,6 +14,7 @@ import java.util.Map;
 /**
  * 임시 스모크 테스트: 실제 OpenAI 를 호출해 새 프롬프트의 반응을 눈으로 확인한다.
  * STORY_LIVE_TEST=1 환경변수가 있을 때만 실행되며, .env 의 OPENAI_API_KEY 를 읽는다.
+ * STORY_LIVE_LANG=EN|JA|ZH 로 학습 언어를 고른다 (없으면 EN). 서버와 같은 규칙으로 언어별 채점·검사를 흉내 낸다.
  */
 @EnabledIfEnvironmentVariable(named = "STORY_LIVE_TEST", matches = "1")
 class LiveStorySmokeTest {
@@ -65,7 +67,8 @@ class LiveStorySmokeTest {
         String model = System.getenv().getOrDefault("STORY_LIVE_MODEL", "gpt-4.1-mini");
         set(service, "apiKey", apiKey);
         service.overrideModelForTests(model);
-        System.out.println("=== MODEL: " + model);
+        String lang = LearningLanguage.promptNameFor(System.getenv().getOrDefault("STORY_LIVE_LANG", "EN"));
+        System.out.println("=== MODEL: " + model + "  LANGUAGE: " + lang);
 
         String scenario = System.getenv().getOrDefault("STORY_LIVE_SCENARIO", "walk");
         boolean prison = "prison".equals(scenario);
@@ -75,17 +78,17 @@ class LiveStorySmokeTest {
                 ? StorySession.builder()
                         .sessionId("live").userId(1L).characterName("피카츄")
                         .situationDescription("전기기사 자격증 시험을 보러 왔는데 같은 기수 수험생인 피카츄랑 대화를 나누는 상황")
-                        .tone("다정하게").targetLanguage("English").levelCode(1).build()
+                        .tone("다정하게").targetLanguage(lang).levelCode(1).build()
                 : prison
                 ? StorySession.builder()
                         .sessionId("live").userId(1L).characterName("제임스")
                         .situationDescription("같은 보스를 섬기던 제임스와 나. 최근 보스가 저지른 살인에 제임스는 누명을 쓰고 대신 교도소에 수감되고 만다. "
                                 + "그렇게 한 달이 지나고 나는 교도소에 수감되어있는 제임스의 면회를 간다. 제임스를 처리하라는 보스의 명을 받고.")
-                        .tone("까칠하게").targetLanguage("English").levelCode(1).build()
+                        .tone("까칠하게").targetLanguage(lang).levelCode(1).build()
                 : StorySession.builder()
                         .sessionId("live").userId(1L).characterName("영")
                         .situationDescription("산책하다 만난 친구와 일상 대화").tone("다정하게")
-                        .targetLanguage("English").levelCode(1).build();
+                        .targetLanguage(lang).levelCode(1).build();
 
         Map<String, Object> opening = service.generateOpening(session);
         session.addAssistantMessage(str(opening.get("ai_message")), str(opening.get("translation")));
@@ -103,7 +106,7 @@ class LiveStorySmokeTest {
                 if (session.getQuizCount() == 1 && attemptsOnCurrent == 1) {
                     userMessage = "그거보다 너 저녁에 뭐 해?";
                 } else if (session.getQuizCount() == 1 && attemptsOnCurrent == 2) {
-                    userMessage = wrongAnswer(pending);
+                    userMessage = wrongAnswer(pending, lang);
                 } else {
                     userMessage = correctAnswer(pending);
                 }
@@ -117,17 +120,17 @@ class LiveStorySmokeTest {
             session.incrementTurnsSinceLastQuiz();
             Map<String, Object> res = service.generateTurnResponse(session, userMessage);
 
-            String aiMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(str(res.get("ai_message")));
+            String aiMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(str(res.get("ai_message")), lang);
             if (res.get("story_so_far") != null && !str(res.get("story_so_far")).isBlank()) {
                 session.setStorySoFar(str(res.get("story_so_far")));
             }
             System.out.println("AI> " + aiMsg + "\n    (" + res.get("translation") + ")  answer_result=" + res.get("answer_result")
                     + " is_quiz=" + res.get("is_quiz") + " completed=" + res.get("is_completed")
-                    + (OpenAiStoryService.hasUnexpectedHangul("English", aiMsg) ? "  !!HANGUL IN AI_MESSAGE" : ""));
+                    + (OpenAiStoryService.hasUnexpectedHangul(lang, aiMsg) ? "  !!HANGUL IN AI_MESSAGE" : ""));
 
             // 서버 흐름을 흉내 낸다 (InteractiveStoryService 와 같은 규칙)
             if (pending != null) {
-                String verdict = OpenAiStoryService.classifyAnswer(pending, userMessage);
+                String verdict = OpenAiStoryService.classifyAnswer(pending, userMessage, lang);
                 if (verdict == null) {
                     String m = String.valueOf(res.get("answer_result")).toLowerCase();
                     verdict = ("correct".equals(m) || "incorrect".equals(m)) ? m : OpenAiStoryService.NOT_ATTEMPT;
@@ -148,7 +151,7 @@ class LiveStorySmokeTest {
             if (session.getPendingQuiz() == null && session.getTurnsSinceLastQuiz() >= 2
                     && Boolean.TRUE.equals(res.get("is_quiz")) && res.get("quiz") instanceof Map<?, ?> q) {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> quiz = OpenAiStoryService.sanitizeQuiz((Map<String, Object>) q);
+                Map<String, Object> quiz = OpenAiStoryService.sanitizeQuiz((Map<String, Object>) q, lang);
                 String reason = rejection(session, aiMsg, quiz);
                 if (reason != null) {
                     // 서버와 같은 재생성 경로
@@ -159,12 +162,12 @@ class LiveStorySmokeTest {
                     System.out.println("AI(redo)> " + aiMsg + "\n    (" + redo.get("translation") + ")  is_quiz=" + redo.get("is_quiz"));
                     @SuppressWarnings("unchecked")
                     Map<String, Object> redoQuiz = Boolean.TRUE.equals(redo.get("is_quiz")) && redo.get("quiz") instanceof Map<?, ?> q2
-                            ? OpenAiStoryService.sanitizeQuiz((Map<String, Object>) q2) : null;
+                            ? OpenAiStoryService.sanitizeQuiz((Map<String, Object>) q2, lang) : null;
                     quiz = redoQuiz;
                     reason = quiz == null ? "no quiz" : rejection(session, aiMsg, quiz);
                     if (reason != null) {
                         Map<String, Object> plain = service.generateNonQuizTurn(session, userMessage, recorded);
-                        aiMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(str(plain.get("ai_message")));
+                        aiMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(str(plain.get("ai_message")), lang);
                         res = plain;
                         System.out.println("AI(plain)> " + aiMsg + "\n    (" + plain.get("translation") + ")");
                         session.setFailedQuizTurns(session.getFailedQuizTurns() + 1);
@@ -177,7 +180,7 @@ class LiveStorySmokeTest {
                 System.out.println("    [QUIZ" + (reason == null ? "" : " REJECTED AGAIN: " + reason) + "] " + quiz);
                 if (reason == null) {
                     quiz = OpenAiStoryService.ensureQuestionQuotesMeaning(quiz);
-                    aiMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(aiMsg);
+                    aiMsg = OpenAiStoryService.removeDuplicateTrailingQuestion(aiMsg, lang);
                     if (quiz.get("correct_answer") != null) {
                         session.addTestedQuizSubject(String.valueOf(quiz.get("correct_answer")));
                     }
@@ -192,13 +195,18 @@ class LiveStorySmokeTest {
     }
 
     private static String rejection(StorySession session, String aiMsg, Map<String, Object> quiz) {
+        String lang = session.getTargetLanguage();
+        String structural = OpenAiStoryService.structuralProblem(quiz, lang);
+        if (structural != null) {
+            return "structural: " + structural;
+        }
         if (InteractiveStoryService.isDuplicateQuizSubject(session.getTestedQuizSubjects(), quiz)) {
             return "duplicate";
         }
-        if (OpenAiStoryService.isAnswerEchoedInMessage(aiMsg, quiz)) {
+        if (OpenAiStoryService.isAnswerEchoedInMessage(aiMsg, quiz, lang)) {
             return "echo";
         }
-        if (!OpenAiStoryService.isQuizLinkedToMessage(aiMsg, quiz)) {
+        if (!OpenAiStoryService.isQuizLinkedToMessage(aiMsg, quiz, lang)) {
             return "unlinked: asked=" + quiz.get("asked");
         }
         if (OpenAiStoryService.isReaskOfRecentUserMessage(session.recentUserMessages(OpenAiStoryService.ALREADY_KNOWN_MESSAGES), quiz)) {
@@ -229,7 +237,7 @@ class LiveStorySmokeTest {
         return "?";
     }
 
-    private static String wrongAnswer(Map<String, Object> quiz) {
+    private static String wrongAnswer(Map<String, Object> quiz, String lang) {
         String type = String.valueOf(quiz.get("quiz_type"));
         if ("multiple_choice".equals(type) && quiz.get("options") instanceof List<?> options) {
             String correct = correctAnswer(quiz);
@@ -242,7 +250,7 @@ class LiveStorySmokeTest {
         if ("word_arrange".equals(type) && quiz.get("tiles") instanceof List<?> tiles) {
             List<String> words = new java.util.ArrayList<>(tiles.stream().map(String::valueOf).toList());
             java.util.Collections.reverse(words);
-            return String.join(" ", words);
+            return String.join(LearningLanguage.usesSpaces(lang) ? " " : "", words);
         }
         return "banana";
     }
