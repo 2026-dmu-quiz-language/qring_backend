@@ -92,7 +92,15 @@ public class StorySession {
     private List<Map<String, Object>> timeline = new ArrayList<>();
 
     public void addMessage(String role, String content) {
-        appendPromptHistory(role, content);
+        addMessage(role, content, content);
+    }
+
+    /**
+     * 타임라인에는 사용자가 실제로 보낸 원문을, 프롬프트 히스토리에는 모델에게 보여 줄 사본을 남긴다.
+     * 띄어쓰기 없는 언어에서 타일을 공백으로 이어 보낸 답안의 공백을 떼는 데 쓴다 (2026-09-22).
+     */
+    public void addMessage(String role, String content, String promptContent) {
+        appendPromptHistory(role, promptContent != null ? promptContent : content);
 
         Map<String, Object> event = new HashMap<>();
         event.put("type", "message");

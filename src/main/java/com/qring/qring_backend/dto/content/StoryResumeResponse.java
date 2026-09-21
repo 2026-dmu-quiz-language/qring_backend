@@ -51,6 +51,12 @@ public class StoryResumeResponse {
     @JsonProperty("model_tier")
     private String modelTier;
 
+    @Schema(description = "true 면 AI 응답을 아직 생성 중이다. 타임라인 마지막이 답이 없는 내 메시지일 수 있으니, "
+            + "잠시 후 /story/resume 를 다시 호출하면 완성된 대화를 받는다. 보통은 서버가 기다렸다 주므로 false",
+            example = "false")
+    @JsonProperty("turn_in_progress")
+    private Boolean turnInProgress;
+
     @Schema(description = "지금까지의 대화·퀴즈·채점 통합 기록 — /library/chat 의 timeline 과 같은 형식. 순서대로 렌더링하면 화면이 복원된다")
     private List<Map<String, Object>> timeline;
 }
