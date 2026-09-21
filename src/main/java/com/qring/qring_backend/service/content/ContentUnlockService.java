@@ -7,9 +7,13 @@ import com.qring.qring_backend.domain.content.Content;
 import com.qring.qring_backend.domain.content.ContentRepository;
 import com.qring.qring_backend.domain.content.UserContentUnlock;
 import com.qring.qring_backend.domain.content.UserContentUnlockRepository;
+import com.qring.qring_backend.domain.user.UserAsset;
+import com.qring.qring_backend.domain.user.UserAssetHistory;
 import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
+import com.qring.qring_backend.domain.user.UserAssetHistoryRepository;
+import com.qring.qring_backend.domain.user.UserAssetRepository;
+import com.qring.qring_backend.domain.user.UserLanguageLevelRepository;
 import com.qring.qring_backend.dto.content.ContentUnlockResponseDto;
-import com.qring.qring_backend.service.user.UserPointService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,10 +23,17 @@ public class ContentUnlockService {
 
     private final ContentRepository contentRepository;
     private final UserContentUnlockRepository userContentUnlockRepository;
-    private final UserPointService userPointService;
+    private final UserAssetRepository userAssetRepository;
+    private final UserAssetHistoryRepository userAssetHistoryRepository;
+    private final UserLanguageLevelRepository userLanguageLevelRepository;
 
     @Transactional
-    public ContentUnlockResponseDto unlockContent(Long userId, Long contentId) {
+    public ContentUnlockResponseDto unlockContent(Long userId, Long contentId, String language) {
+
+        // 학습 중인 언어인지 먼저 검증 — 시작도 안 한 언어를 해금하는 걸 방지
+        if (!userLanguageLevelRepository.existsByUserIdAndLanguage(userId, language)) {
+            throw new IllegalArgumentException("학습 중인 언어가 아닙니다.");
+        }
 
         Content content = contentRepository.findById(contentId)
                 .orElseThrow(() -> new IllegalArgumentException("콘텐츠를 찾을 수 없습니다."));
@@ -33,17 +44,35 @@ public class ContentUnlockService {
         if (requiredPoints == 0) {
             return new ContentUnlockResponseDto(contentId, "UNLOCKED", 0, null);
         }
-        if (userContentUnlockRepository.existsByUserIdAndContentContentId(userId, contentId)) {
-            return new ContentUnlockResponseDto(contentId, "UNLOCKED", 0, userPointService.currentPoints(userId));
+        if (userContentUnlockRepository.existsByUserIdAndContentContentIdAndLanguage(userId, contentId, language)) {
+            UserAsset asset = userAssetRepository.findByUserUserId(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("유저 자산 정보를 찾을 수 없습니다."));
+            return new ContentUnlockResponseDto(contentId, "UNLOCKED", 0, asset.getCurrentPoints());
         }
 
-        // 원자적 차감 + 히스토리 (잔액 부족이면 InsufficientPointsException → 400)
-        int balanceAfter = userPointService.spend(userId, requiredPoints, SourceType.CONTENT_UNLOCK, contentId);
+        UserAsset asset = userAssetRepository.findByUserUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저 자산 정보를 찾을 수 없습니다."));
+
+        // 원자적 차감 — 잔액 검사와 차감이 분리되어 동시 요청 시 음수 잔액이 가능하던 문제 방지
+        int deducted = userAssetRepository.tryDeductPoints(userId, requiredPoints);
+        if (deducted == 0) {
+            throw new IllegalArgumentException("포인트가 부족합니다.");
+        }
+        int balanceAfter = asset.getCurrentPoints() - requiredPoints;
 
         UserContentUnlock unlock = new UserContentUnlock();
         unlock.setUserId(userId);
         unlock.setContent(content);
+        unlock.setLanguage(language);
         userContentUnlockRepository.save(unlock);
+
+        UserAssetHistory history = new UserAssetHistory();
+        history.setUserId(userId);
+        history.setChangeAmount(-requiredPoints);
+        history.setBalanceAfter(balanceAfter);
+        history.setSourceType(SourceType.CONTENT_UNLOCK);
+        history.setReferenceId(contentId);
+        userAssetHistoryRepository.save(history);
 
         return new ContentUnlockResponseDto(contentId, "UNLOCKED", requiredPoints, balanceAfter);
     }

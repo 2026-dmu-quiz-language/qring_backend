@@ -17,13 +17,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** 유저가 포인트를 내고 해금한 콘텐츠 기록. 유저별 개인 구매라서 영구적으로 남음. */
+/** 유저가 포인트를 내고 해금한 콘텐츠 기록. 유저별·언어별 개인 구매라서 영구적으로 남음. */
 @Entity
 @Table(
         name = "user_content_unlock",
         uniqueConstraints = @UniqueConstraint(
-                name = "uq_user_content",
-                columnNames = {"user_id", "content_id"}
+                name = "uq_user_content_language",
+                columnNames = {"user_id", "content_id", "language"}
         )
 )
 @Getter @Setter @NoArgsConstructor
@@ -40,6 +40,9 @@ public class UserContentUnlock {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "content_id", nullable = false)
     private Content content;
+
+    @Column(name = "language", nullable = false, length = 10)
+    private String language;   // UserLanguageLevel과 동일한 컨벤션 (예: "EN", "JA", "ZH")
 
     @Column(name = "unlocked_at", nullable = false)
     private LocalDateTime unlockedAt;
