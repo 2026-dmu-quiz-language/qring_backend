@@ -4,7 +4,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.qring.qring_backend.dto.content.ContentUnlockResponseDto;
@@ -19,15 +18,14 @@ public class ContentUnlockController {
 
     private final ContentUnlockService contentUnlockService;
 
-    @Operation(summary = "콘텐츠 해금 - 언어별 포인트 차감 후 유저별 영구 해금 처리")
+    @Operation(summary = "콘텐츠 해금 - 유저의 현재 학습 언어 기준으로 포인트 차감 후 영구 해금 처리")
     @PostMapping("/content/{contentId}/unlock")
     public ResponseEntity<ContentUnlockResponseDto> unlockContent(
             Authentication authentication,
-            @PathVariable Long contentId,
-            @RequestParam String language) {
+            @PathVariable Long contentId) {
 
         Long userId = (Long) authentication.getPrincipal();
-        ContentUnlockResponseDto response = contentUnlockService.unlockContent(userId, contentId, language);
+        ContentUnlockResponseDto response = contentUnlockService.unlockContent(userId, contentId);
         return ResponseEntity.ok(response);
     }
 }
