@@ -27,8 +27,6 @@ import com.qring.qring_backend.domain.quiz.QuizContent;
 import com.qring.qring_backend.domain.quiz.QuizContentRepository;
 import com.qring.qring_backend.domain.quiz.QuizDetail;
 import com.qring.qring_backend.domain.quiz.QuizDetailRepository;
-import com.qring.qring_backend.domain.quiz.WrongAnswer;
-import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
 import com.qring.qring_backend.domain.user.UserStudyLog;
@@ -65,7 +63,6 @@ public class CompetitionMatchService {
     private final CompetitionWrongAnswerRepository competitionWrongAnswerRepository;
     private final QuizDetailRepository quizDetailRepository;
     private final QuizContentRepository quizContentRepository;
-    private final WrongAnswerRepository wrongAnswerRepository;
     private final UserStudyLogRepository userStudyLogRepository;
 
     @Transactional
@@ -129,6 +126,7 @@ public class CompetitionMatchService {
      * 매치 결과 저장 + 점수/포인트 계산.
      * matchId로 매치를 특정해서 조회 (활성 매치 중 첫 번째를 가져오던 기존 버그 수정).
      * 승패 판정: 라운드 승수가 봇보다 많아야 승리. 무승부/패배는 보상 없음.
+     * 틀린 문제는 원본(STORY/COMPETITION)과 무관하게 그 매치의 레벨 기준 컴피티션 오답노트에 통합 저장.
      */
     @Transactional
     public BotResultDto.Response saveResult(Long userId, BotResultDto.Request request) {
@@ -179,11 +177,7 @@ public class CompetitionMatchService {
                 continue;
             }
 
-            if ("STORY".equals(item.getSourceType())) {
-                saveStoryWrongAnswer(userId, item.getSourceQuizContentId());
-            } else {
-                saveCompetitionWrongAnswer(userId, item.getSourceQuizContentId(), match.getLevel(), langCode);
-            }
+            saveCompetitionWrongAnswer(userId, item.getSourceQuizContentId(), item.getSourceType(), match.getLevel(), langCode);
         }
 
         int wrongCount = request.getAnswers().size() - correctCount;
@@ -245,34 +239,21 @@ public class CompetitionMatchService {
         return 0;
     }
 
-    private void saveStoryWrongAnswer(Long userId, Long quizContentId) {
-        boolean alreadyExists = wrongAnswerRepository.findByUserIdAndQuizContentId(userId, quizContentId).isPresent();
-        if (alreadyExists) return;
-
-        QuizContent quizContent = quizContentRepository.findById(quizContentId)
-                .orElseThrow(() -> new IllegalArgumentException("스토리 문제를 찾을 수 없습니다: " + quizContentId));
-        QuizDetail quizDetail = quizContent.getQuizDetail();
-
-        WrongAnswer wa = new WrongAnswer();
-        wa.setUserId(userId);
-        wa.setQuizContentId(quizContentId);
-        wa.setLevel(quizDetail.getDifficulty());
-        wa.setStoryName(quizDetail.getContent().getTitle());
-        wa.setContentId(quizDetail.getContent().getContentId());
-        wrongAnswerRepository.save(wa);
-    }
-
-    private void saveCompetitionWrongAnswer(Long userId, Long quizContentId, Integer level, String langCode) {
-
-        CompetitionQuizContent quizContent = competitionQuizContentRepository.findById(quizContentId)
-                .orElseThrow(() -> new IllegalArgumentException("컴피티션 문제를 찾을 수 없습니다: " + quizContentId));
+    /**
+     * 매치에서 틀린 문제를 컴피티션 오답노트에 저장.
+     * 원본이 STORY 문제든 COMPETITION 전용 문제든 상관없이 이 매치의 레벨 기준으로 통합 저장한다.
+     * (user_id, quiz_content_id, source_type) 단위로 이미 있으면 시각만 갱신 (틀릴 때마다 최신화).
+     */
+    private void saveCompetitionWrongAnswer(Long userId, Long quizContentId, String sourceType, Integer level, String langCode) {
+        CompetitionWrongAnswer.SourceType st = CompetitionWrongAnswer.SourceType.valueOf(sourceType);
 
         CompetitionWrongAnswer wa = competitionWrongAnswerRepository
-                .findByUserIdAndQuizContentId(userId, quizContentId)
+                .findByUserIdAndQuizContentIdAndSourceType(userId, quizContentId, st)
                 .orElseGet(CompetitionWrongAnswer::new);
 
         wa.setUserId(userId);
-        wa.setQuizContent(quizContent);
+        wa.setQuizContentId(quizContentId);
+        wa.setSourceType(st);
         wa.setLevel(level);
         wa.setLangCode(langCode);
         wa.setCreatedAt(LocalDateTime.now()); // 갱신 시점으로 덮어씀
