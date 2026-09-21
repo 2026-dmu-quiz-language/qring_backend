@@ -7,6 +7,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.qring.qring_backend.service.content.ContentLockedException;
+
 import java.util.Map;
 
 /** 컨트롤러 공통 예외 처리: 도메인 오류·검증 실패·미처리 예외를 통일된 JSON 포맷으로 변환. */
@@ -51,9 +53,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleUnknown(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-            "success", false,
-            "code", "INTERNAL_ERROR",
-            "message", e.getMessage() != null ? e.getMessage() : "Unknown error"
-        ));
+                "success", false,
+                "code", "INTERNAL_ERROR",
+                "message", e.getMessage() != null ? e.getMessage() : "Unknown error"));
+    }
+    
+    @ExceptionHandler(ContentLockedException.class)
+    public ResponseEntity<?> handleContentLocked(ContentLockedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
     }
 }

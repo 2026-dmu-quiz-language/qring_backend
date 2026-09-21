@@ -3,10 +3,12 @@ package com.qring.qring_backend.service.content;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.domain.content.Content;
 import com.qring.qring_backend.domain.content.ContentRepository;
 import com.qring.qring_backend.domain.content.UserContentUnlock;
 import com.qring.qring_backend.domain.content.UserContentUnlockRepository;
+import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserAsset;
 import com.qring.qring_backend.domain.user.UserAssetHistory;
 import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
@@ -26,9 +28,13 @@ public class ContentUnlockService {
     private final UserAssetRepository userAssetRepository;
     private final UserAssetHistoryRepository userAssetHistoryRepository;
     private final UserLanguageLevelRepository userLanguageLevelRepository;
+    private final UserRepository userRepository;
 
     @Transactional
-    public ContentUnlockResponseDto unlockContent(Long userId, Long contentId, String language) {
+    public ContentUnlockResponseDto unlockContent(Long userId, Long contentId) {
+
+        // 해금 언어는 클라이언트가 아니라 서버가 유저의 현재 학습 언어로 결정
+        String language = getCurrentLanguage(userId);
 
         // 학습 중인 언어인지 먼저 검증 — 시작도 안 한 언어를 해금하는 걸 방지
         if (!userLanguageLevelRepository.existsByUserIdAndLanguage(userId, language)) {
@@ -75,5 +81,31 @@ public class ContentUnlockService {
         userAssetHistoryRepository.save(history);
 
         return new ContentUnlockResponseDto(contentId, "UNLOCKED", requiredPoints, balanceAfter);
+    }
+
+    /**
+     * 스토리 내용에 접근하는 API(상세/스크립트/퀴즈/학습 시작) 맨 앞에서 호출.
+     * 유료 콘텐츠인데 현재 언어로 해금하지 않았으면 ContentLockedException(403).
+     */
+    @Transactional(readOnly = true)
+    public void validateAccessible(Long userId, Long contentId) {
+        Content content = contentRepository.findById(contentId)
+                .orElseThrow(() -> new IllegalArgumentException("콘텐츠를 찾을 수 없습니다."));
+
+        int requiredPoints = content.getRequiredPoints() == null ? 0 : content.getRequiredPoints();
+        if (requiredPoints == 0) {
+            return;
+        }
+
+        String language = getCurrentLanguage(userId);
+        if (!userContentUnlockRepository.existsByUserIdAndContentContentIdAndLanguage(userId, contentId, language)) {
+            throw new ContentLockedException();
+        }
+    }
+
+    private String getCurrentLanguage(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+        return user.getLanguage();
     }
 }
