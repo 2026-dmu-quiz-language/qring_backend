@@ -11,7 +11,10 @@ import com.qring.qring_backend.service.content.ContentLockedException;
 
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
+
 /** 컨트롤러 공통 예외 처리: 도메인 오류·검증 실패·미처리 예외를 통일된 JSON 포맷으로 변환. */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -39,9 +42,10 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    /** DB 제약 조건 위반(유니크/FK 등) → 409. SQL문·제약조건 이름은 응답에 노출하지 않는다. */
+    /** DB 제약 조건 위반(유니크/FK 등) → 409. SQL문·제약조건 이름은 응답에 노출하지 않는다 (서버 로그에만 남김). */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException e) {
+        log.error("[DataIntegrityViolation] {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
             "success", false,
             "code", "DATA_CONFLICT",
