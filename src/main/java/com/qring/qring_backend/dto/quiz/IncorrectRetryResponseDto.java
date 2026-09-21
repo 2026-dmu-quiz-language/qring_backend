@@ -25,5 +25,18 @@ public class IncorrectRetryResponseDto {
         private String tiles;             // word_arrange 전용 (JSON 배열), STORY 는 항상 null
         private String answerTiles;       // word_arrange 전용 (JSON 배열), STORY 는 항상 null
         private String distractorTiles;   // word_arrange 전용 (JSON 배열), STORY 는 항상 null
+
+        /**
+         * STORY 전용 생성자 (7개 인자). WrongAnswerRepository.findIncorrectQuizzesByUserIdAndContentId 의
+         * JPQL {@code SELECT new ...IncorrectQuizDto(...)} 가 이 시그니처를 사용한다.
+         * word_arrange 전용 필드(korean/tiles/answerTiles/distractorTiles)는 null 로 둔다.
+         * 필드를 추가할 때 이 생성자와 JPQL 인자 목록이 어긋나면 컨텍스트 기동 시
+         * "Missing constructor for type 'IncorrectQuizDto'" 로 서버가 뜨지 않는다.
+         */
+        public IncorrectQuizDto(Long quizContentId, String question, String options, String hint,
+                                String correctAnswer, String quizType, String sourceType) {
+            this(quizContentId, question, options, hint, correctAnswer, quizType, sourceType,
+                 null, null, null, null);
+        }
     }
 }
