@@ -13,7 +13,6 @@ import com.qring.qring_backend.dto.quiz.IncorrectResponseDto;
 
 public interface CompetitionWrongAnswerRepository extends JpaRepository<CompetitionWrongAnswer, Long> {
 
-    // 유저의 컴피티션 오답 전체 조회 (7일 이내만, 스토리 오답과 합쳐서 보여줄 때 사용)
     @Query("""
         SELECT wa FROM CompetitionWrongAnswer wa
         WHERE wa.userId = :userId
@@ -22,16 +21,11 @@ public interface CompetitionWrongAnswerRepository extends JpaRepository<Competit
     List<CompetitionWrongAnswer> findAllByUserId(@Param("userId") Long userId,
                                                   @Param("cutoff") LocalDateTime cutoff);
 
-    @Query("""
-        SELECT wa FROM CompetitionWrongAnswer wa
-        WHERE wa.userId = :userId
-        AND wa.quizContent.quizContentId = :quizContentId
-    """)
-    Optional<CompetitionWrongAnswer> findByUserIdAndQuizContentId(@Param("userId") Long userId,
-                                                                  @Param("quizContentId") Long quizContentId);
+    Optional<CompetitionWrongAnswer> findByUserIdAndQuizContentIdAndSourceType(
+            Long userId, Long quizContentId, CompetitionWrongAnswer.SourceType sourceType);
 
-    // 정답 처리 시 오답 목록에서 제거 (기존 패턴과 동일)
-    void deleteByUserIdAndQuizContentQuizContentId(Long userId, Long quizContentId);
+    void deleteByUserIdAndQuizContentIdAndSourceType(
+            Long userId, Long quizContentId, CompetitionWrongAnswer.SourceType sourceType);
 
     // 레벨별 중복 없이, 가장 최근 오답 시각 포함 조회 (7일 이내만) — STORY/COMPETITION 통합 목록 정렬용
     @Query("SELECT new com.qring.qring_backend.dto.quiz.IncorrectResponseDto$WrongAnswerItem(" +
@@ -45,10 +39,9 @@ public interface CompetitionWrongAnswerRepository extends JpaRepository<Competit
             @Param("langCode") String langCode,
             @Param("cutoff") LocalDateTime cutoff);
 
-    // 레벨로 오답 문제 목록 조회 (재풀이용, 7일 이내만) — quizContent를 fetch join해서 N+1 방지
+    // 레벨로 오답 문제 목록 조회 (재풀이용, 7일 이내만) — 원본 문제 조회는 IncorrectService 에서 sourceType 별로 분기
     @Query("""
         SELECT wa FROM CompetitionWrongAnswer wa
-        JOIN FETCH wa.quizContent qc
         WHERE wa.userId = :userId AND wa.level = :level
         AND wa.createdAt >= :cutoff
     """)
@@ -56,7 +49,6 @@ public interface CompetitionWrongAnswerRepository extends JpaRepository<Competit
                                                        @Param("level") Integer level,
                                                        @Param("cutoff") LocalDateTime cutoff);
 
-    /** 회원 탈퇴: 사용자의 row 전부 삭제 (UserWithdrawalService 전용, 서비스 트랜잭션 안에서 호출). */
     @Modifying
     @Query("DELETE FROM CompetitionWrongAnswer wa WHERE wa.userId = :userId")
     void deleteAllByUserId(@Param("userId") Long userId);
