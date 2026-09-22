@@ -10,6 +10,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.qring.qring_backend.domain.competition.CompetitionWrongAnswerRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswerReminderTarget;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.push.dto.WrongAnswerReminderRunResult;
@@ -20,10 +21,11 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 오답 N일차 푸시 (설계: PUSH_NOTIFICATION_DESIGN.md).
  *
- * 오답(wrong_answer)은 다시 풀면 지워지고, 7일이 지나면 오답 노트에서 보이지 않는다.
+ * 오답(wrong_answer, competition_wrong_answer)은 다시 풀면 지워지고, 7일이 지나면 오답 노트에서 보이지 않는다.
  * 그래서 "생성 6일차" 저녁에 아직 남아 있는 오답이 있는 사용자에게 한 번 알린다 — 내일이면 사라지니 지금 풀라는 뜻.
+ * 오답 노트와 같은 스코프라, 스토리 오답과 봇 컴피티션 오답을 사용자별로 합쳐서 센다.
  *
- * 대상 판정은 DB 한 번(findReminderTargetsCreatedBetween), 토큰 조회 한 번, 그 뒤 사용자별 발송.
+ * 대상 판정은 테이블당 DB 한 번(findReminderTargetsCreatedBetween), 토큰 조회 한 번, 그 뒤 사용자별 발송.
  * 트랜잭션을 걸지 않는다 — 발송은 외부 네트워크 호출이라 DB 커넥션을 붙잡고 있을 이유가 없다.
  * 하루 한 번만 도는 배치이고 대상 조회 창이 하루라 같은 오답으로 두 번 보내지 않는다.
  *
@@ -40,6 +42,7 @@ public class WrongAnswerReminderService {
     public static final String DATA_SCREEN = "incorrect";
 
     private final WrongAnswerRepository wrongAnswerRepository;
+    private final CompetitionWrongAnswerRepository competitionWrongAnswerRepository;
     private final PushTokenService pushTokenService;
     private final PushSender pushSender;
 
@@ -56,17 +59,22 @@ public class WrongAnswerReminderService {
         LocalDateTime start = createdDate.atStartOfDay();
         LocalDateTime end = start.plusDays(1);
 
-        List<WrongAnswerReminderTarget> targets = wrongAnswerRepository.findReminderTargetsCreatedBetween(start, end);
-        if (targets.isEmpty()) {
+        // LinkedHashMap 으로 대상 순서를 유지 (로그·결과 재현성)
+        // 오답 노트가 스토리·봇 컴피티션 오답을 함께 보여주므로 두 테이블의 개수를 사용자별로 합친다.
+        Map<Long, Long> countByUser = new LinkedHashMap<>();
+        for (WrongAnswerReminderTarget t : wrongAnswerRepository.findReminderTargetsCreatedBetween(start, end)) {
+            countByUser.merge(t.getUserId(), t.getWrongCount(), Long::sum);
+        }
+        for (WrongAnswerReminderTarget t : competitionWrongAnswerRepository
+                .findReminderTargetsCreatedBetween(start, end)) {
+            countByUser.merge(t.getUserId(), t.getWrongCount(), Long::sum);
+        }
+
+        if (countByUser.isEmpty()) {
             log.info("[PUSH] 오답 {}일차 알림: {} 생성 오답 대상 없음", daysAfter, createdDate);
             return new WrongAnswerReminderRunResult(createdDate, 0, 0, 0, 0, 0, 0);
         }
 
-        // LinkedHashMap 으로 대상 순서를 유지 (로그·결과 재현성)
-        Map<Long, Long> countByUser = new LinkedHashMap<>();
-        for (WrongAnswerReminderTarget t : targets) {
-            countByUser.put(t.getUserId(), t.getWrongCount());
-        }
         Map<Long, List<String>> tokensByUser = pushTokenService.tokensByUser(countByUser.keySet());
 
         int notifiedUsers = 0;

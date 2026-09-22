@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.qring.qring_backend.domain.quiz.WrongAnswerReminderTarget;
 import com.qring.qring_backend.dto.quiz.IncorrectResponseDto;
 
 public interface CompetitionWrongAnswerRepository extends JpaRepository<CompetitionWrongAnswer, Long> {
@@ -48,6 +49,35 @@ public interface CompetitionWrongAnswerRepository extends JpaRepository<Competit
     List<CompetitionWrongAnswer> findByUserIdAndLevel(@Param("userId") Long userId,
                                                        @Param("level") Integer level,
                                                        @Param("cutoff") LocalDateTime cutoff);
+
+    // 대시보드 오답 개수: 7일 이내 오답 수. WrongAnswerRepository 의 같은 이름 쿼리(스토리 오답)와 합산해서 쓴다.
+    @Query("SELECT COUNT(wa) FROM CompetitionWrongAnswer wa " +
+           "WHERE wa.userId = :userId AND wa.langCode = :langCode " +
+           "AND wa.createdAt >= :cutoff")
+    long countByUserIdAndLangCode(@Param("userId") Long userId,
+                                   @Param("langCode") String langCode,
+                                   @Param("cutoff") LocalDateTime cutoff);
+
+    // 대시보드 오답 알람: 7일 지난 오답 존재 여부 (WrongAnswerRepository 의 같은 이름 쿼리와 OR 로 합친다)
+    @Query("SELECT COUNT(wa) > 0 FROM CompetitionWrongAnswer wa " +
+           "WHERE wa.userId = :userId AND wa.langCode = :langCode " +
+           "AND wa.createdAt <= :sevenDaysAgo")
+    boolean existsByUserIdAndLangCodeAndOlderThan(@Param("userId") Long userId,
+                                                   @Param("langCode") String langCode,
+                                                   @Param("sevenDaysAgo") LocalDateTime sevenDaysAgo);
+
+    /**
+     * 오답 N일차 푸시 대상 (컴피티션 오답). 스토리 쪽과 같은 스코프 — 사용자의 현재 학습 언어, 푸시를 끈 사용자 제외.
+     * 스토리는 lang_code 를 quiz_content 에서 JOIN 해 오지만 컴피티션 오답은 컬럼으로 들고 있어 바로 비교한다.
+     */
+    @Query("SELECT wa.userId AS userId, COUNT(wa) AS wrongCount FROM CompetitionWrongAnswer wa " +
+           "JOIN User u ON u.userId = wa.userId " +
+           "WHERE wa.langCode = u.language " +
+           "AND (u.pushEnabled IS NULL OR u.pushEnabled = true) " +
+           "AND wa.createdAt >= :start AND wa.createdAt < :end " +
+           "GROUP BY wa.userId")
+    List<WrongAnswerReminderTarget> findReminderTargetsCreatedBetween(@Param("start") LocalDateTime start,
+                                                                       @Param("end") LocalDateTime end);
 
     @Modifying
     @Query("DELETE FROM CompetitionWrongAnswer wa WHERE wa.userId = :userId")

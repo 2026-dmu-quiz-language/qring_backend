@@ -2,6 +2,7 @@ package com.qring.qring_backend.dashboard.service;
 
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.dashboard.dto.DashboardResponse;
+import com.qring.qring_backend.domain.competition.CompetitionWrongAnswerRepository;
 import com.qring.qring_backend.domain.difficulty.DifficultyLevelRepository;
 import com.qring.qring_backend.domain.quiz.AchievementCommentRepository;
 import com.qring.qring_backend.domain.quiz.QuizResultRepository;
@@ -56,7 +57,8 @@ class DashboardServiceStreakRewardTest {
 
         service = new DashboardService(userRepository, mock(UserprogressRepository.class), userStudyLogRepository,
                 mock(DifficultyLevelRepository.class), mock(AchievementCommentRepository.class),
-                mock(WrongAnswerRepository.class), userAssetRepository, userPointService,
+                mock(WrongAnswerRepository.class), mock(CompetitionWrongAnswerRepository.class),
+                userAssetRepository, userPointService,
                 mock(StoryProgressRepository.class), mock(QuizResultRepository.class));
 
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(

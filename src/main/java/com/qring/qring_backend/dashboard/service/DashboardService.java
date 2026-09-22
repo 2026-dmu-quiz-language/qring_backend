@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.dashboard.dto.DashboardResponse;
+import com.qring.qring_backend.domain.competition.CompetitionWrongAnswerRepository;
 import com.qring.qring_backend.domain.difficulty.DifficultyLevel;
 import com.qring.qring_backend.domain.difficulty.DifficultyLevelRepository;
 import com.qring.qring_backend.domain.quiz.AchievementCommentRepository;
@@ -45,6 +46,7 @@ public class DashboardService {
     private final AchievementCommentRepository achievementCommentRepository;
 
     private final WrongAnswerRepository wrongAnswerRepository;
+    private final CompetitionWrongAnswerRepository competitionWrongAnswerRepository;
     private final UserAssetRepository userAssetRepository;
     private final UserPointService userPointService;
     private final StoryProgressRepository storyProgressRepository;
@@ -88,9 +90,11 @@ public class DashboardService {
 
         String incorrectAlarm = "";
         if (langCode != null) {
+            // 오답 노트가 스토리·봇 컴피티션 오답을 함께 보여주므로, 알람도 둘 중 하나라도 묵었으면 띄운다.
             boolean hasOldIncorrect = wrongAnswerRepository.existsByUserIdAndLangCodeAndOlderThan(
-                userId, langCode, sevenDaysAgo
-            );
+                    userId, langCode, sevenDaysAgo)
+                || competitionWrongAnswerRepository.existsByUserIdAndLangCodeAndOlderThan(
+                    userId, langCode, sevenDaysAgo);
             if (hasOldIncorrect) {
                 incorrectAlarm = "오답을 확인한 지 7일이 지났어요! 오답 노트를 확인해 보세요.";
             }
@@ -113,7 +117,12 @@ public class DashboardService {
             }
         }
 
-        int incorrectQuizCount = (int) wrongAnswerRepository.countByUserIdAndLangCode(userId, langCode, sevenDaysAgo);
+        // 오답 노트에 뜨는 스토리 + 봇 컴피티션 오답의 합. 두 테이블을 그대로 더한다 —
+        // 같은 문제를 스토리와 컴피티션에서 각각 틀리면 오답 노트에도 별개 항목으로 나와 따로 풀어야 하므로,
+        // 중복을 제거하면 표시된 개수보다 실제로 풀 문제가 많아진다.
+        int incorrectQuizCount = (int) (
+                wrongAnswerRepository.countByUserIdAndLangCode(userId, langCode, sevenDaysAgo)
+                + competitionWrongAnswerRepository.countByUserIdAndLangCode(userId, langCode, sevenDaysAgo));
 
         return DashboardResponse.builder()
             .name(user.getNickname())
