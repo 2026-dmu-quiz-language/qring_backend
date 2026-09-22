@@ -3,6 +3,7 @@ package com.qring.qring_backend.mypage.service;
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.domain.difficulty.DifficultyLevel;
 import com.qring.qring_backend.domain.difficulty.DifficultyLevelRepository;
+import com.qring.qring_backend.domain.user.LearningLanguage;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserAsset;
 import com.qring.qring_backend.domain.user.UserAssetRepository;
@@ -165,26 +166,50 @@ public class MyPageService {
         }
     }
 
-    public boolean checkLanguage(Long userId, String language) {
-        return userLanguageLevelRepository.findByUserIdAndLanguage(userId, language).isPresent();
+    /** /langcheck: 현재 학습 언어와 해금된 언어 목록을 한 번에 내려준다. */
+    public LanguageStatusResponse getLanguageStatus(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
+        return buildLanguageStatus(user);
+    }
+
+    /** 현재 언어(users.language)와 해금 목록(user_language_level)을 모아 응답으로 만든다. */
+    private LanguageStatusResponse buildLanguageStatus(User user) {
+        List<String> unlocked = userLanguageLevelRepository.findByUserId(user.getUserId()).stream()
+                .map(UserLanguageLevel::getLanguage)
+                .map(MyPageService::normalizeLanguage)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+
+        String current = normalizeLanguage(user.getLanguage());
+        return LanguageStatusResponse.builder()
+                .current(current)
+                .currentName(languageName(current))
+                .unlocked(unlocked)
+                .build();
     }
 
     @Transactional
-    public void switchLanguage(Long userId, MyPageSwitchRequest request) {
+    public LanguageStatusResponse switchLanguage(Long userId, MyPageSwitchRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
 
-        String requestedLanguage = normalizeLanguage(request.getLanguage());
-        if (requestedLanguage != null) {
-            log.info("[MyPageService] switchLanguage userId={} 언어 {} → {}", userId, user.getLanguage(), requestedLanguage);
-            user.setLanguage(requestedLanguage);
+        // 지원 코드(EN/JA/ZH)가 아니면 400. null·빈 값·필드명 오타가 조용히 200 으로 통과하던 것을 막는다.
+        LearningLanguage language = LearningLanguage.fromCode(request.getLanguage())
+                .orElseThrow(() -> new IllegalArgumentException("INVALID_LANGUAGE"));
 
-            // Sync levelCode with the selected language level if it exists
-            userLanguageLevelRepository.findByUserIdAndLanguage(userId, requestedLanguage)
-                    .ifPresent(ull -> user.setLevelCode(ull.getLevel()));
+        // 해금하지 않은 언어로는 전환 불가. 해금은 /mypage/learning 에서만 일어난다.
+        UserLanguageLevel unlockedLevel = userLanguageLevelRepository
+                .findByUserIdAndLanguage(userId, language.getCode())
+                .orElseThrow(() -> new IllegalArgumentException("LANGUAGE_NOT_UNLOCKED"));
 
-            userRepository.save(user);
-        }
+        log.info("[MyPageService] switchLanguage userId={} 언어 {} → {}", userId, user.getLanguage(), language.getCode());
+        user.setLanguage(language.getCode());
+        user.setLevelCode(unlockedLevel.getLevel());
+        userRepository.save(user);
+
+        return buildLanguageStatus(user);
     }
 
     private long computeConsecutiveDays(Long userId) {

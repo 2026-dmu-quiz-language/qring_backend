@@ -7,6 +7,7 @@ import com.qring.qring_backend.domain.user.UserAssetRepository;
 import com.qring.qring_backend.domain.user.UserLanguageLevel;
 import com.qring.qring_backend.domain.user.UserLanguageLevelRepository;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
+import com.qring.qring_backend.mypage.dto.LanguageStatusResponse;
 import com.qring.qring_backend.mypage.dto.MyPageInfoResponse;
 import com.qring.qring_backend.mypage.dto.MyPageLearningRequest;
 import com.qring.qring_backend.mypage.dto.MyPageSwitchRequest;
@@ -16,13 +17,16 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -116,18 +120,87 @@ class MyPageServiceLanguageTest {
     @Test
     @DisplayName("/switch: 소문자 코드로 와도 대문자로 저장하고 그 언어의 레벨을 동기화한다")
     void switchLanguage_storesUppercase() {
-        UserLanguageLevel zh = new UserLanguageLevel();
-        zh.setUserId(USER_ID);
-        zh.setLanguage("ZH");
-        zh.setLevel(1);
-        when(userLanguageLevelRepository.findByUserIdAndLanguage(USER_ID, "ZH")).thenReturn(Optional.of(zh));
+        unlock("ZH", 1);
         MyPageSwitchRequest req = new MyPageSwitchRequest();
         req.setLanguage("zh");
 
-        service.switchLanguage(USER_ID, req);
+        LanguageStatusResponse res = service.switchLanguage(USER_ID, req);
 
         assertEquals("ZH", user.getLanguage());
         assertEquals(1, user.getLevelCode());
         verify(userRepository).save(user);
+        assertEquals("ZH", res.getCurrent());
+        assertEquals("중국어", res.getCurrentName());
+    }
+
+    @Test
+    @DisplayName("/switch: 지원하지 않는 코드·빈 값이면 INVALID_LANGUAGE 로 거부하고 아무것도 저장하지 않는다")
+    void switchLanguage_rejectsUnsupportedCode() {
+        for (String bad : new String[] { null, "", "  ", "KO", "english" }) {
+            MyPageSwitchRequest req = new MyPageSwitchRequest();
+            req.setLanguage(bad);
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> service.switchLanguage(USER_ID, req));
+            assertEquals("INVALID_LANGUAGE", e.getMessage());
+        }
+        assertEquals("JA", user.getLanguage());
+        verify(userRepository, never()).save(user);
+    }
+
+    @Test
+    @DisplayName("/switch: 해금하지 않은 언어면 LANGUAGE_NOT_UNLOCKED 로 거부한다 (레벨이 이전 언어 값으로 남는 것 방지)")
+    void switchLanguage_rejectsLockedLanguage() {
+        when(userLanguageLevelRepository.findByUserIdAndLanguage(USER_ID, "ZH")).thenReturn(Optional.empty());
+        MyPageSwitchRequest req = new MyPageSwitchRequest();
+        req.setLanguage("ZH");
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> service.switchLanguage(USER_ID, req));
+
+        assertEquals("LANGUAGE_NOT_UNLOCKED", e.getMessage());
+        assertEquals("JA", user.getLanguage());
+        assertEquals(2, user.getLevelCode());
+        verify(userRepository, never()).save(user);
+    }
+
+    @Test
+    @DisplayName("/langcheck: 현재 언어와 해금 목록을 함께 주고, 해금 목록은 DB 가 소문자여도 대문자로 내려간다")
+    void languageStatus_returnsCurrentAndUnlocked() {
+        when(userLanguageLevelRepository.findByUserId(USER_ID))
+                .thenReturn(List.of(level("JA", 2), level(" zh ", 1)));
+
+        LanguageStatusResponse res = service.getLanguageStatus(USER_ID);
+
+        assertEquals("JA", res.getCurrent());
+        assertEquals("일본어", res.getCurrentName());
+        assertEquals(List.of("JA", "ZH"), res.getUnlocked());
+    }
+
+    @Test
+    @DisplayName("/langcheck: 온보딩 전(언어 없음)이면 current 는 null, 해금 목록은 빈 배열")
+    void languageStatus_beforeOnboarding() {
+        user.setLanguage(null);
+        when(userLanguageLevelRepository.findByUserId(USER_ID)).thenReturn(List.of());
+
+        LanguageStatusResponse res = service.getLanguageStatus(USER_ID);
+
+        assertNull(res.getCurrent());
+        assertNull(res.getCurrentName());
+        assertEquals(List.of(), res.getUnlocked());
+    }
+
+    /** 해당 언어를 해금 상태로 만든다 (user_language_level 에 row 가 있는 것처럼). */
+    private void unlock(String language, int level) {
+        when(userLanguageLevelRepository.findByUserIdAndLanguage(USER_ID, language))
+                .thenReturn(Optional.of(level(language, level)));
+    }
+
+    private UserLanguageLevel level(String language, int level) {
+        UserLanguageLevel ull = new UserLanguageLevel();
+        ull.setUserId(USER_ID);
+        ull.setLanguage(language);
+        ull.setLevel(level);
+        return ull;
     }
 }
