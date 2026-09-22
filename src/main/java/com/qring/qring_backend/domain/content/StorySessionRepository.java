@@ -14,8 +14,8 @@ public interface StorySessionRepository extends JpaRepository<StorySessionEntity
 
     Optional<StorySessionEntity> findBySessionIdAndUserId(String sessionId, Long userId);
 
-    /** 사용자의 가장 최근 진행 중 세션 (앱 재실행 후 이어하기용). */
-    Optional<StorySessionEntity> findFirstByUserIdAndStatusOrderByUpdatedAtDesc(Long userId, String status);
+    /** 사용자의 진행 중 세션 전부 (최근 것부터). 여러 개를 만들어 두고 오갈 수 있다. */
+    List<StorySessionEntity> findByUserIdAndStatusOrderByUpdatedAtDesc(Long userId, String status);
 
     List<StorySessionEntity> findByUserIdAndStatusOrderByArchivedAtDesc(Long userId, String status);
 

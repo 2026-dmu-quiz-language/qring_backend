@@ -119,7 +119,9 @@ public class InteractiveStoryController {
 
     @Operation(
             summary = "진행 중 스토리 이어하기 (앱 재실행 후 복구)",
-            description = "가장 최근 진행 중 세션의 전체 타임라인을 반환합니다. 없으면 has_session=false. 완결됐지만 보관/삭제 선택 전인 세션도 반환됩니다.",
+            description = "진행 중인 세션을 전부 sessions 배열로 반환합니다 (최근 갱신 순, 각 항목에 전체 타임라인 포함). "
+                    + "없으면 has_session=false. 완결됐지만 보관/삭제 선택 전인 세션도 포함됩니다. "
+                    + "응답 최상위의 낱개 필드는 sessions[0] 과 같은 값으로, 기존 앱 호환을 위해 남겨 둔 것입니다.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @PostMapping("/resume")
