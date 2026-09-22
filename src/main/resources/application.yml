@@ -67,6 +67,13 @@ qring:
         model: ${OPENAI_MODEL_PREMIUM:gpt-4.1}
         start-cost: 550     # 기본 400 + 업그레이드 150
         extend-cost: 100    # 프리미엄 인상 여부는 팀 논의 후 결정 (보류)
+  story:
+    guard:
+      # 인터랙티브 스토리 입력의 최소 안전장치 (StoryContentGuard).
+      # 프롬프트 인젝션·내부 JSON 필드 조작만 막고, 제조법 요구는 세션 시작 입력에서만 본다.
+      # 갈등·범죄 소재 자체는 막지 않는다 (내용 판단은 OpenAI 가드레일에 맡김).
+      # 오탐이 보이면 false 로 즉시 끌 수 있다.
+      enabled: ${QRING_STORY_GUARD:true}
   push:
     # FCM 푸시 알림 (설계: PUSH_NOTIFICATION_DESIGN.md).
     # false 면 FirebaseApp 을 만들지 않고 발송 내용을 로그로만 출력한다 (로컬/CI 기본값).
