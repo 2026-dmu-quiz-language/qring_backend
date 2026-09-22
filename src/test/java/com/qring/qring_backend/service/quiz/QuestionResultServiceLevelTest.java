@@ -16,6 +16,7 @@ import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.domain.user.UserprogressRepository;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto;
+import com.qring.qring_backend.service.user.StudyStreakService;
 import com.qring.qring_backend.service.user.UserPointService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -69,7 +70,8 @@ class QuestionResultServiceLevelTest {
 
         service = new QuestionResultService(quizService, quizDetailRepository, quizResultRepository,
                 quizContentRepository, mock(WrongAnswerRepository.class), userPointService,
-                mock(UserStudyLogRepository.class), userprogressRepository, userRepository, storyProgressRepository);
+                mock(UserStudyLogRepository.class), userprogressRepository, userRepository, storyProgressRepository,
+                mock(StudyStreakService.class));
 
         user = User.builder().userId(USER_ID).language("EN").levelCode(2).build();
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));

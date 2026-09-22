@@ -9,10 +9,11 @@ import com.qring.qring_backend.domain.quiz.QuizResultRepository;
 import com.qring.qring_backend.domain.quiz.StoryProgressRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
+import com.qring.qring_backend.domain.user.UserAssetHistoryRepository;
 import com.qring.qring_backend.domain.user.UserAssetRepository;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.domain.user.UserprogressRepository;
-import com.qring.qring_backend.service.user.UserPointService;
+import com.qring.qring_backend.service.user.StudyStreakService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,8 +51,9 @@ class DashboardServiceIncorrectCountTest {
         service = new DashboardService(userRepository, mock(UserprogressRepository.class),
                 mock(UserStudyLogRepository.class), mock(DifficultyLevelRepository.class),
                 mock(AchievementCommentRepository.class), wrongAnswerRepository, competitionWrongAnswerRepository,
-                userAssetRepository, mock(UserPointService.class),
-                mock(StoryProgressRepository.class), mock(QuizResultRepository.class));
+                userAssetRepository, mock(UserAssetHistoryRepository.class),
+                mock(StoryProgressRepository.class), mock(QuizResultRepository.class),
+                mock(StudyStreakService.class));
 
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(
                 User.builder().userId(USER_ID).nickname("Yarr").language(LANG).build()));

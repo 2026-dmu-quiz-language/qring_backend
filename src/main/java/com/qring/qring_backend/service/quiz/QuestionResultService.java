@@ -26,6 +26,7 @@ import com.qring.qring_backend.domain.user.UserprogressRepository;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultRequestDto.QuizResultDto;
 import com.qring.qring_backend.dto.quiz.QuestionResultResponseDto;
+import com.qring.qring_backend.service.user.StudyStreakService;
 import com.qring.qring_backend.service.user.UserPointService;
 
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,7 @@ public class QuestionResultService {
     private final UserprogressRepository userprogressRepository;
     private final UserRepository userRepository;
     private final StoryProgressRepository storyProgressRepository;
+    private final StudyStreakService studyStreakService;
 
     @Transactional
     public QuestionResultResponseDto saveResults(Long userId, QuestionResultRequestDto request) {
@@ -158,6 +160,9 @@ public class QuestionResultService {
                         });
             }
         }
+
+        // 연속 학습 보상: 오늘 학습 기록이 쌓인 직후에 판정한다 (대시보드를 열지 않아도 받도록).
+        studyStreakService.awardIfDue(userId);
 
         // 스토리 학습 포인트 지급: 최초 완료(재학습 아님)일 때만, 최대 100p로 캡 (포인트표 확정값)
         // 퀴즈 개별 점수(quiz_result.score, totalScore)는 캡 없이 그대로 기록/응답하고,
