@@ -40,6 +40,7 @@ public class InteractiveStoryService {
     private final StorySessionRepository storySessionRepository;
     private final StorySessionMapper sessionMapper;
     private final StoryModelTier modelTiers;
+    private final StoryContentGuard contentGuard;
 
     /** 완결된 스토리를 영구 보관하는 추가 비용. 팀에서 금액 확정 전까지 0. */
     public static final int STORY_ARCHIVE_COST = 0;
@@ -80,6 +81,10 @@ public class InteractiveStoryService {
     @SuppressWarnings("deprecation") // request.getTargetLanguage() 는 무시할 값이지만 로그를 위해 읽는다
     public StoryStartResponse startStorySession(Long userId, StoryStartRequest request) {
         purgeExpiredSessions();
+
+        // 최소 안전장치: 프롬프트 인젝션·내부 필드 조작·제조법 요구만 막는다 (포인트 차감 전에 검사한다)
+        contentGuard.checkSituation(userId, request.getCharacterName(), request.getSituationDescription(),
+                request.getTone());
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. (ID: " + userId + ")"));
@@ -169,6 +174,7 @@ public class InteractiveStoryService {
         if (session.isCompleted()) {
             throw new IllegalStateException("이미 종료된 스토리 세션입니다. (sessionId: " + sessionId + ")");
         }
+        contentGuard.checkMessage(userId, sessionId, request.getUserMessage());
 
         // 이 턴이 끝날 때까지 이어하기(/story/resume)가 기다릴 수 있도록 표시해 둔다 (2026-09-22).
         // 생성 중에 앱을 나갔다 들어오면, 표시가 없을 때는 답 없는 내 메시지로 끝난 대화가 내려가고
