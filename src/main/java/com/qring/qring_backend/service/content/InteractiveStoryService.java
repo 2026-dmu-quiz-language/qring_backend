@@ -569,58 +569,85 @@ public class InteractiveStoryService {
      * 완결됐지만 아직 보관/삭제를 선택하지 않은 세션도 반환된다 (is_completed 로 구분).
      */
     public StoryResumeResponse resumeStory(Long userId) {
-        return storySessionRepository
-                .findFirstByUserIdAndStatusOrderByUpdatedAtDesc(userId, StorySessionEntity.STATUS_IN_PROGRESS)
-                .map(entity -> {
-                    String sessionId = entity.getSessionId();
+        // 진행 중인 세션은 여러 개일 수 있다 (하다가 나가서 새로 만들기를 반복한 경우). 전부 돌려준다.
+        List<StorySessionEntity> entities = storySessionRepository
+                .findByUserIdAndStatusOrderByUpdatedAtDesc(userId, StorySessionEntity.STATUS_IN_PROGRESS);
+        if (entities.isEmpty()) {
+            return StoryResumeResponse.builder()
+                    .hasSession(false)
+                    .turnInProgress(false)
+                    .sessions(List.of())
+                    .build();
+        }
 
-                    // 생성 중인 턴이 있으면 끝날 때까지 기다렸다가 완성된 대화를 돌려준다 (2026-09-22).
-                    // 기다리지 않으면 답이 없는 내 메시지로 끝난 대화가 내려가고, 그 사이 완성된 AI 응답은
-                    // 이미 끊긴 요청으로 나가 앱이 영영 받지 못한다 (실측: 중국어 세션 02:35).
-                    boolean turnInProgress = awaitTurnInFlight(sessionId);
+        List<StoryResumeResponse.Session> sessions = entities.stream().map(this::toResumeSession).toList();
+        StoryResumeResponse.Session latest = sessions.get(0);
 
-                    // 턴이 끝났다면 그동안 DB 가 갱신됐으므로 다시 읽는다
-                    StorySessionEntity current = turnInProgress
-                            ? entity
-                            : storySessionRepository.findById(sessionId).orElse(entity);
+        // 낱개 필드는 가장 최근 세션 값으로 채운다 — 목록이 생기기 전의 앱과 호환을 유지한다
+        return StoryResumeResponse.builder()
+                .hasSession(true)
+                .sessionId(latest.getSessionId())
+                .characterName(latest.getCharacterName())
+                .situation(latest.getSituation())
+                .tone(latest.getTone())
+                .targetLanguage(latest.getTargetLanguage())
+                .currentQuizCount(latest.getCurrentQuizCount())
+                .quizLimit(latest.getQuizLimit())
+                .canExtend(latest.getCanExtend())
+                .isCompleted(latest.getIsCompleted())
+                .modelTier(latest.getModelTier())
+                .turnInProgress(latest.getTurnInProgress())
+                .timeline(latest.getTimeline())
+                .sessions(sessions)
+                .build();
+    }
 
-                    // AI 응답을 받지 못하고 끊긴 턴이 있으면 정리 (해당 메시지는 기록에 없으므로 재전송하면 됨).
-                    // 아직 생성 중인 턴의 표시는 건드리지 않는다 — 그 턴은 끊긴 것이 아니다.
-                    if (!turnInProgress && current.getPendingUserMessage() != null) {
-                        log.warn("[InteractiveStory] 세션 {} - AI 응답을 받지 못하고 끊긴 메시지 감지, 대기 표시 정리: {}",
-                                sessionId, current.getPendingUserMessage());
-                        current.setPendingUserMessage(null);
-                        storySessionRepository.save(current);
-                    }
+    /** 진행 중 세션 하나를 이어하기 응답 형태로 만든다 (생성 중인 턴이 있으면 기다렸다가). */
+    private StoryResumeResponse.Session toResumeSession(StorySessionEntity entity) {
+        String sessionId = entity.getSessionId();
 
-                    // 메모리에 살아있는 세션이 있으면 그쪽이 최신이다 (DB 저장이 한 턴 뒤처졌을 수 있음)
-                    StorySession session = sessionStore.get(sessionId);
-                    if (session == null) {
-                        session = sessionMapper.toDomain(current);
-                        sessionStore.put(sessionId, session);
-                        log.info("[InteractiveStory] 세션 {} 이어하기 - DB 에서 복원", sessionId);
-                    }
+        // 생성 중인 턴이 있으면 끝날 때까지 기다렸다가 완성된 대화를 돌려준다 (2026-09-22).
+        // 기다리지 않으면 답이 없는 내 메시지로 끝난 대화가 내려가고, 그 사이 완성된 AI 응답은
+        // 이미 끊긴 요청으로 나가 앱이 영영 받지 못한다 (실측: 중국어 세션 02:35).
+        boolean turnInProgress = awaitTurnInFlight(sessionId);
 
-                    return StoryResumeResponse.builder()
-                            .hasSession(true)
-                            .sessionId(session.getSessionId())
-                            .characterName(session.getCharacterName())
-                            .situation(session.getSituationDescription())
-                            .tone(session.getTone())
-                            .targetLanguage(session.getTargetLanguage())
-                            .currentQuizCount(session.getQuizCount())
-                            .quizLimit(session.getQuizLimit())
-                            .canExtend(canExtend(session))
-                            .isCompleted(session.isCompleted())
-                            .modelTier(session.getModelTier())
-                            .turnInProgress(turnInProgress)
-                            .timeline(session.getTimeline())
-                            .build();
-                })
-                .orElseGet(() -> StoryResumeResponse.builder()
-                        .hasSession(false)
-                        .turnInProgress(false)
-                        .build());
+        // 턴이 끝났다면 그동안 DB 가 갱신됐으므로 다시 읽는다
+        StorySessionEntity current = turnInProgress
+                ? entity
+                : storySessionRepository.findById(sessionId).orElse(entity);
+
+        // AI 응답을 받지 못하고 끊긴 턴이 있으면 정리 (해당 메시지는 기록에 없으므로 재전송하면 됨).
+        // 아직 생성 중인 턴의 표시는 건드리지 않는다 — 그 턴은 끊긴 것이 아니다.
+        if (!turnInProgress && current.getPendingUserMessage() != null) {
+            log.warn("[InteractiveStory] 세션 {} - AI 응답을 받지 못하고 끊긴 메시지 감지, 대기 표시 정리: {}",
+                    sessionId, current.getPendingUserMessage());
+            current.setPendingUserMessage(null);
+            storySessionRepository.save(current);
+        }
+
+        // 메모리에 살아있는 세션이 있으면 그쪽이 최신이다 (DB 저장이 한 턴 뒤처졌을 수 있음)
+        StorySession session = sessionStore.get(sessionId);
+        if (session == null) {
+            session = sessionMapper.toDomain(current);
+            sessionStore.put(sessionId, session);
+            log.info("[InteractiveStory] 세션 {} 이어하기 - DB 에서 복원", sessionId);
+        }
+
+        return StoryResumeResponse.Session.builder()
+                .sessionId(session.getSessionId())
+                .characterName(session.getCharacterName())
+                .situation(session.getSituationDescription())
+                .tone(session.getTone())
+                .targetLanguage(session.getTargetLanguage())
+                .currentQuizCount(session.getQuizCount())
+                .quizLimit(session.getQuizLimit())
+                .canExtend(canExtend(session))
+                .isCompleted(session.isCompleted())
+                .modelTier(session.getModelTier())
+                .turnInProgress(turnInProgress)
+                .updatedAt(current.getUpdatedAt())
+                .timeline(session.getTimeline())
+                .build();
     }
 
     /**
