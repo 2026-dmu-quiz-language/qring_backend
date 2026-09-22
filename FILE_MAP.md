@@ -60,7 +60,7 @@ qring_backend/
    │     │  ├─ controller/
    │     │  │  └─ DashboardController.java       — /api/v1/dash 엔드포인트
    │     │  ├─ service/
-   │     │  │  └─ DashboardService.java          — 진도율·연속일·완료 스토리·코멘트 집계·15일 연속 보상(UserPointService 경유)
+   │     │  │  └─ DashboardService.java          — 진도율·연속일·완료 스토리·코멘트 집계 (읽기 전용 — 연속 보상은 학습 시점에 지급됨)
    │     │  └─ dto/
    │     │     └─ DashboardResponse.java         — 대시보드 응답 DTO
    │     │
@@ -86,7 +86,7 @@ qring_backend/
    │        │
    │        ├─ user/                             — 사용자 및 학습 활동 관련 엔티티
    │        │  ├─ User.java                      — 사용자 엔티티 (로컬/소셜 공용)
-   │        │  ├─ UserAsset.java                 — 사용자 자산 (포인트·경험치·streak_days=마지막 15일 보상 지급 연속일), User와 1:1
+   │        │  ├─ UserAsset.java                 — 사용자 자산 (포인트·경험치·streak_days=마지막 연속 보상 지급 연속일, 끊기면 0 으로 리셋), User와 1:1
    │        │  ├─ UserAssetHistory.java          — 포인트 변동 이력 (모든 적립·차감은 service/user/UserPointService 를 거쳐 기록)
    │        │  ├─ Userprogress.java              — 사용자별 콘텐츠 진행 상태 (최근 챕터·진도율)
    │        │  ├─ UserStudyLog.java              — 퀴즈 풀이 로그 (응답·정답 여부·시각)

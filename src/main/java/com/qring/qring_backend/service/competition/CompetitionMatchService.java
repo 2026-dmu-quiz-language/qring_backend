@@ -34,6 +34,7 @@ import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.dto.competition.BotLevelDto;
 import com.qring.qring_backend.dto.competition.BotResultDto;
 import com.qring.qring_backend.dto.competition.CompetitionQuizItemDto;
+import com.qring.qring_backend.service.user.StudyStreakService;
 import com.qring.qring_backend.service.user.UserPointService;
 
 import lombok.RequiredArgsConstructor;
@@ -64,6 +65,7 @@ public class CompetitionMatchService {
     private final QuizDetailRepository quizDetailRepository;
     private final QuizContentRepository quizContentRepository;
     private final UserStudyLogRepository userStudyLogRepository;
+    private final StudyStreakService studyStreakService;
 
     @Transactional
     public BotLevelDto.Response startMatch(Long userId, BotLevelDto.Request request) {
@@ -204,6 +206,9 @@ public class CompetitionMatchService {
         studyLog.setQuiz(null);
         studyLog.setLangCode(langCode);
         userStudyLogRepository.save(studyLog);
+
+        // 연속 학습 보상: 오늘 학습 기록이 쌓인 직후에 판정한다 (대시보드를 열지 않아도 받도록).
+        studyStreakService.awardIfDue(userId);
 
         // 승리 보상 적립 + 히스토리. 보상이 0 이면 기록 없이 잔액만 돌려준다.
         int balanceAfter = userPointService.earn(userId, rewardPoint, SourceType.COMPETITION_REWARD, match.getMatchId());

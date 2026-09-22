@@ -48,16 +48,17 @@ public class MyPageController {
         return ResponseEntity.ok().build();
     }
 
+    /** 현재 학습 언어와 해금된 언어 목록을 함께 내려준다. lang 파라미터는 더 이상 쓰지 않는다. */
     @PostMapping("/langcheck")
-    public ResponseEntity<Boolean> checkLanguage(Authentication authentication, @RequestParam("lang") String lang) {
+    public ResponseEntity<LanguageStatusResponse> checkLanguage(Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
-        return ResponseEntity.ok(myPageService.checkLanguage(userId, lang));
+        return ResponseEntity.ok(myPageService.getLanguageStatus(userId));
     }
 
+    /** 학습 언어를 전환하고, 전환 후 확정된 상태를 그대로 돌려준다. */
     @PostMapping("/switch")
-    public ResponseEntity<Void> switchLanguage(Authentication authentication, @RequestBody MyPageSwitchRequest request) {
+    public ResponseEntity<LanguageStatusResponse> switchLanguage(Authentication authentication, @RequestBody MyPageSwitchRequest request) {
         Long userId = (Long) authentication.getPrincipal();
-        myPageService.switchLanguage(userId, request);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(myPageService.switchLanguage(userId, request));
     }
 }

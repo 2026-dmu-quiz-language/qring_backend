@@ -4,7 +4,6 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -13,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.qring.qring_backend.auth.repository.UserRepository;
 import com.qring.qring_backend.dashboard.dto.DashboardResponse;
+import com.qring.qring_backend.domain.competition.CompetitionWrongAnswerRepository;
 import com.qring.qring_backend.domain.difficulty.DifficultyLevel;
 import com.qring.qring_backend.domain.difficulty.DifficultyLevelRepository;
 import com.qring.qring_backend.domain.quiz.AchievementCommentRepository;
@@ -21,22 +21,22 @@ import com.qring.qring_backend.domain.quiz.StoryProgressRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.domain.user.User;
 import com.qring.qring_backend.domain.user.UserAssetHistory.SourceType;
+import com.qring.qring_backend.domain.user.UserAssetHistoryRepository;
 import com.qring.qring_backend.domain.user.UserAssetRepository;
 import com.qring.qring_backend.domain.user.UserStudyLogRepository;
 import com.qring.qring_backend.domain.user.UserprogressRepository;
-import com.qring.qring_backend.service.user.UserPointService;
+import com.qring.qring_backend.service.user.StudyStreakService;
 
 import lombok.RequiredArgsConstructor;
 
-/** 대시보드용 통계 집계: 평균 진도율, 완료 스토리 수, 연속 학습일, 성취 코멘트, 난이도 설명. */
+/**
+ * 대시보드용 통계 집계: 평균 진도율, 완료 스토리 수, 연속 학습일, 성취 코멘트, 난이도 설명.
+ * 연속 학습 보상은 여기서 주지 않는다 — 학습 시점(StudyStreakService)에 지급되고, 대시보드는 결과만 읽는다.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class DashboardService {
-
-    /** 연속 학습 보상 주기(일)와 금액. 15·30·45… 일째 대시보드 조회 시 지급. */
-    static final int STREAK_REWARD_INTERVAL_DAYS = 15;
-    static final int STREAK_REWARD_POINTS = 30;
 
     private final UserRepository userRepository;
     private final UserprogressRepository userprogressRepository;
@@ -45,13 +45,14 @@ public class DashboardService {
     private final AchievementCommentRepository achievementCommentRepository;
 
     private final WrongAnswerRepository wrongAnswerRepository;
+    private final CompetitionWrongAnswerRepository competitionWrongAnswerRepository;
     private final UserAssetRepository userAssetRepository;
-    private final UserPointService userPointService;
+    private final UserAssetHistoryRepository userAssetHistoryRepository;
     private final StoryProgressRepository storyProgressRepository;
     private final QuizResultRepository quizResultRepository;
+    private final StudyStreakService studyStreakService;
 
-    /** 사용자별 대시보드 응답 조립. 평균 진도율은 반올림 정수, 코멘트/레벨 설명은 옵션. */
-    @Transactional
+    /** 사용자별 대시보드 응답 조립. 평균 진도율은 반올림 정수, 코멘트/레벨 설명은 옵션. 읽기 전용이다. */
     public DashboardResponse getDashboard(Long userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
@@ -72,7 +73,7 @@ public class DashboardService {
 
         String commentText = achievementCommentRepository.findCommentByRate(progressRate).orElse(null);
 
-        long consecutiveDays = computeConsecutiveDays(userId);
+        long consecutiveDays = studyStreakService.currentStreak(userId);
 
         boolean[] weeklyStudy = computeWeeklyStudy(userId);
 
@@ -88,32 +89,31 @@ public class DashboardService {
 
         String incorrectAlarm = "";
         if (langCode != null) {
+            // 오답 노트가 스토리·봇 컴피티션 오답을 함께 보여주므로, 알람도 둘 중 하나라도 묵었으면 띄운다.
             boolean hasOldIncorrect = wrongAnswerRepository.existsByUserIdAndLangCodeAndOlderThan(
-                userId, langCode, sevenDaysAgo
-            );
+                    userId, langCode, sevenDaysAgo)
+                || competitionWrongAnswerRepository.existsByUserIdAndLangCodeAndOlderThan(
+                    userId, langCode, sevenDaysAgo);
             if (hasOldIncorrect) {
                 incorrectAlarm = "오답을 확인한 지 7일이 지났어요! 오답 노트를 확인해 보세요.";
             }
         }
 
-        // 잔액·가드값은 UserAsset 엔티티가 아니라 스칼라로 읽는다. 엔티티를 들고 있다가 save 하면
-        // 벌크 UPDATE 로 올린 포인트를 옛 값으로 덮어써서, 보상이 응답에는 찍히고 DB 에는 남지 않았다.
-        boolean isConsecutivePointReceived = false;
-        Integer currentPoints = userAssetRepository.findCurrentPointsByUserId(userId).orElse(null);
-        if (currentPoints == null) {
-            currentPoints = 0;
-        } else if (consecutiveDays > 0 && consecutiveDays % STREAK_REWARD_INTERVAL_DAYS == 0) {
-            // streak_days = 마지막으로 보상한 연속일. 같은 배수에서 재조회해도 두 번 주지 않는다.
-            int lastRewardedStreak = userAssetRepository.findStreakDaysByUserId(userId).orElse(0);
-            if (lastRewardedStreak < consecutiveDays) {
-                currentPoints = userPointService.earn(userId, STREAK_REWARD_POINTS,
-                        SourceType.STREAK_REWARD, consecutiveDays);
-                userAssetRepository.updateStreakDays(userId, (int) consecutiveDays);
-                isConsecutivePointReceived = true;
-            }
-        }
+        // 잔액은 UserAsset 엔티티가 아니라 스칼라로 읽는다 — 엔티티를 들고 있다가 save 하면
+        // 벌크 UPDATE 로 올린 포인트를 옛 값으로 덮어쓴 적이 있다.
+        Integer currentPoints = userAssetRepository.findCurrentPointsByUserId(userId).orElse(0);
 
-        int incorrectQuizCount = (int) wrongAnswerRepository.countByUserIdAndLangCode(userId, langCode, sevenDaysAgo);
+        // 연속 학습 보상은 학습 시점에 이미 지급됐다. 여기서는 오늘 받았는지만 이력으로 확인해 화면에 알린다.
+        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+        boolean isConsecutivePointReceived = userAssetHistoryRepository.existsByUserIdAndSourceTypeBetween(
+                userId, SourceType.STREAK_REWARD, todayStart, todayStart.plusDays(1));
+
+        // 오답 노트에 뜨는 스토리 + 봇 컴피티션 오답의 합. 두 테이블을 그대로 더한다 —
+        // 같은 문제를 스토리와 컴피티션에서 각각 틀리면 오답 노트에도 별개 항목으로 나와 따로 풀어야 하므로,
+        // 중복을 제거하면 표시된 개수보다 실제로 풀 문제가 많아진다.
+        int incorrectQuizCount = (int) (
+                wrongAnswerRepository.countByUserIdAndLangCode(userId, langCode, sevenDaysAgo)
+                + competitionWrongAnswerRepository.countByUserIdAndLangCode(userId, langCode, sevenDaysAgo));
 
         return DashboardResponse.builder()
             .name(user.getNickname())
@@ -172,28 +172,4 @@ public class DashboardService {
         return result;
     }
 
-    /** 가장 최근 학습일이 오늘 또는 어제일 때만 연속일 카운트. 그 이전에 끊겼으면 0. */
-    private long computeConsecutiveDays(Long userId) {
-        List<LocalDate> dates = userStudyLogRepository.findDistinctStudyDatesDesc(userId)
-            .stream()
-            .map(LocalDateTime::toLocalDate)
-            .distinct()
-            .collect(Collectors.toList());
-            
-        if (dates.isEmpty()) return 0;
-
-        LocalDate today = LocalDate.now();
-        LocalDate latest = dates.get(0);
-        if (!latest.equals(today) && !latest.equals(today.minusDays(1))) return 0;
-
-        long count = 1;
-        for (int i = 1; i < dates.size(); i++) {
-            if (dates.get(i).equals(dates.get(i - 1).minusDays(1))) {
-                count++;
-            } else {
-                break;
-            }
-        }
-        return count;
-    }
 }

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.qring.qring_backend.domain.competition.CompetitionWrongAnswerRepository;
 import com.qring.qring_backend.domain.quiz.WrongAnswerReminderTarget;
 import com.qring.qring_backend.domain.quiz.WrongAnswerRepository;
 import com.qring.qring_backend.push.dto.WrongAnswerReminderRunResult;
@@ -34,6 +35,7 @@ class WrongAnswerReminderServiceTest {
     private static final LocalDate CREATED = LocalDate.of(2026, 9, 15);
 
     private WrongAnswerRepository wrongAnswerRepository;
+    private CompetitionWrongAnswerRepository competitionWrongAnswerRepository;
     private PushTokenService pushTokenService;
     private PushSender pushSender;
     private WrongAnswerReminderService service;
@@ -41,9 +43,11 @@ class WrongAnswerReminderServiceTest {
     @BeforeEach
     void setUp() {
         wrongAnswerRepository = mock(WrongAnswerRepository.class);
+        competitionWrongAnswerRepository = mock(CompetitionWrongAnswerRepository.class);
         pushTokenService = mock(PushTokenService.class);
         pushSender = mock(PushSender.class);
-        service = new WrongAnswerReminderService(wrongAnswerRepository, pushTokenService, pushSender);
+        service = new WrongAnswerReminderService(wrongAnswerRepository, competitionWrongAnswerRepository,
+                pushTokenService, pushSender);
         service.setDaysAfter(6);
     }
 
@@ -131,6 +135,47 @@ class WrongAnswerReminderServiceTest {
         assertEquals(0, res.targetUsers());
         verify(pushTokenService, never()).tokensByUser(any());
         verify(pushSender, never()).send(anyList(), any());
+    }
+
+    @Test
+    @DisplayName("스토리·봇 컴피티션 오답을 사용자별로 합쳐서 한 번만 보낸다 (컴피티션만 있는 사용자도 대상)")
+    void run_mergesStoryAndCompetitionCounts() {
+        when(wrongAnswerRepository.findReminderTargetsCreatedBetween(any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(List.of(target(1L, 2)));
+        when(competitionWrongAnswerRepository.findReminderTargetsCreatedBetween(
+                any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(List.of(target(1L, 3), target(2L, 4)));
+        when(pushTokenService.tokensByUser(Set.of(1L, 2L)))
+                .thenReturn(Map.of(1L, List.of("t1"), 2L, List.of("t2")));
+        when(pushSender.send(anyList(), any())).thenReturn(new PushSendResult(1, 0, List.of()));
+
+        WrongAnswerReminderRunResult res = service.run(CREATED);
+
+        assertEquals(2, res.targetUsers());
+
+        ArgumentCaptor<PushMessage> msg = ArgumentCaptor.forClass(PushMessage.class);
+        verify(pushSender).send(eq(List.of("t1")), msg.capture());
+        assertEquals("5", msg.getValue().data().get("wrongCount"));   // 스토리 2 + 컴피티션 3
+
+        verify(pushSender).send(eq(List.of("t2")), msg.capture());
+        assertEquals("4", msg.getValue().data().get("wrongCount"));   // 컴피티션 오답만 있는 사용자
+    }
+
+    @Test
+    @DisplayName("스토리 오답이 없어도 컴피티션 오답만으로 대상이 없다고 끝내지 않는다")
+    void run_noTargetsOnlyWhenBothEmpty() {
+        when(wrongAnswerRepository.findReminderTargetsCreatedBetween(any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(List.of());
+        when(competitionWrongAnswerRepository.findReminderTargetsCreatedBetween(
+                any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(List.of(target(7L, 1)));
+        when(pushTokenService.tokensByUser(Set.of(7L))).thenReturn(Map.of(7L, List.of("t7")));
+        when(pushSender.send(anyList(), any())).thenReturn(new PushSendResult(1, 0, List.of()));
+
+        WrongAnswerReminderRunResult res = service.run(CREATED);
+
+        assertEquals(1, res.targetUsers());
+        assertEquals(1, res.notifiedUsers());
     }
 
     @Test
