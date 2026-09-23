@@ -23,6 +23,27 @@ public final class CompetitionQuizTypeUtil {
         return "subjective";
     }
 
+    /**
+     * 스토리 원본 문제(quiz_content)의 실제 유형 판정.
+     * 컴피티션 본문과 같은 이유로 detail.quiz_type 을 그대로 믿지 않는다 —
+     * options 가 비어 있는데 quiz_type 이 multiple_choice 인 row 가 있어서,
+     * 그대로 내보내면 프론트가 보기 없는 객관식을 그린다.
+     * fill_in_blank 는 컴피티션/오답 재풀이에서 주관식으로 낸다.
+     * CompetitionMatchService(컴피티션 출제)와 IncorrectService(오답 재풀이, STORY·COMPETITION 양쪽) 공용.
+     */
+    public static String effectiveStoryType(String rawType, String optionsJson) {
+        if (!hasJsonItems(optionsJson)) {
+            return "subjective";
+        }
+        if ("fill_in_blank".equals(rawType)) {
+            return "subjective";
+        }
+        if (rawType == null || "subjective".equals(rawType)) {
+            return "multiple_choice";
+        }
+        return rawType;
+    }
+
     /** JSON 배열 문자열에 원소가 있는지 (null, 빈 문자열, "[]", "null" 은 없음). */
     public static boolean hasJsonItems(String json) {
         if (json == null) {

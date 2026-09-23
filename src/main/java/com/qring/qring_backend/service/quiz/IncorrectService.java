@@ -80,7 +80,9 @@ public class IncorrectService {
                 }
 
                 List<IncorrectRetryResponseDto.IncorrectQuizDto> quizzes = wrongAnswerRepository
-                                .findIncorrectQuizzesByUserIdAndContentId(userId, groupId, cutoff);
+                                .findIncorrectQuizContentsByUserIdAndContentId(userId, groupId, cutoff).stream()
+                                .map(this::toStoryQuizDto)
+                                .collect(Collectors.toList());
                 return new IncorrectRetryResponseDto(quizzes);
         }
 
@@ -90,12 +92,7 @@ public class IncorrectService {
                         QuizContent qc = quizContentRepository.findById(wa.getQuizContentId())
                                         .orElseThrow(() -> new IllegalArgumentException(
                                                         "스토리 문제를 찾을 수 없습니다: " + wa.getQuizContentId()));
-                        String rawType = qc.getQuizDetail().getQuizType();
-                        String quizType = "fill_in_blank".equals(rawType) ? "subjective" : rawType;
-                        return new IncorrectRetryResponseDto.IncorrectQuizDto(
-                                        qc.getQuizContentId(), qc.getQuestion(), qc.getOptions(), qc.getHint(),
-                                        qc.getCorrectAnswer(), quizType, "STORY",
-                                        null, null, null, null);
+                        return toStoryQuizDto(qc);
                 }
 
                 CompetitionQuizContent qc = competitionQuizContentRepository.findById(wa.getQuizContentId())
@@ -105,6 +102,20 @@ public class IncorrectService {
                                 qc.getQuizContentId(), qc.getQuestion(), qc.getOptions(), null,
                                 qc.getAnswer(), CompetitionQuizTypeUtil.effectiveType(qc), "COMPETITION",
                                 qc.getKorean(), qc.getTiles(), qc.getAnswerTiles(), qc.getDistractorTiles());
+        }
+
+        /**
+         * 스토리 원본 문제 -> 재풀이 DTO. 스토리 오답노트와 컴피티션 오답노트(STORY 원본) 양쪽에서 쓴다.
+         * quizType 은 detail.quiz_type 이 아니라 본문(options) 기준 —
+         * options 가 비어 있는데 detail 이 객관식 계열이면 프론트가 보기 없는 객관식을 그리기 때문.
+         */
+        private IncorrectRetryResponseDto.IncorrectQuizDto toStoryQuizDto(QuizContent qc) {
+                return new IncorrectRetryResponseDto.IncorrectQuizDto(
+                                qc.getQuizContentId(), qc.getQuestion(), qc.getOptions(), qc.getHint(),
+                                qc.getCorrectAnswer(),
+                                CompetitionQuizTypeUtil.effectiveStoryType(
+                                                qc.getQuizDetail().getQuizType(), qc.getOptions()),
+                                "STORY");
         }
 
         public IncorrectResultResponseDto saveIncorrectResult(Long userId, IncorrectResultRequestDto request) {
