@@ -288,7 +288,7 @@ public class CompetitionMatchService {
 
         Map<String, Long> storyTypeCounts = storyPicked.stream()
                 .collect(Collectors.groupingBy(
-                        qc -> normalizeType(qc.getQuizDetail().getQuizType()),
+                        this::effectiveStoryType,
                         Collectors.counting()));
 
         int mcNeeded = QUESTIONS_PER_TYPE - storyTypeCounts.getOrDefault("multiple_choice", 0L).intValue();
@@ -342,11 +342,9 @@ public class CompetitionMatchService {
         return filtered.stream().limit(Math.max(count, 0)).collect(Collectors.toList());
     }
 
-    private String normalizeType(String rawType) {
-        if ("fill_in_blank".equals(rawType)) {
-            return "subjective";
-        }
-        return rawType;
+    /** 스토리 원본 문제의 실제 유형 — detail.quiz_type 이 아니라 본문(options) 기준. */
+    private String effectiveStoryType(QuizContent qc) {
+        return CompetitionQuizTypeUtil.effectiveStoryType(qc.getQuizDetail().getQuizType(), qc.getOptions());
     }
 
     private boolean simulateBotCorrect(int correctRate) {
@@ -357,7 +355,7 @@ public class CompetitionMatchService {
         return new CompetitionQuizItemDto(
                 sourceType,
                 qc.getQuizContentId(),
-                normalizeType(qc.getQuizDetail().getQuizType()),
+                effectiveStoryType(qc),
                 qc.getQuestion(),
                 null,
                 null,

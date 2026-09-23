@@ -56,6 +56,30 @@ class CompetitionMatchServiceEffectiveTypeTest {
         assertFalse(CompetitionQuizTypeUtil.hasJsonItems("NULL"));
     }
 
+    @Test
+    @DisplayName("스토리 원본: options 가 비면 detail 이 multiple_choice 라도 subjective (보기 없는 객관식 방지)")
+    void storyType_emptyOptions_isSubjective() {
+        assertEquals("subjective", CompetitionQuizTypeUtil.effectiveStoryType("multiple_choice", "[]"));
+        assertEquals("subjective", CompetitionQuizTypeUtil.effectiveStoryType("multiple_choice", null));
+        assertEquals("subjective", CompetitionQuizTypeUtil.effectiveStoryType("multiple_choice", " "));
+        assertEquals("subjective", CompetitionQuizTypeUtil.effectiveStoryType("multiple_choice", "null"));
+    }
+
+    @Test
+    @DisplayName("스토리 원본: options 가 있으면 detail 이 subjective/null 이라도 multiple_choice")
+    void storyType_withOptions_isMultipleChoice() {
+        assertEquals("multiple_choice", CompetitionQuizTypeUtil.effectiveStoryType("subjective", "[\"a\",\"b\"]"));
+        assertEquals("multiple_choice", CompetitionQuizTypeUtil.effectiveStoryType(null, "[\"a\",\"b\"]"));
+        assertEquals("multiple_choice", CompetitionQuizTypeUtil.effectiveStoryType("multiple_choice", "[\"a\",\"b\"]"));
+    }
+
+    @Test
+    @DisplayName("스토리 원본: fill_in_blank 는 options 유무와 무관하게 subjective")
+    void storyType_fillInBlank_isSubjective() {
+        assertEquals("subjective", CompetitionQuizTypeUtil.effectiveStoryType("fill_in_blank", "[\"a\",\"b\"]"));
+        assertEquals("subjective", CompetitionQuizTypeUtil.effectiveStoryType("fill_in_blank", null));
+    }
+
     private static CompetitionQuizContent content(String detailType, String options, String tiles) {
         CompetitionQuizDetail detail = new CompetitionQuizDetail();
         detail.setQuizType(detailType);

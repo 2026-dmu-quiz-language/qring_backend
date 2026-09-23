@@ -10,7 +10,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.qring.qring_backend.dto.quiz.IncorrectResponseDto;
-import com.qring.qring_backend.dto.quiz.IncorrectRetryResponseDto;
 
 public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> {
 
@@ -72,19 +71,15 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
             @Param("cutoff") LocalDateTime cutoff);
 
     // contentId로 오답 문제 목록 조회 (quiz_content JOIN, 7일 이내만)
-    // quizType 은 ChatService.effectiveQuizType 과 같은 보정: options 없으면 subjective, 있는데 subjective 면 multiple_choice
-    // sourceType 은 항상 'STORY' 고정 (컴피티션은 IncorrectService 에서 별도 조회 후 조합)
-    @Query("SELECT new com.qring.qring_backend.dto.quiz.IncorrectRetryResponseDto$IncorrectQuizDto(" +
-           "qc.quizContentId, qc.question, qc.options, qc.hint, qc.correctAnswer, " +
-           "CASE WHEN qc.options IS NULL OR qc.options = '' OR qc.options = '[]' THEN 'subjective' " +
-           "     WHEN qc.quizDetail.quizType = 'subjective' THEN 'multiple_choice' " +
-           "     ELSE qc.quizDetail.quizType END, " +
-           "'STORY') " +
-           "FROM WrongAnswer wa " +
+    // quiz_type 보정(options 비었으면 주관식)은 여기서 하지 않는다 —
+    // quiz_content.options 는 MySQL json 컬럼이라 JPQL 의 qc.options = '[]' / = '' 비교가 JSON↔문자열 비교가 되어
+    // 빈 배열을 걸러내지 못했고, 그 결과 보기 없는 객관식이 그대로 내려갔다.
+    // 판정은 IncorrectService 에서 CompetitionQuizTypeUtil.effectiveStoryType 으로 한다 (컴피티션 경로와 공용).
+    @Query("SELECT qc FROM WrongAnswer wa " +
            "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
            "WHERE wa.userId = :userId AND wa.contentId = :contentId " +
            "AND wa.createdAt >= :cutoff")
-    List<IncorrectRetryResponseDto.IncorrectQuizDto> findIncorrectQuizzesByUserIdAndContentId(
+    List<QuizContent> findIncorrectQuizContentsByUserIdAndContentId(
             @Param("userId") Long userId,
             @Param("contentId") Long contentId,
             @Param("cutoff") LocalDateTime cutoff);
