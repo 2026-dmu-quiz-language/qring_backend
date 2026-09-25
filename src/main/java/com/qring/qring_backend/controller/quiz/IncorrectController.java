@@ -34,7 +34,8 @@ public class IncorrectController {
             @RequestBody IncorrectRetryRequestDto request) {
         Long userId = (Long) authentication.getPrincipal();
         return ResponseEntity.ok(
-                incorrectService.getIncorrectQuizzes(userId, request.getSourceType(), request.getGroupId()));
+                incorrectService.getIncorrectQuizzes(
+                        userId, request.getSourceType(), request.getGroupId(), request.getLevel()));
     }
 
     @PostMapping("/result")
