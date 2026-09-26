@@ -31,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "qring.push", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "qring.push", name = "provider", havingValue = "fcm")
 public class FcmPushSender implements PushSender {
 
     static final int MULTICAST_LIMIT = 500;
