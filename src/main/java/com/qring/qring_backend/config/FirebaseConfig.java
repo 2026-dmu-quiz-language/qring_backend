@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Configuration
 @ConditionalOnProperty(prefix = "qring.push", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "qring.push", name = "provider", havingValue = "fcm")
 public class FirebaseConfig {
 
     @Value("${qring.push.firebase.credentials-path:}")
