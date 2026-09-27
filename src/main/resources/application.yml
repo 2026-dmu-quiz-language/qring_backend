@@ -75,11 +75,13 @@ qring:
       # 오탐이 보이면 false 로 즉시 끌 수 있다.
       enabled: ${QRING_STORY_GUARD:true}
   push:
-    # FCM 푸시 알림 (설계: PUSH_NOTIFICATION_DESIGN.md).
-    # false 면 FirebaseApp 을 만들지 않고 발송 내용을 로그로만 출력한다 (로컬/CI 기본값).
+    # 푸시 알림 (설계: PUSH_NOTIFICATION_DESIGN.md).
+    # false 면 발송기를 등록하지 않고 발송 내용을 로그로만 출력한다 (로컬/CI 기본값).
     enabled: ${QRING_PUSH_ENABLED:false}
+    # 푸시 발송 제공자: expo (기본값) 또는 fcm
+    provider: ${QRING_PUSH_PROVIDER:expo}
     firebase:
-      # 서비스 계정 키. 둘 중 하나만 채운다 — 파일 경로 또는 JSON 원문(base64 도 허용).
+      # FCM 사용 시 서비스 계정 키. 둘 중 하나만 채운다 — 파일 경로 또는 JSON 원문(base64 도 허용).
       credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
       credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
     wrong-answer-reminder:
