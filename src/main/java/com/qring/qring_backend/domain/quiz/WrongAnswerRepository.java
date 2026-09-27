@@ -56,32 +56,38 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
                                                   @Param("langCode") String langCode,
                                                   @Param("sevenDaysAgo") LocalDateTime sevenDaysAgo);
 
-    // 오답 목록에서 contentId + storyName 중복 없이, 가장 최근 오답 시각 포함 조회 (7일 이내만)
-    // STORY/COMPETITION 통합 목록 정렬용으로 latestWrongAt(MAX createdAt)을 같이 내려준다.
+    // 오답 목록 — 스토리 + 레벨(difficulty) 단위로 묶고, 가장 최근 오답 시각 포함 (7일 이내, 현재 학습 언어만)
+    // 같은 스토리라도 레벨이 다르면 별도 항목으로 나온다.
     @Query("SELECT new com.qring.qring_backend.dto.quiz.IncorrectResponseDto$WrongAnswerItem(" +
-           "'STORY', wa.contentId, wa.storyName, MAX(wa.createdAt)) " +
+           "'STORY', wa.contentId, wa.storyName, qd.difficulty, MAX(wa.createdAt)) " +
            "FROM WrongAnswer wa " +
            "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
+           "JOIN qc.quizDetail qd " +
            "WHERE wa.userId = :userId AND qc.langCode = :langCode " +
            "AND wa.createdAt >= :cutoff " +
-           "GROUP BY wa.contentId, wa.storyName")
+           "GROUP BY wa.contentId, wa.storyName, qd.difficulty")
     List<IncorrectResponseDto.WrongAnswerItem> findWrongAnswerSummaryByUserIdAndLangCode(
             @Param("userId") Long userId,
             @Param("langCode") String langCode,
             @Param("cutoff") LocalDateTime cutoff);
 
-    // contentId로 오답 문제 목록 조회 (quiz_content JOIN, 7일 이내만)
+    // 재풀이 — contentId(+레벨)로 오답 문제 조회 (7일 이내, 현재 학습 언어만). level 이 null 이면 전체 레벨.
     // quiz_type 보정(options 비었으면 주관식)은 여기서 하지 않는다 —
     // quiz_content.options 는 MySQL json 컬럼이라 JPQL 의 qc.options = '[]' / = '' 비교가 JSON↔문자열 비교가 되어
     // 빈 배열을 걸러내지 못했고, 그 결과 보기 없는 객관식이 그대로 내려갔다.
     // 판정은 IncorrectService 에서 CompetitionQuizTypeUtil.effectiveStoryType 으로 한다 (컴피티션 경로와 공용).
     @Query("SELECT qc FROM WrongAnswer wa " +
            "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
+           "JOIN qc.quizDetail qd " +
            "WHERE wa.userId = :userId AND wa.contentId = :contentId " +
+           "AND qc.langCode = :langCode " +
+           "AND (:level IS NULL OR qd.difficulty = :level) " +
            "AND wa.createdAt >= :cutoff")
     List<QuizContent> findIncorrectQuizContentsByUserIdAndContentId(
             @Param("userId") Long userId,
             @Param("contentId") Long contentId,
+            @Param("langCode") String langCode,
+            @Param("level") Integer level,
             @Param("cutoff") LocalDateTime cutoff);
 
     /** 회원 탈퇴: 사용자의 row 전부 삭제 (UserWithdrawalService 전용, 서비스 트랜잭션 안에서 호출). */
