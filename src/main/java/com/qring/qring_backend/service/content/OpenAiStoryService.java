@@ -190,6 +190,10 @@ public class OpenAiStoryService {
             """, tone, situationDescription) + lock;
     }
 
+    private static String textOrDefault(Object val, String def) {
+        return val != null ? String.valueOf(val).trim() : def;
+    }
+
     /**
      * 이어하기: 마무리 인사로 끝난 장면을 자연스럽게 다시 열어 대화를 계속하게 하는 연결 대사 생성.
      */
@@ -208,11 +212,63 @@ public class OpenAiStoryService {
                     "(The learner tapped 'continue the story' - they don't want it to end yet. "
                     + "Move the story on to its next scene now as instructed, without repeating your goodbye.)"));
 
-            return callOpenAiJson(resolveModel(session), fullMessages);
+            Map<String, Object> resp = callOpenAiJson(resolveModel(session), fullMessages);
+            String aiMsg = textOrDefault(resp.get("ai_message"), "");
+            String trans = textOrDefault(resp.get("translation"), "");
+            if ((trans.isBlank() || !hasHangul(trans)) && !aiMsg.isBlank()) {
+                log.info("[OpenAI] 이어하기 대사의 번역이 누락/불완전하여 단독 번역 보충 실행: {}", aiMsg);
+                String healed = translateToKorean(aiMsg, session.getTone(), session.getSpeechLevel());
+                if (!healed.isBlank()) {
+                    Map<String, Object> copy = new HashMap<>(resp);
+                    copy.put("translation", healed);
+                    return copy;
+                }
+            }
+            return resp;
         } catch (Exception e) {
             log.error("[OpenAI API 호출 오류] 이어하기 대사 생성 실패: {}", e.getMessage(), e);
             throw new RuntimeException("OpenAI API 호출 실패: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 텍스트(AI 대사 등)를 지정된 어조와 말투의 자연스러운 한국어로 번역한다.
+     * 이어하기나 일반 턴에서 translation 이 누락되었을 때의 자동 보정(Self-Healing)에 쓴다.
+     */
+    public String translateToKorean(String targetText, String tone, String speechLevel) {
+        if (targetText == null || targetText.isBlank()) {
+            return "";
+        }
+        validateApiKey();
+        String styleDirective = buildSpeechStyleDirective(tone, "", speechLevel);
+        String prompt = String.format("""
+            Translate the following spoken line into natural conversational Korean.
+            Requested Tone: %s
+            %s
+            Line to translate: "%s"
+
+            You MUST return STRICT JSON:
+            {
+              "translation": "natural Korean translation at the requested speech level"
+            }
+            """,
+            tone != null ? tone : "natural",
+            styleDirective != null ? styleDirective : "",
+            targetText.trim());
+
+        try {
+            Map<String, Object> resp = callOpenAiJson(resolveModel(null), List.of(
+                    Map.of("role", "system", "content", "You are a professional conversational translator. Translate dialogue into natural Korean at the specified speech level."),
+                    Map.of("role", "user", "content", prompt)
+            ), false);
+            String trans = resp != null ? textOrDefault(resp.get("translation"), "") : "";
+            if (hasHangul(trans)) {
+                return trans.trim();
+            }
+        } catch (Exception e) {
+            log.warn("[OpenAI] 한국어 번역 보충 호출 실패: {}", e.getMessage());
+        }
+        return "";
     }
 
     /** 이어하기용 시스템 프롬프트 조립 (네트워크 호출과 분리되어 단위 테스트 가능). */
@@ -248,8 +304,9 @@ public class OpenAiStoryService {
             You MUST return your response formatted strictly as a valid json object with the following fields:
             {
               "ai_message": "Continuation line in the target language",
-              "translation": "Korean translation at the same speech level as ai_message"
+              "translation": "Korean translation at the same speech level as ai_message (MANDATORY: never omit or leave empty)"
             }
+
             """, session.getCharacterName(), session.getSituationDescription(), session.getTone(),
                 session.getTargetLanguage(),
                 buildSpeechStyleDirective(session.getTone(), session.getSituationDescription(), session.getSpeechLevel()),
@@ -285,8 +342,21 @@ public class OpenAiStoryService {
      */
     public Map<String, Object> regenerateTurnWithCorrection(StorySession session, String userMessage,
                                                             String rejectionReason, String recordedAnswerResult) {
-        String turnDirective = buildTurnDirective(session, userMessage)
-                + buildCorrectionDirective(rejectionReason, recordedAnswerResult);
+        return regenerateTurnWithCorrection(session, userMessage, rejectionReason, recordedAnswerResult, (String) null);
+    }
+
+    public Map<String, Object> regenerateTurnWithCorrection(StorySession session, String userMessage,
+                                                            String rejectionReason, String recordedAnswerResult,
+                                                            boolean fallbackToMultipleChoice) {
+        return regenerateTurnWithCorrection(session, userMessage, rejectionReason, recordedAnswerResult,
+                fallbackToMultipleChoice ? "multiple_choice" : null);
+    }
+
+    public Map<String, Object> regenerateTurnWithCorrection(StorySession session, String userMessage,
+                                                            String rejectionReason, String recordedAnswerResult,
+                                                            String fallbackQuizType) {
+        String turnDirective = buildTurnDirective(session, userMessage, false, fallbackQuizType)
+                + buildCorrectionDirective(rejectionReason, recordedAnswerResult, fallbackQuizType);
         return generateTurn(session, buildStaticSystemPrompt(session), turnDirective);
     }
 
@@ -315,9 +385,23 @@ public class OpenAiStoryService {
 
     /** 재생성 호출에 덧붙는 지시문 (단위 테스트 가능하도록 분리). */
     String buildCorrectionDirective(String rejectionReason, String recordedAnswerResult) {
+        return buildCorrectionDirective(rejectionReason, recordedAnswerResult, (String) null);
+    }
+
+    String buildCorrectionDirective(String rejectionReason, String recordedAnswerResult, boolean fallbackToMultipleChoice) {
+        return buildCorrectionDirective(rejectionReason, recordedAnswerResult, fallbackToMultipleChoice ? "multiple_choice" : null);
+    }
+
+    String buildCorrectionDirective(String rejectionReason, String recordedAnswerResult, String fallbackQuizType) {
+        String fallbackNotice = "";
+        if ("subjective".equals(fallbackQuizType)) {
+            fallbackNotice = "\nIMPORTANT: The previous word_arrange quiz failed. DO NOT use word_arrange. You MUST switch to format C (\"subjective\" - short answer, at most 3 words / 10 chars) for this retry.\n";
+        } else if ("multiple_choice".equals(fallbackQuizType)) {
+            fallbackNotice = "\nIMPORTANT: The previous quiz failed. DO NOT use word_arrange. You MUST switch to format A (\"multiple_choice\" with 3 candidate options) for this retry.\n";
+        }
         return String.format("""
 
-            YOUR PREVIOUS REPLY FOR THIS TURN WAS REJECTED BY THE SERVER. Reason: %s.
+            YOUR PREVIOUS REPLY FOR THIS TURN WAS REJECTED BY THE SERVER. Reason: %s.%s
             Write the WHOLE reply again from scratch: a fresh quiz that fixes that problem, and an ai_message that
             ends with the exact question in quiz.asked. Do NOT reuse the rejected answer expression and do NOT ask the
             same question again - change the TOPIC of the question (a different choice, the next step of the scene).
@@ -327,7 +411,7 @@ public class OpenAiStoryService {
             something they have NOT told you yet.
             The learner's answer to the previous quiz has already been recorded as "%s" - keep "answer_result" as "%s"
             and keep your reaction consistent with it.
-            """, rejectionReason, recordedAnswerResult, recordedAnswerResult);
+            """, rejectionReason, fallbackNotice, recordedAnswerResult, recordedAnswerResult);
     }
 
     /**
@@ -535,18 +619,19 @@ public class OpenAiStoryService {
                - ALL quizzes in this session MUST test ONLY "%s". NEVER mix or introduce any other foreign language.
             2. QUIZ FORMATS - these are EMPTY FORMS to fill from the current scene, never scenes to copy:
                  Format A (multiple_choice - pick your reply):
-                   - options: 3 short candidate replies in %s - the correct one plus two that are plausible things to
+                   - options: 3 short candidate replies in %s in RANDOM ORDER (CRITICAL: do NOT always place the correct answer first! Place it at a random position among the 3 options) - the correct one plus two that are plausible things to
                      say at THIS moment but mean something different (never nonsense fillers) ; correct_answer: the reply
                    - question (Korean): "'<reply_meaning>'를 뜻하는 표현은?"
                  Format B (word_arrange - build your reply, `quiz_type: "word_arrange"`):
                    - Use this when the natural reply is a short sentence rather than a single expression.
                    - correct_answer: that reply sentence in the Target Language, in the LEARNER's voice ; tiles: EXACTLY
-                     the words of correct_answer, shuffled, no word missing and no extra word. Never build the tiles out
+                     the words/chunks of correct_answer, SHUFFLED in random order (CRITICAL: do NOT output tiles in sequential sentence order! They MUST be scrambled so the learner must figure out the correct sequence), no word missing and no extra word. Never build the tiles out
                      of a sentence YOU said.
                    - Leave acceptable_answers OUT for this format. When the learner arranges the same tiles in a
                      different order, the server hands that arrangement to you to judge in the next turn - accept it
                      there if a native speaker would say it. Do not try to list orders in advance.
                    - question (Korean): "'<reply_meaning>'가 되도록 단어를 배열해 보세요."
+                 /* [주관식 일시 비활성화 - 추후 복구 시 주석 해제]
                  Format C (subjective - SHORT ANSWER ONLY, `quiz_type: "subjective"`):
                    - acceptable_answers: that expression PLUS every spelling a learner may reasonably type for it -
                      the other scripts it is normally written in, and common equivalent wordings. A learner who types
@@ -559,10 +644,13 @@ public class OpenAiStoryService {
                    - ANY CLUE YOU GIVE MUST BE TRUE OF correct_answer. If you say how many characters or words it has,
                      count them in correct_answer first. A clue that does not fit the answer sends the learner to a
                      different word and they get marked wrong for following you.
+                 */
                  Format D (fill in the blank as multiple_choice):
                    - question (Korean): "다음을 완성해 보세요. '<reply with one blank>' (<Korean meaning of the blank>)" ; options: 3 candidates
             3. QUIZ TYPE VARIETY:
-               - Use the REQUIRED QUIZ TYPE given in the THIS TURN block. Across a session all three types should appear.
+               - Use the REQUIRED QUIZ TYPE given in the THIS TURN block ("multiple_choice" or "word_arrange"). Do NOT output subjective quizzes.
+               /* Across a session all three types should appear. */
+
             4. ABSOLUTE QUIZ TOPIC / WORD OBSESSION PREVENTION:
                - The THIS TURN block lists expressions already tested. NEVER test or focus on any of them again.
                - Once a specific word, phrase, or concept has been tested in a previous quiz, that word or topic MUST NOT be the main focus, question subject, or correct answer in any subsequent quiz!
@@ -598,8 +686,9 @@ public class OpenAiStoryService {
               "quiz": { ... } (include ONLY if is_quiz is true),
               "ai_message": "Natural in-character reaction, 100%% in the Target Language, at the speech level the relationship calls for.
                              On a quiz turn it MUST END with the exact sentence you wrote in quiz.asked.",
-              "translation": "Korean translation at the same speech level as ai_message",
+              "translation": "Korean translation at the same speech level as ai_message (MANDATORY: never omit or leave empty)",
               "is_completed": boolean
+
             }
 
             `answer_result` MEANING:
@@ -627,6 +716,14 @@ public class OpenAiStoryService {
     }
 
     String buildTurnDirective(StorySession session, String userMessage, boolean forceNoQuiz) {
+        return buildTurnDirective(session, userMessage, forceNoQuiz, (String) null);
+    }
+
+    String buildTurnDirective(StorySession session, String userMessage, boolean forceNoQuiz, boolean fallbackToMultipleChoice) {
+        return buildTurnDirective(session, userMessage, forceNoQuiz, fallbackToMultipleChoice ? "multiple_choice" : null);
+    }
+
+    String buildTurnDirective(StorySession session, String userMessage, boolean forceNoQuiz, String fallbackQuizType) {
         int currentQuizCount = session.getQuizCount();
         int quizLimit = session.getQuizLimit() > 0 ? session.getQuizLimit() : MAX_QUIZ_COUNT;
         int turnsSinceLastQuiz = session.getTurnsSinceLastQuiz();
@@ -635,6 +732,7 @@ public class OpenAiStoryService {
         boolean overdue = isOverdueForClose(session);
         boolean allowQuiz = !forceNoQuiz && !overdue && turnsSinceLastQuiz >= QUIZ_ALLOWED_FROM_TURN && quizBudgetLeft && !quizPending;
         boolean quizRequired = turnsSinceLastQuiz >= QUIZ_REQUIRED_FROM_TURN;
+        boolean isFinalQuizPresentation = (currentQuizCount == quizLimit - 1) && !quizPending && allowQuiz;
 
         // 한도의 마지막 퀴즈를 채점하는 턴인지 — 정답이면 이 턴이 스토리의 마지막 대사가 된다
         boolean gradingFinalQuiz = quizPending && currentQuizCount >= quizLimit;
@@ -645,11 +743,29 @@ public class OpenAiStoryService {
         } else if (overdue && quizBudgetLeft) {
             pacingDirective = String.format("THE SCENE HAS RUN LONG (%d turns without a quiz). Do NOT present a quiz. Bring the scene to a warm, natural close IN THIS MESSAGE (react to what they just said, then wrap up the way this scene would really end), and set `is_completed: true`. No new question.", turnsSinceLastQuiz);
         } else if (allowQuiz) {
-            String requiredType = pickNextQuizType(session.getUsedQuizTypes());
-            String must = quizRequired
-                    ? String.format("PACING RULE: %d turns have passed since the last quiz. You MUST present a quiz this turn by setting `is_quiz: true`.", turnsSinceLastQuiz)
-                    : String.format("PACING RULE: %d turns have passed since the last quiz. You MAY present a quiz this turn IF the learner's last message gives you a natural closed question to ask; if the moment does not fit, set `is_quiz: false`, respond naturally, and you will get another chance next turn (a quiz becomes mandatory from turn %d).", turnsSinceLastQuiz, QUIZ_REQUIRED_FROM_TURN);
-            pacingDirective = must + String.format(" REQUIRED QUIZ TYPE FOR THIS QUIZ: \"%s\" - set `quiz_type` to exactly this value and design the quiz in that format. On a quiz turn your ai_message MUST end with the ONE closed in-story question that the quiz answer replies to (see THE MOST IMPORTANT QUIZ RULE). ", requiredType)
+            boolean urgentPacing = turnsSinceLastQuiz >= 6;
+            String requiredType = fallbackQuizType != null
+                    ? fallbackQuizType
+                    : (urgentPacing ? "multiple_choice" : pickNextQuizType(session.getUsedQuizTypes()));
+            String must;
+            if (urgentPacing) {
+                must = String.format("URGENT PACING RULE: %d turns have passed since the last quiz and this story is reaching its final limit. You MUST present a simple, foolproof quiz THIS TURN by setting `is_quiz: true`. Wrap up this beat with ONE simple closed in-story question and 3 candidate replies. Do NOT omit or postpone the quiz.", turnsSinceLastQuiz);
+            } else if (isFinalQuizPresentation) {
+                must = String.format("PACING RULE: You are presenting the FINAL quiz (%d of %d). You MUST present a quiz this turn (`is_quiz: true`). CRITICAL: The story is NOT over yet! Do NOT say goodbye, do NOT close the scene, and set `is_completed: false`. End your ai_message with the final in-story question (quiz.asked).", currentQuizCount + 1, quizLimit);
+            } else if (quizRequired) {
+                must = String.format("PACING RULE: %d turns have passed since the last quiz. You MUST present a quiz this turn by setting `is_quiz: true`.", turnsSinceLastQuiz);
+            } else {
+                must = String.format("PACING RULE: %d turns have passed since the last quiz. You MAY present a quiz this turn IF the learner's last message gives you a natural closed question to ask; if the moment does not fit, set `is_quiz: false`, respond naturally, and you will get another chance next turn (a quiz becomes mandatory from turn %d).", turnsSinceLastQuiz, QUIZ_REQUIRED_FROM_TURN);
+            }
+            String typeNotice;
+            if ("word_arrange".equals(requiredType)) {
+                typeNotice = " CRITICAL FORMAT REQUIREMENT: quiz_type MUST be \"word_arrange\". Do NOT output multiple_choice. Set correct_answer to the short target language line the learner would speak, and provide tiles (3-5 chunks of correct_answer, shuffled).";
+            } else if ("multiple_choice".equals(requiredType)) {
+                typeNotice = " CRITICAL FORMAT REQUIREMENT: quiz_type MUST be \"multiple_choice\". Do NOT output word_arrange. Provide 3 candidate replies in \"options\".";
+            } else {
+                typeNotice = "";
+            }
+            pacingDirective = must + String.format(" REQUIRED QUIZ TYPE FOR THIS QUIZ: \"%s\" - set `quiz_type` to exactly this value and design the quiz in that format.%s On a quiz turn your ai_message MUST end with the ONE closed in-story question that the quiz answer replies to (see THE MOST IMPORTANT QUIZ RULE). ", requiredType, typeNotice)
                     + "React to what the learner just said fully and in character; the question comes from THEIR thread, not from a plan of yours, and must not be in the ALREADY KNOWN list below. The server rejects a quiz that re-asks anything already known, and rejects meta questions about language.";
         } else if (quizPending) {
             pacingDirective = "A quiz is still pending. Follow section 1 (grading) for this turn. Do NOT design a new quiz; set `is_quiz: false` (the app re-shows the pending quiz by itself when needed).";
@@ -668,13 +784,17 @@ public class OpenAiStoryService {
 
         String quizContextDirective = buildQuizGradingDirective(session, userMessage, gradingFinalQuiz);
 
+        String quizCountDirective = isFinalQuizPresentation
+                ? String.format("3. FINAL QUIZ PRESENTATION TURN (%d / %d): You are presenting the LAST quiz of the session. Set `is_quiz: true`. The story is NOT over yet! Do NOT wrap up or say goodbye. Keep `is_completed: false`. The conclusion happens on the NEXT turn only after the learner correctly answers.", currentQuizCount + 1, quizLimit)
+                : String.format("3. Quiz count so far: %d / %d. Once all %d quizzes are finished, wrap up the scene with `is_completed: true`.", currentQuizCount, quizLimit, quizLimit);
+
         return String.format("""
             THIS TURN:
             1. PREVIOUS TURN QUIZ ANSWER HANDLING:
                %s
             2. QUIZ PACING FOR THIS TURN:
                - %s
-            3. Quiz count so far: %d / %d. Once all %d quizzes are finished, wrap up the scene with `is_completed: true`.
+            %s
             4. ALREADY KNOWN - settled information. NEVER ask about any of this again, in any wording, and never quiz it:
                - What the learner has told you (most recent last):
             %s
@@ -687,7 +807,7 @@ public class OpenAiStoryService {
                React to THIS first, in character, before anything else. If it introduces a person, an event, a threat, a
                confession, an accusation, a joke or a provocation, this whole turn is about that - do not change the subject
                and do not go back to anything you wanted to ask before.
-            """, quizContextDirective, pacingDirective, currentQuizCount, quizLimit, quizLimit,
+            """, quizContextDirective, pacingDirective, quizCountDirective,
                 bulletList(session.recentUserMessages(ALREADY_KNOWN_MESSAGES)),
                 bulletList(session.getAskedQuestions()),
                 testedSubjectsDirective,
@@ -1729,6 +1849,16 @@ public class OpenAiStoryService {
         return out;
     }
 
+    private static boolean isOptionMatching(String option, String answer, String targetLanguage) {
+        if (option == null || answer == null) return false;
+        if (LearningLanguage.usesSpaces(targetLanguage)) {
+            return normalizeForGrading(option).equals(normalizeForGrading(answer));
+        } else {
+            return compactForGrading(option).equals(compactForGrading(answer));
+        }
+    }
+
+
     /**
      * 모델이 만든 퀴즈 객체를 서버가 쓰기 전에 정리한다 (가변 복사본을 돌려준다).
      *   - word_arrange: 타일이 정답 문장의 단어와 정확히 같은 집합이 아니면(단어 누락/추가 실측),
@@ -1752,7 +1882,7 @@ public class OpenAiStoryService {
         String correct = fixed.get("correct_answer") != null ? String.valueOf(fixed.get("correct_answer")).trim() : "";
 
         if ("word_arrange".equals(quizType)) {
-            List<String> tiles = stringList(fixed.get("tiles"));
+            List<String> tiles = new ArrayList<>(stringList(fixed.get("tiles")));
             if (correct.isEmpty() && !tiles.isEmpty()) {
                 correct = String.join(" ", tiles);
                 fixed.put("correct_answer", correct);
@@ -1765,14 +1895,19 @@ public class OpenAiStoryService {
                 List<String> tileWords = tiles.stream().map(t -> t.trim().replaceAll("[.,!?]+$", "")).sorted(String.CASE_INSENSITIVE_ORDER).toList();
                 List<String> answerWords = words.stream().sorted(String.CASE_INSENSITIVE_ORDER).toList();
                 if (!tileWords.equals(answerWords)) {
-                    List<String> shuffled = new ArrayList<>(words);
-                    Collections.shuffle(shuffled);
-                    if (shuffled.equals(words) && shuffled.size() > 1) {
-                        Collections.reverse(shuffled);
-                    }
                     log.warn("[InteractiveStory] word_arrange 타일이 정답과 불일치하여 재생성: tiles={} -> answer=\"{}\"", tiles, correct);
-                    fixed.put("tiles", shuffled);
+                    tiles = new ArrayList<>(words);
                 }
+                String joined = String.join(" ", tiles).trim();
+                boolean inOrder = joined.equalsIgnoreCase(correct)
+                        || acceptedAnswers(fixed).stream().anyMatch(a -> a.trim().equalsIgnoreCase(joined));
+                if (inOrder && tiles.size() > 1) {
+                    Collections.shuffle(tiles);
+                    if (String.join(" ", tiles).trim().equalsIgnoreCase(correct)) {
+                        Collections.reverse(tiles);
+                    }
+                }
+                fixed.put("tiles", tiles);
             }
         } else if ("multiple_choice".equals(quizType)) {
             List<String> options = new ArrayList<>(stringList(fixed.get("options")));
@@ -1785,10 +1920,18 @@ public class OpenAiStoryService {
                         options.remove(options.size() - 1);
                     }
                     options.add(Math.min(1, options.size()), correct);
-                    fixed.put("options", options);
                 }
             }
-        } else if ("subjective".equals(quizType)) {
+            if (options.size() > 1) {
+                boolean wasFirst = isOptionMatching(options.get(0), correct, targetLanguage);
+                Collections.shuffle(options);
+                if (wasFirst && isOptionMatching(options.get(0), correct, targetLanguage)) {
+                    Collections.rotate(options, 1);
+                }
+            }
+            fixed.put("options", options);
+        }
+ else if ("subjective".equals(quizType)) {
             List<String> acceptable = stringList(fixed.get("acceptable_answers"));
             if (correct.isEmpty() && !acceptable.isEmpty()) {
                 correct = acceptable.get(0);
@@ -1866,17 +2009,37 @@ public class OpenAiStoryService {
         String correct = fixed.get("correct_answer") != null ? String.valueOf(fixed.get("correct_answer")).trim() : "";
 
         if ("word_arrange".equals(quizType)) {
-            List<String> tiles = stringList(fixed.get("tiles")).stream()
+            List<String> tiles = new ArrayList<>(stringList(fixed.get("tiles")).stream()
                     .map(t -> t.trim().replaceAll("[.,!?。！？]+$", ""))
                     .filter(t -> !t.isEmpty())
-                    .toList();
-            fixed.put("tiles", tiles);
+                    .toList());
             if (correct.isEmpty() && !tiles.isEmpty()) {
                 correct = String.join("", tiles);
             }
             // 정답은 공백 없이, 끝 문장부호 없이 둔다 (앱이 타일을 어떻게 잇든 채점은 compactForGrading 으로 맞춘다)
             correct = correct.replaceAll("[\\s\\u3000]+", "").replaceAll("[.,!?。！？]+$", "");
             fixed.put("correct_answer", correct);
+
+            String compactCorrect = compactForGrading(correct);
+            boolean tilesValid = !tiles.isEmpty()
+                    && tiles.size() >= 2
+                    && composedOfTiles(compactCorrect, tiles);
+
+            if (!tilesValid && !compactCorrect.isEmpty()) {
+                log.info("[InteractiveStory] 단어배열 타일 누락/불일치 감지 - 정답 문장 기반 자동 분절 적용: \"{}\"", compactCorrect);
+                tiles = new ArrayList<>(autoChunkNoSpaceTiles(compactCorrect));
+            }
+
+            String compactJoined = compactForGrading(String.join("", tiles));
+            boolean inOrder = compactJoined.equals(compactCorrect)
+                    || acceptedAnswers(fixed).stream().anyMatch(a -> compactForGrading(a).equals(compactJoined));
+            if (inOrder && tiles.size() > 1) {
+                Collections.shuffle(tiles);
+                if (compactForGrading(String.join("", tiles)).equals(compactCorrect)) {
+                    Collections.reverse(tiles);
+                }
+            }
+            fixed.put("tiles", tiles);
         } else if ("multiple_choice".equals(quizType)) {
             List<String> options = new ArrayList<>(stringList(fixed.get("options")));
             if (!correct.isEmpty() && !options.isEmpty()) {
@@ -1888,10 +2051,18 @@ public class OpenAiStoryService {
                         options.remove(options.size() - 1);
                     }
                     options.add(Math.min(1, options.size()), correct);
-                    fixed.put("options", options);
                 }
             }
-        } else if ("subjective".equals(quizType)) {
+            if (options.size() > 1) {
+                boolean wasFirst = isOptionMatching(options.get(0), correct, "Japanese");
+                Collections.shuffle(options);
+                if (wasFirst && isOptionMatching(options.get(0), correct, "Japanese")) {
+                    Collections.rotate(options, 1);
+                }
+            }
+            fixed.put("options", options);
+        }
+ else if ("subjective".equals(quizType)) {
             List<String> acceptable = stringList(fixed.get("acceptable_answers"));
             if (correct.isEmpty() && !acceptable.isEmpty()) {
                 fixed.put("correct_answer", acceptable.get(0));
@@ -2156,6 +2327,39 @@ public class OpenAiStoryService {
     }
 
     /**
+     * 띄어쓰기 없는 언어(일본어/중국어)에서 모델이 타일을 올바르게 주지 못했을 때,
+     * 정답 문자열을 자연스럽게 2~5개의 타일로 자동 분절하여 단어배열 퀴즈를 복구한다.
+     */
+    static List<String> autoChunkNoSpaceTiles(String target) {
+        if (target == null || target.isBlank()) {
+            return List.of();
+        }
+        String clean = compactForGrading(target);
+        int len = clean.length();
+        if (len <= 1) {
+            return List.of(clean);
+        }
+        if (len == 2) {
+            return List.of(clean.substring(0, 1), clean.substring(1));
+        }
+        if (len == 3) {
+            return List.of(clean.substring(0, 1), clean.substring(1, 2), clean.substring(2));
+        }
+        // 길이 4 이상: 3~5조각으로 균등 분할
+        int numChunks = Math.min(5, Math.max(3, (len + 2) / 3));
+        List<String> chunks = new ArrayList<>();
+        int baseLen = len / numChunks;
+        int rem = len % numChunks;
+        int idx = 0;
+        for (int i = 0; i < numChunks; i++) {
+            int curLen = baseLen + (i < rem ? 1 : 0);
+            chunks.add(clean.substring(idx, idx + curLen));
+            idx += curLen;
+        }
+        return chunks;
+    }
+
+    /**
      * needle 의 문자 2-gram 중 haystack 에 있는 비율 (0~1). 띄어쓰기 없는 언어에서 단어 겹침 대신 쓴다.
      * needle 이 1자면 포함 여부, 둘 중 하나가 비면 0.
      */
@@ -2255,19 +2459,57 @@ public class OpenAiStoryService {
         return value.trim().toLowerCase().replaceAll("[.,!?]+$", "").replaceAll("\\s+", " ").trim();
     }
 
-    /** 아직 덜 쓰인 퀴즈 유형을 골라 유형 쏠림을 막는다 (동률이면 목록 순서 우선). */
+    // private static final List<String> ALL_QUIZ_TYPES = List.of("multiple_choice", "word_arrange", "subjective");
+    // 주관식(subjective) 임시 비활성화: 객관식과 단어배열 2종만 활성화
+    private static final List<String> ALL_QUIZ_TYPES = List.of("multiple_choice", "word_arrange");
+
+    /**
+     * 아직 덜 쓰인 퀴즈 유형을 골라 출제한다.
+     * 현재 주관식(subjective)은 일시적으로 비활성화하고, 객관식과 단어배열이 약 3:2 비율로 교차 출제되도록 유도한다.
+     * (기존 subjective 코드는 주석 처리하여 보존, 추후 주석 해제만으로 복구 가능)
+     */
     static String pickNextQuizType(List<String> usedTypes) {
-        String best = "multiple_choice";
-        int bestCount = Integer.MAX_VALUE;
-        for (String type : List.of("multiple_choice", "word_arrange", "subjective")) {
-            int count = Collections.frequency(usedTypes, type);
-            if (count < bestCount) {
-                best = type;
-                bestCount = count;
+        if (usedTypes == null || usedTypes.isEmpty()) {
+            return "multiple_choice";
+        }
+        int mcCount = Collections.frequency(usedTypes, "multiple_choice");
+        int waCount = Collections.frequency(usedTypes, "word_arrange");
+
+        /* === [주관식 활성화 시 기존 3종 분배 로직 보존] ===
+        int subCount = Collections.frequency(usedTypes, "subjective");
+        if (waCount == 0 && subCount == 0) {
+            return mcCount <= 1 ? "word_arrange" : "subjective";
+        }
+        if (waCount == 0) {
+            return "word_arrange";
+        }
+        if (subCount == 0) {
+            return "subjective";
+        }
+        int minCount = Math.min(mcCount, Math.min(waCount, subCount));
+        String lastType = usedTypes.get(usedTypes.size() - 1);
+        int lastIndex = ALL_QUIZ_TYPES.indexOf(lastType);
+        for (int i = 1; i <= ALL_QUIZ_TYPES.size(); i++) {
+            String candidate = ALL_QUIZ_TYPES.get((lastIndex + i) % ALL_QUIZ_TYPES.size());
+            if (Collections.frequency(usedTypes, candidate) == minCount) {
+                return candidate;
             }
         }
-        return best;
+        return "multiple_choice";
+        ================================================ */
+
+        // 객관식 3 : 단어배열 2 비율 유도:
+        // 퀴즈 1: MC (mc:1, wa:0) -> wa*3(0) < mc*2(2) -> 다음 WA
+        // 퀴즈 2: WA (mc:1, wa:1) -> wa*3(3) >= mc*2(2) -> 다음 MC
+        // 퀴즈 3: MC (mc:2, wa:1) -> wa*3(3) < mc*2(4) -> 다음 WA
+        // 퀴즈 4: WA (mc:2, wa:2) -> wa*3(6) >= mc*2(4) -> 다음 MC
+        // 퀴즈 5: MC (mc:3, wa:2) -> 결과: 5문제 기준 MC 3개, WA 2개
+        if (waCount * 3 < mcCount * 2) {
+            return "word_arrange";
+        }
+        return "multiple_choice";
     }
+
 
     private static String asText(Object value) {
         return value != null ? String.valueOf(value) : "(unknown)";

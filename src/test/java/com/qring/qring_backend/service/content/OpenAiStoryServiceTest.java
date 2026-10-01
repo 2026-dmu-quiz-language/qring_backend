@@ -1318,13 +1318,25 @@ class OpenAiStoryServiceTest {
     }
 
     @Test
-    @DisplayName("퀴즈 출제 턴에는 덜 쓰인 유형이 프롬프트에 지정된다")
+    @DisplayName("퀴즈 출제 턴에는 덜 쓰인 유형이 프롬프트에 지정된다 (객관식 3 : 단어배열 2 비율)")
     void quizTypeIsSteeredTowardsUnusedTypes() {
+        assertEquals("multiple_choice", OpenAiStoryService.pickNextQuizType(List.of()));
+        assertEquals("word_arrange", OpenAiStoryService.pickNextQuizType(List.of("multiple_choice")));
+        assertEquals("multiple_choice", OpenAiStoryService.pickNextQuizType(List.of("multiple_choice", "word_arrange")));
+        assertEquals("word_arrange",
+                OpenAiStoryService.pickNextQuizType(List.of("multiple_choice", "word_arrange", "multiple_choice")));
+        assertEquals("multiple_choice",
+                OpenAiStoryService.pickNextQuizType(List.of("multiple_choice", "word_arrange", "multiple_choice", "word_arrange")));
+
+        /* [주관식 재활성화 시 복원할 이전 테스트]
         assertEquals("multiple_choice", OpenAiStoryService.pickNextQuizType(List.of()));
         assertEquals("word_arrange", OpenAiStoryService.pickNextQuizType(List.of("multiple_choice")));
         assertEquals("subjective", OpenAiStoryService.pickNextQuizType(List.of("multiple_choice", "word_arrange")));
         assertEquals("multiple_choice",
                 OpenAiStoryService.pickNextQuizType(List.of("multiple_choice", "word_arrange", "subjective")));
+        assertEquals("subjective",
+                OpenAiStoryService.pickNextQuizType(List.of("multiple_choice", "multiple_choice")));
+        */
 
         StorySession session = newSession();
         session.incrementTurnsSinceLastQuiz();
@@ -1367,4 +1379,58 @@ class OpenAiStoryServiceTest {
 
         assertTrue(prompt.contains("It's 100%% off? %s wow"));
     }
+
+    @Test
+    @DisplayName("마지막 퀴즈를 출제하는 턴에는 작별 인사 금지와 is_completed=false 지시가 붙는다")
+    void finalQuizPresentationTurnWarnsAgainstEarlyGoodbye() {
+        StorySession session = newSession();
+        for (int i = 0; i < StorySession.DEFAULT_QUIZ_LIMIT - 1; i++) { // 4개 완료
+            session.recordQuiz(Map.of("question", "q" + i, "correct_answer", "a" + i));
+            session.clearPendingQuiz();
+        }
+        session.incrementTurnsSinceLastQuiz();
+        session.incrementTurnsSinceLastQuiz(); // 2턴 경과 -> 5번째 퀴즈 출제 가능
+
+        String prompt = service.buildTurnSystemPrompt(session, "what's next?");
+
+        assertTrue(prompt.contains("FINAL QUIZ PRESENTATION TURN (5 / 5)"));
+        assertTrue(prompt.contains("Do NOT say goodbye"));
+        assertTrue(prompt.contains("Keep `is_completed: false`"));
+        assertTrue(prompt.contains("The story is NOT over yet"));
+    }
+
+    @Test
+    @DisplayName("객관식: 모델이 0번에 정답을 넣어도 셔플되어 0번에 고정되지 않는다")
+    void multipleChoiceOptionsAreRandomizedAwayFromFirstIndex() {
+        Map<String, Object> mc = Map.of(
+                "quiz_type", "multiple_choice",
+                "correct_answer", "今食べるよ",
+                "options", List.of("今食べるよ", "持ち帰るよ", "後で食べるよ")
+        );
+        Map<String, Object> sanitized = OpenAiStoryService.sanitizeQuiz(mc, "Japanese");
+        @SuppressWarnings("unchecked")
+        List<String> options = (List<String>) sanitized.get("options");
+        assertEquals(3, options.size());
+        assertTrue(options.contains("今食べるよ"));
+        assertFalse("今食べるよ".equals(options.get(0)),
+                "모델이 0번에 넣은 정답은 회전/셔플되어 0번에 머무르지 않아야 한다");
+    }
+
+    @Test
+    @DisplayName("단어배열: 모델이 타일을 정답 문장 순서 그대로 주면 무작위 셔플되어 순서가 흐트러진다")
+    void wordArrangeTilesInSequentialOrderAreScrambled() {
+        Map<String, Object> wa = Map.of(
+                "quiz_type", "word_arrange",
+                "correct_answer", "少し痛かったけど大丈夫だった",
+                "tiles", List.of("少し", "痛かった", "けど", "大丈夫だった")
+        );
+        Map<String, Object> sanitized = OpenAiStoryService.sanitizeQuiz(wa, "Japanese");
+        @SuppressWarnings("unchecked")
+        List<String> tiles = (List<String>) sanitized.get("tiles");
+        assertEquals(4, tiles.size());
+        assertFalse(String.join("", tiles).equals("少し痛かったけど大丈夫だった"),
+                "원래 문장 순서 그대로 주어지지 않고 셔플되어야 한다");
+        assertNull(OpenAiStoryService.structuralProblem(sanitized, "Japanese"));
+    }
 }
+
