@@ -25,7 +25,13 @@ public class StoryChatResponse {
     private String aiMessage;
 
     @Schema(description = "AI 대사 한국어 번역/해석")
+    @JsonProperty("translation")
     private String translation;
+
+    @JsonProperty("ai_translation")
+    public String getAiTranslation() {
+        return translation;
+    }
 
     @Schema(description = "이번 턴에 퀴즈 출제 여부", example = "true")
     @JsonProperty("is_quiz")

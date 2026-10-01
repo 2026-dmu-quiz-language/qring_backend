@@ -137,4 +137,29 @@ class StorySessionMapperTest {
                 "롤백 후 타임라인에 실패한 턴의 사용자 메시지가 남으면 안 된다");
         assertEquals("message", session.getTimeline().get(before - 1).get("type"));
     }
+
+    @Test
+    @DisplayName("StoryExtendResponse 직렬화 시 translation 과 프론트 호환용 ai_translation 이 모두 포함된다")
+    void storyExtendResponseIncludesBothTranslationAndAiTranslation() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+        com.qring.qring_backend.dto.content.StoryExtendResponse response = com.qring.qring_backend.dto.content.StoryExtendResponse.builder()
+                .sessionId("sess-test")
+                .aiMessage("映画の後で少し散歩しようか。")
+                .translation("영화 보고 나서 잠깐 산책할까?")
+                .currentQuizCount(5)
+                .quizLimit(10)
+                .canExtend(true)
+                .userRemainingPoints(500)
+                .modelTier("standard")
+                .chargedPoints(100)
+                .build();
+
+        String json = om.writeValueAsString(response);
+        Map<?, ?> map = om.readValue(json, Map.class);
+
+        assertEquals("영화 보고 나서 잠깐 산책할까?", map.get("translation"));
+        assertEquals("영화 보고 나서 잠깐 산책할까?", map.get("ai_translation"));
+        assertEquals("映画の後で少し散歩しようか。", map.get("ai_message"));
+    }
 }
+

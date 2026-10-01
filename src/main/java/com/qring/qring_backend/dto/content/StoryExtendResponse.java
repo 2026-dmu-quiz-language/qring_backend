@@ -21,6 +21,7 @@ public class StoryExtendResponse {
     @JsonProperty("ai_message")
     private String aiMessage;
 
+    @JsonProperty("translation")
     private String translation;
 
     @JsonProperty("current_quiz_count")
@@ -44,4 +45,35 @@ public class StoryExtendResponse {
     @Schema(description = "이어하기에 차감된 포인트", example = "100")
     @JsonProperty("charged_points")
     private Integer chargedPoints;
+
+    @JsonProperty("ai_translation")
+    public String getAiTranslation() {
+        return translation;
+    }
+
+    @JsonProperty("aiTranslation")
+    public String getAiTranslationCamel() {
+        return translation;
+    }
+
+    @JsonProperty("ai_first_translation")
+    public String getAiFirstTranslation() {
+        return translation;
+    }
+
+    @JsonProperty("aiMessage")
+    public String getAiMessageCamel() {
+        return aiMessage;
+    }
+
+    @JsonProperty("content")
+    public String getContent() {
+        return aiMessage;
+    }
+
+    @JsonProperty("message")
+    public String getMessage() {
+        return aiMessage;
+    }
 }
+
