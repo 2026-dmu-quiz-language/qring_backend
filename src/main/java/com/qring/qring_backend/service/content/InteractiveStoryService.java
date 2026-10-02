@@ -43,8 +43,8 @@ public class InteractiveStoryService {
     private final StoryModelTier modelTiers;
     private final StoryContentGuard contentGuard;
 
-    /** 완결된 스토리를 영구 보관하는 추가 비용. 팀에서 금액 확정 전까지 0. */
-    public static final int STORY_ARCHIVE_COST = 0;
+    /** 완결된 스토리를 영구 보관하는 추가 비용 (30pt). */
+    public static final int STORY_ARCHIVE_COST = 30;
 
     /** 이어하기 1회당 추가되는 퀴즈 개수. */
     public static final int EXTEND_QUIZ_COUNT = 5;
