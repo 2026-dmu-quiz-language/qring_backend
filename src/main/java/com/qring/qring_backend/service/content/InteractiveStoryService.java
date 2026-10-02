@@ -129,6 +129,17 @@ public class InteractiveStoryService {
 
         String aiFirstMsg = textOrDefault(openingData.get("ai_message"), "Hello! Nice to meet you.");
         String aiFirstTrans = textOrDefault(openingData.get("translation"), "안녕! 만나서 반가워.");
+        boolean firstNeedsHealing = aiFirstTrans.isBlank()
+                || !OpenAiStoryService.hasHangul(aiFirstTrans)
+                || OpenAiStoryService.hasTargetLanguageLeakage(targetLanguage, aiFirstTrans);
+        if (firstNeedsHealing && !aiFirstMsg.isBlank()) {
+            log.warn("[InteractiveStory] 세션 {} 오프닝 번역 누락/원어 혼입 감지 - 한국어 번역 자동 치유 실행: \"{}\"",
+                    sessionId, aiFirstTrans);
+            String healed = openAiStoryService.translateToKorean(aiFirstMsg, session.getTone(), session.getSpeechLevel());
+            if (!healed.isBlank() && !OpenAiStoryService.hasTargetLanguageLeakage(targetLanguage, healed)) {
+                aiFirstTrans = healed;
+            }
+        }
         session.addAssistantMessage(aiFirstMsg, aiFirstTrans);
 
         // 오프닝 번역의 말투(반말/존댓말)를 세션에 고정 — 이후 모든 턴이 같은 말투를 유지하도록 프롬프트에 박는다
@@ -336,12 +347,13 @@ public class InteractiveStoryService {
                         Map<String, Object> redoQuiz = redo.get("quiz") instanceof Map
                                 ? OpenAiStoryService.sanitizeQuiz((Map<String, Object>) redo.get("quiz"), session.getTargetLanguage())
                                 : null;
-                        if (redoQuiz != null && !OpenAiStoryService.hasHangul(textOrDefault(redoQuiz.get("question"), ""))) {
+                        if (redoQuiz != null && (!OpenAiStoryService.hasHangul(textOrDefault(redoQuiz.get("question"), ""))
+                                || OpenAiStoryService.hasTargetLanguageLeakage(session.getTargetLanguage(), textOrDefault(redoQuiz.get("question"), "")))) {
                             String rawMeaning = textOrDefault(redoQuiz.get("reply_meaning"), textOrDefault(redoQuiz.get("correct_answer"), ""));
                             if (!rawMeaning.isBlank()) {
-                                log.info("[InteractiveStory] 재생성 퀴즈 question/reply_meaning 한국어 누락 감지 - 한국어 번역 복구 실행: {}", rawMeaning);
+                                log.info("[InteractiveStory] 재생성 퀴즈 question/reply_meaning 한국어 누락 또는 원어 감지 - 한국어 번역 복구 실행: {}", rawMeaning);
                                 String koreanMeaning = openAiStoryService.translateToKorean(rawMeaning, session.getTone(), session.getSpeechLevel());
-                                if (OpenAiStoryService.hasHangul(koreanMeaning)) {
+                                if (OpenAiStoryService.hasHangul(koreanMeaning) && !OpenAiStoryService.hasTargetLanguageLeakage(session.getTargetLanguage(), koreanMeaning)) {
                                     redoQuiz.put("reply_meaning", koreanMeaning);
                                     redoQuiz.put("question", OpenAiStoryService.koreanQuestionFor(String.valueOf(redoQuiz.get("quiz_type")), koreanMeaning));
                                 }
@@ -422,11 +434,16 @@ public class InteractiveStoryService {
             }
             isCompleted = allQuizzesDone;
 
-            // 번역이 비어있거나 한글이 없는 경우 자동 보정 (OpenAI 가 평문으로 응답했거나 누락한 경우 대비)
-            if ((translation == null || translation.isBlank() || !OpenAiStoryService.hasHangul(translation)) && !aiMsg.isBlank()) {
-                log.info("[InteractiveStory] 세션 {} AI 대사의 한국어 번역 누락/불완전 감지 - 자동 보정 번역 실행: {}", sessionId, aiMsg);
+            // 번역이 비어있거나 한글이 없는 경우 또는 대상 언어 원어가 혼입된 경우 자동 보정 (OpenAI 가 평문으로 응답했거나 누락/혼용한 경우 대비)
+            boolean transNeedsHealing = (translation == null || translation.isBlank()
+                    || !OpenAiStoryService.hasHangul(translation)
+                    || OpenAiStoryService.hasTargetLanguageLeakage(session.getTargetLanguage(), translation))
+                    && !aiMsg.isBlank();
+            if (transNeedsHealing) {
+                log.info("[InteractiveStory] 세션 {} AI 대사의 한국어 번역 누락/원어 혼입 감지 - 자동 보정 번역 실행 (기존: \"{}\", 대사: \"{}\")",
+                        sessionId, translation, aiMsg);
                 String healed = openAiStoryService.translateToKorean(aiMsg, session.getTone(), session.getSpeechLevel());
-                if (!healed.isBlank()) {
+                if (!healed.isBlank() && !OpenAiStoryService.hasTargetLanguageLeakage(session.getTargetLanguage(), healed)) {
                     translation = healed;
                 }
             }
@@ -506,9 +523,16 @@ public class InteractiveStoryService {
 
         String aiMsg = textOrDefault(continuation.get("ai_message"), "Wait, before we go - one more thing!");
         String translation = extractTranslation(continuation);
-        if (translation.isBlank() || !OpenAiStoryService.hasHangul(translation)) {
-            log.warn("[InteractiveStory] 세션 {} 이어하기 응답에 translation 누락/불완전 - 단독 번역 보충 실행", sessionId);
-            translation = openAiStoryService.translateToKorean(aiMsg, session.getTone(), session.getSpeechLevel());
+        boolean extendTransNeedsHealing = translation.isBlank()
+                || !OpenAiStoryService.hasHangul(translation)
+                || OpenAiStoryService.hasTargetLanguageLeakage(session.getTargetLanguage(), translation);
+        if (extendTransNeedsHealing && !aiMsg.isBlank()) {
+            log.warn("[InteractiveStory] 세션 {} 이어하기 응답에 translation 누락/원어 혼입 감지 - 단독 번역 보충 실행: \"{}\"",
+                    sessionId, translation);
+            String healed = openAiStoryService.translateToKorean(aiMsg, session.getTone(), session.getSpeechLevel());
+            if (!healed.isBlank() && !OpenAiStoryService.hasTargetLanguageLeakage(session.getTargetLanguage(), healed)) {
+                translation = healed;
+            }
         }
         if (translation.isBlank()) {
             translation = "잠깐, 가기 전에 하나만 더!";
@@ -1087,17 +1111,18 @@ public class InteractiveStoryService {
             }
         }
         // --- 아래 세 가지는 "학습자가 답할 방법이 없는 퀴즈"라 relaxed 여도 항상 거부한다 (팀 결정 2026-09-22) ---
-        if (!OpenAiStoryService.hasHangul(textOrDefault(quiz.get("question"), ""))) {
-            // sanitizeQuiz 가 reply_meaning 으로 다시 써 주므로, 여기까지 오면 reply_meaning 도 한국어가 아니라는 뜻이다.
-            // 실측(2026-09-22)에서 모델이 question 을 통째로 빠뜨려 네 턴이 날아갔다 — 무엇이 없는지 정확히 알려 준다
-            return "the quiz has no usable Korean \"question\". Fill in EVERY field of the quiz object: "
+        if (!OpenAiStoryService.hasHangul(textOrDefault(quiz.get("question"), ""))
+                || OpenAiStoryService.hasTargetLanguageLeakage(session.getTargetLanguage(), textOrDefault(quiz.get("question"), ""))) {
+            return "the quiz has no usable Korean \"question\" or it contains untranslated "
+                    + session.getTargetLanguage() + " text. Fill in EVERY field of the quiz object: "
                     + "\"reply_meaning\" is the Korean line the learner would speak, and \"question\" is the Korean "
                     + "sentence built from it (\"'<reply_meaning>'를 뜻하는 표현은?\" / \"'<reply_meaning>'가 되도록 "
                     + "단어를 배열해 보세요.\"). Without it the learner has no idea what is being asked";
         }
-        if (!OpenAiStoryService.hasHangul(textOrDefault(quiz.get("reply_meaning"), ""))) {
-            return "\"reply_meaning\" (\"" + quiz.get("reply_meaning") + "\") is missing or not written in Korean. "
-                    + "It must be the Korean line the learner would speak in reply";
+        if (!OpenAiStoryService.hasHangul(textOrDefault(quiz.get("reply_meaning"), ""))
+                || OpenAiStoryService.hasTargetLanguageLeakage(session.getTargetLanguage(), textOrDefault(quiz.get("reply_meaning"), ""))) {
+            return "\"reply_meaning\" (\"" + quiz.get("reply_meaning") + "\") is missing or contains untranslated "
+                    + session.getTargetLanguage() + " text. It must be written in 100% natural Korean";
         }
         if (OpenAiStoryService.isQuestionAboutAiItself(quiz)) {
             // 학습자가 AI 자신의 행동·감정·이름을 대신 말하게 하는 퀴즈 (실측: "내가 자주 쓰는 필살기가 뭐라고 생각해?")

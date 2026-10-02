@@ -1432,5 +1432,132 @@ class OpenAiStoryServiceTest {
                 "원래 문장 순서 그대로 주어지지 않고 셔플되어야 한다");
         assertNull(OpenAiStoryService.structuralProblem(sanitized, "Japanese"));
     }
+
+    @Test
+    @DisplayName("원어 혼입 감지: 일본어 세션에서 히라가나나 가타카나가 혼입되면 감지하고, 영문 고유명사/약어는 허용한다")
+    void targetLanguageLeakageDetectionJapanese() {
+        // 히라가나 혼입 -> 유출 판정
+        assertTrue(OpenAiStoryService.hasTargetLanguageLeakage("Japanese", "「忘れたらごめんねと連絡します」는 약속을 잊었을 때 대응이야"));
+        assertTrue(OpenAiStoryService.hasTargetLanguageLeakage("Japanese", "만약 늦으면 私から連絡するよ 걱정 마"));
+        assertTrue(OpenAiStoryService.hasTargetLanguageLeakage("Japanese", "ごめんね라고 사과해"));
+
+        // 가타카나 2자 이상 혼입 -> 유출 판정
+        assertTrue(OpenAiStoryService.hasTargetLanguageLeakage("Japanese", "카스테라는 カステラ라고 써요"));
+
+        // 순수 한국어 -> 정상
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("Japanese", "오늘 카페에서 천천히 쉬고 있네요. 뭐 마실 걸 주문할래?"));
+
+        // 영문 고유명사, 일상 약어, 알파벳 -> 정상 허용!
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("Japanese", "우리 Starbucks에서 만날래?"));
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("Japanese", "카페 Wi-Fi 비밀번호가 뭐야?"));
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("Japanese", "SNS에서 유명한 곳이야"));
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("Japanese", "OK, 확인했어"));
+    }
+
+    @Test
+    @DisplayName("원어 혼입 감지: 영어 세션에서 3단어 이상 영어 절은 감지하고, 고유명사/약어/단서 힌트는 허용한다")
+    void targetLanguageLeakageDetectionEnglish() {
+        // 3단어 이상 영어 절 혼입 -> 유출 판정
+        assertTrue(OpenAiStoryService.hasTargetLanguageLeakage("English", "I will definitely go there 하지만 가기 싫어"));
+        assertTrue(OpenAiStoryService.hasTargetLanguageLeakage("English", "Wait before we go - 하나만 더!"));
+        assertTrue(OpenAiStoryService.hasTargetLanguageLeakage("English", "Don't worry about it 걱정 마"));
+
+        // 한글 없는 순수 영문 문장 -> 유출 판정
+        assertTrue(OpenAiStoryService.hasTargetLanguageLeakage("English", "You should say you are ready"));
+
+        // 영문 고유명사, 약어, 알파벳 단서 힌트 -> 정상 허용!
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("English", "Starbucks에 갈래?"));
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("English", "New York에 가본 적 있어?"));
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("English", "Wi-Fi 켜줘"));
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("English", "SNS에 공유할게"));
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("English", "'s'로 시작하는 단어예요"));
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("English", "과거형(-ed)을 사용해 보세요"));
+        assertFalse(OpenAiStoryService.hasTargetLanguageLeakage("English", "'appointment'와 비슷한 의미예요"));
+    }
+
+    @Test
+    @DisplayName("힌트 정답 스포일러 감지: 힌트에 정답 표현이 통째로 포함되어 있으면 감지한다")
+    void hintSpoilingAnswerDetection() {
+        assertTrue(OpenAiStoryService.isHintSpoilingAnswer(
+                "'忘れたらごめんね'라고 답해 보세요", "忘れたらごめんね", "Japanese"));
+        assertTrue(OpenAiStoryService.isHintSpoilingAnswer(
+                "정답은 'I am on my way'입니다", "I am on my way", "English"));
+
+        // 스포일러가 아닌 정상 한국어 힌트
+        assertFalse(OpenAiStoryService.isHintSpoilingAnswer(
+                "약속을 잊었을 때 사과하는 표현이에요", "忘れたらごめんね", "Japanese"));
+        assertFalse(OpenAiStoryService.isHintSpoilingAnswer(
+                "'s'로 시작하는 단어예요", "start", "English"));
+    }
+
+    @Test
+    @DisplayName("normalizeKoreanFields: 원어나 스포일러가 들어간 힌트는 제거되고, 정상 힌트는 보존된다")
+    void normalizeKoreanFieldsFiltersLeakedHints() {
+        // 1. 일본어 세션에서 히라가나가 섞인 힌트/설명은 제거된다
+        Map<String, Object> quizJp = new java.util.HashMap<>(Map.of(
+                "quiz_type", "multiple_choice",
+                "question", "'지금 먹을 거야'를 뜻하는 표현은?",
+                "reply_meaning", "지금 먹을 거야",
+                "correct_answer", "今食べるよ",
+                "hint", "「今食べるよ」라고 말해보세요",
+                "explanation", "「今食べるよ」は今食べることを表します。"
+        ));
+        Map<String, Object> normalizedJp = OpenAiStoryService.normalizeKoreanFields(quizJp, "Japanese");
+        assertFalse(normalizedJp.containsKey("hint"));
+        assertFalse(normalizedJp.containsKey("explanation"));
+
+        // 2. 영어 세션에서 고유명사나 알파벳 단서가 들어간 정상 힌트는 보존된다
+        Map<String, Object> quizEn = new java.util.HashMap<>(Map.of(
+                "quiz_type", "multiple_choice",
+                "question", "'시작하다'를 뜻하는 표현은?",
+                "reply_meaning", "시작하다",
+                "correct_answer", "start",
+                "hint", "'s'로 시작하는 5글자 단어예요",
+                "explanation", "무언가를 시작할 때 쓰는 기본 동사예요."
+        ));
+        Map<String, Object> normalizedEn = OpenAiStoryService.normalizeKoreanFields(quizEn, "English");
+        assertTrue(normalizedEn.containsKey("hint"));
+        assertEquals("'s'로 시작하는 5글자 단어예요", normalizedEn.get("hint"));
+        assertTrue(normalizedEn.containsKey("explanation"));
+    }
+
+    @Test
+    @DisplayName("비타겟 언어(러시아어 키릴 문자 등)나 교차 언어 문자는 잘못된 문자로 감지된다")
+    void testOtherLanguageRequestsAndScriptDetection() {
+        // 1. 키릴 문자(러시아어 등)는 중국어, 일본어, 영어 모두에서 wrongScript 로 감지된다
+        assertTrue(OpenAiStoryService.isWrongScript("Chinese (Simplified)", "Привет"));
+        assertTrue(OpenAiStoryService.isWrongScript("Japanese", "Спасибо"));
+        assertTrue(OpenAiStoryService.isWrongScript("English", "Здравствуйте"));
+
+        // 2. 중국어 세션에서 일본어 가나(히라가나/가타카나)는 wrongScript 로 감지된다
+        assertTrue(OpenAiStoryService.isWrongScript("Chinese (Simplified)", "おはよう"));
+        assertTrue(OpenAiStoryService.isWrongScript("Chinese (Simplified)", "コーヒー"));
+
+        // 3. 영어 세션에서 한자나 가나는 wrongScript 로 감지된다
+        assertTrue(OpenAiStoryService.isWrongScript("English", "你好世界"));
+        assertTrue(OpenAiStoryService.isWrongScript("English", "ありがとう"));
+
+        // 4. 정상적인 각 타겟 언어 표현은 false
+        assertFalse(OpenAiStoryService.isWrongScript("English", "Hello, how are you?"));
+        assertFalse(OpenAiStoryService.isWrongScript("Chinese (Simplified)", "我想喝一杯咖啡"));
+        assertFalse(OpenAiStoryService.isWrongScript("Japanese", "コーヒーを飲みたいです"));
+
+        // 5. 프롬프트 지시문에 타겟 외 언어 요청 거절/화제 전환 지시가 포함되어 있다
+        StorySession session = StorySession.builder()
+                .sessionId("sess-zh")
+                .userId(1L)
+                .targetLanguage("Chinese (Simplified)")
+                .characterName("샤오밍")
+                .situationDescription("카페에서 커피 주문하기")
+                .tone("friendly")
+                .build();
+        String staticPrompt = service.buildStaticSystemPrompt(session);
+        assertTrue(staticPrompt.contains("OFF-TARGET LANGUAGE REQUESTS") || staticPrompt.contains("REFUSAL OF OTHER LANGUAGES"));
+        assertTrue(staticPrompt.contains("러시아어로 얘기하자"));
+
+        String turnPrompt = service.buildTurnDirective(session, "지금부터 러시아어로 얘기하자");
+        assertTrue(turnPrompt.contains("Russian"));
+    }
 }
+
 
