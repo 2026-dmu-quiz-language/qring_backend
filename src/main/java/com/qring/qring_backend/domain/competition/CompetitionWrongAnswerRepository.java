@@ -70,14 +70,15 @@ public interface CompetitionWrongAnswerRepository extends JpaRepository<Competit
 
     /**
      * 오답 N일차 푸시 대상 (컴피티션 오답). 스토리 쪽과 같은 스코프 — 사용자의 현재 학습 언어, 푸시를 끈 사용자 제외.
-     * 스토리는 lang_code 를 quiz_content 에서 JOIN 해 오지만 컴피티션 오답은 컬럼으로 들고 있어 바로 비교한다.
+     * 스토리 쪽과 같이 언어 일치 여부는 서비스에서 비교한다 — 지금은 두 컬럼 collation 이 같지만,
+     * 테이블을 덤프로 다시 만들면 collation 이 달라져 쿼리 비교가 깨질 수 있다.
      */
-    @Query("SELECT wa.userId AS userId, COUNT(wa) AS wrongCount FROM CompetitionWrongAnswer wa " +
+    @Query("SELECT wa.userId AS userId, wa.langCode AS langCode, u.language AS userLanguage, " +
+           "COUNT(wa) AS wrongCount FROM CompetitionWrongAnswer wa " +
            "JOIN User u ON u.userId = wa.userId " +
-           "WHERE wa.langCode = u.language " +
-           "AND (u.pushEnabled IS NULL OR u.pushEnabled = true) " +
+           "WHERE (u.pushEnabled IS NULL OR u.pushEnabled = true) " +
            "AND wa.createdAt >= :start AND wa.createdAt < :end " +
-           "GROUP BY wa.userId")
+           "GROUP BY wa.userId, wa.langCode, u.language")
     List<WrongAnswerReminderTarget> findReminderTargetsCreatedBetween(@Param("start") LocalDateTime start,
                                                                        @Param("end") LocalDateTime end);
 

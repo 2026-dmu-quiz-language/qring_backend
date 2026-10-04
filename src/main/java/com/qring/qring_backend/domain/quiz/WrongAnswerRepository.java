@@ -100,14 +100,16 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
      * [start, end) 에 생성돼 아직 지워지지 않은(다시 풀지 않은) 오답을 사용자별로 센다.
      * 대시보드 오답 알람과 같은 스코프 — 사용자의 현재 학습 언어 오답만. 푸시를 끈 사용자는 제외.
      * (pushEnabled 가 null 인 옛 row 는 MyPageService 와 같이 켜진 것으로 본다.)
+     * 언어 일치 여부는 여기서 비교하지 않고 (사용자, 오답 언어, 사용자 언어) 별 개수로 내려 서비스에서 거른다 —
+     * quiz_content.lang_code 와 users.language 의 collation 이 달라 쿼리에서 비교하면 실패한다.
      */
-    @Query("SELECT wa.userId AS userId, COUNT(wa) AS wrongCount FROM WrongAnswer wa " +
+    @Query("SELECT wa.userId AS userId, qc.langCode AS langCode, u.language AS userLanguage, " +
+           "COUNT(wa) AS wrongCount FROM WrongAnswer wa " +
            "JOIN QuizContent qc ON wa.quizContentId = qc.quizContentId " +
            "JOIN User u ON u.userId = wa.userId " +
-           "WHERE qc.langCode = u.language " +
-           "AND (u.pushEnabled IS NULL OR u.pushEnabled = true) " +
+           "WHERE (u.pushEnabled IS NULL OR u.pushEnabled = true) " +
            "AND wa.createdAt >= :start AND wa.createdAt < :end " +
-           "GROUP BY wa.userId")
+           "GROUP BY wa.userId, qc.langCode, u.language")
     List<WrongAnswerReminderTarget> findReminderTargetsCreatedBetween(@Param("start") LocalDateTime start,
                                                                       @Param("end") LocalDateTime end);
 }
