@@ -51,9 +51,12 @@ class WrongAnswerReminderServiceTest {
         service.setDaysAfter(6);
     }
 
+    /** 오답 언어와 사용자 언어가 같은(현재 학습 언어) 대상. */
     private static WrongAnswerReminderTarget target(long userId, long count) {
         return new WrongAnswerReminderTarget() {
             @Override public Long getUserId() { return userId; }
+            @Override public String getLangCode() { return "EN"; }
+            @Override public String getUserLanguage() { return "EN"; }
             @Override public Long getWrongCount() { return count; }
         };
     }
