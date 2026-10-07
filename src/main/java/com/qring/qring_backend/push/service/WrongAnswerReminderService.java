@@ -62,12 +62,17 @@ public class WrongAnswerReminderService {
         // LinkedHashMap 으로 대상 순서를 유지 (로그·결과 재현성)
         // 오답 노트가 스토리·봇 컴피티션 오답을 함께 보여주므로 두 테이블의 개수를 사용자별로 합친다.
         Map<Long, Long> countByUser = new LinkedHashMap<>();
+        // 현재 학습 언어의 오답만 센다. 비교는 쿼리가 아니라 여기서 한다 (WrongAnswerReminderTarget 주석 참고).
         for (WrongAnswerReminderTarget t : wrongAnswerRepository.findReminderTargetsCreatedBetween(start, end)) {
-            countByUser.merge(t.getUserId(), t.getWrongCount(), Long::sum);
+            if (isCurrentLanguage(t)) {
+                countByUser.merge(t.getUserId(), t.getWrongCount(), Long::sum);
+            }
         }
         for (WrongAnswerReminderTarget t : competitionWrongAnswerRepository
                 .findReminderTargetsCreatedBetween(start, end)) {
-            countByUser.merge(t.getUserId(), t.getWrongCount(), Long::sum);
+            if (isCurrentLanguage(t)) {
+                countByUser.merge(t.getUserId(), t.getWrongCount(), Long::sum);
+            }
         }
 
         if (countByUser.isEmpty()) {
@@ -104,6 +109,15 @@ public class WrongAnswerReminderService {
                 createdDate, countByUser.size(), notifiedUsers, skippedNoToken, sent, failed, removed);
         log.info("[PUSH] 오답 {}일차 알림 완료: {}", daysAfter, result);
         return result;
+    }
+
+    /**
+     * 오답 언어가 사용자의 현재 학습 언어인지. 기존 쿼리 비교(_ci collation)와 같게 대소문자는 무시하고,
+     * 언어가 비어 있으면 대상이 아니다 (SQL 에서 NULL 비교가 거짓이던 것과 같다).
+     */
+    static boolean isCurrentLanguage(WrongAnswerReminderTarget t) {
+        return t.getLangCode() != null && t.getUserLanguage() != null
+                && t.getLangCode().equalsIgnoreCase(t.getUserLanguage());
     }
 
     /** 알림 문구. 개수는 그 날 생긴 오답 중 아직 남은 것만 센 값. */

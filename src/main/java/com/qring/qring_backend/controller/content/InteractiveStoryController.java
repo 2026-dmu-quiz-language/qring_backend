@@ -87,8 +87,8 @@ public class InteractiveStoryController {
     }
 
     @Operation(
-            summary = "3단계: 완결된 스토리 영구 보관 (추가 포인트 결제)",
-            description = "대화가 끝난 뒤 사용자가 보관을 선택하면 추가 포인트를 결제하고 스토리를 영구 저장합니다. 보관하지 않은 세션은 일정 시간 후 삭제됩니다.",
+            summary = "3단계: 완결된 스토리 영구 보관 (-30pt)",
+            description = "대화가 끝난 뒤 사용자가 보관을 선택하면 추가 포인트를 결제(30pt)하고 스토리를 영구 저장합니다. 보관하지 않은 세션은 일정 시간 후 삭제됩니다.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @PostMapping("/archive")

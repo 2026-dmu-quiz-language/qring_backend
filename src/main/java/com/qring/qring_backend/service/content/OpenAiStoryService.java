@@ -110,7 +110,7 @@ public class OpenAiStoryService {
             You MUST return your response formatted strictly as a valid json object with the following fields:
             {
               "ai_message": "Opening line in the target language",
-              "translation": "Korean translation at the same speech level as ai_message"
+              "translation": "100%% natural Korean translation at the same speech level as ai_message (never leave target language sentences/clauses untranslated)"
             }
             """, session.getCharacterName(), session.getSituationDescription(), session.getTone(),
                 session.getTargetLanguage(), session.getLevelCode(),
@@ -130,7 +130,14 @@ public class OpenAiStoryService {
             - "translation" is the Korean rendering of ai_message, nothing more.
             - Korean text inside THIS prompt (rules, [meaning: ...] notes, quiz questions) explains
               MEANING only. It is never a sentence for you to copy into ai_message.
-            """, targetLanguage);
+
+            STRICT TARGET LANGUAGE COMMITMENT & REFUSAL OF OTHER LANGUAGES:
+            - The ONLY target learning language for this entire session is %s.
+            - If the learner asks to switch to, practice, or study ANY other language (e.g., "러시아어로 얘기하자", "Let's speak in Russian", "영어로 대화하자", "프랑스어 가르쳐줘"):
+              1) DO NOT comply. You MUST NOT start speaking, teaching, or quizzing in that requested language!
+              2) In character, naturally and politely decline or deflect the request (e.g., playfully say you don't know that language, or that you only speak %s).
+              3) Smoothly redirect the conversation topic back to the ongoing story and scenario, continuing 100%% in %s.
+            """, targetLanguage, targetLanguage, targetLanguage, targetLanguage);
         if (LearningLanguage.usesSpaces(targetLanguage)) {
             return base;
         }
@@ -304,7 +311,7 @@ public class OpenAiStoryService {
             You MUST return your response formatted strictly as a valid json object with the following fields:
             {
               "ai_message": "Continuation line in the target language",
-              "translation": "Korean translation at the same speech level as ai_message (MANDATORY: never omit or leave empty)"
+              "translation": "100%% natural Korean translation at the same speech level as ai_message (MANDATORY: never omit or leave target language clauses untranslated)"
             }
 
             """, session.getCharacterName(), session.getSituationDescription(), session.getTone(),
@@ -360,15 +367,41 @@ public class OpenAiStoryService {
         return generateTurn(session, buildStaticSystemPrompt(session), turnDirective);
     }
 
-    /** ai_message 가 대상 언어가 아니라 한국어로 나왔을 때 덧붙이는 재호출 지시문. */
+    /** ai_message 가 대상 언어가 아니라 한국어나 허용되지 않은 외국어로 나왔을 때 덧붙이는 재호출 지시문. */
     String buildLanguageRetryDirective(StorySession session) {
         return String.format("""
 
-            YOUR LAST REPLY WAS REJECTED: "ai_message" came back in Korean. You are %s speaking inside the story, and
-            your character does not speak Korean to the learner. Write the WHOLE reply again with "ai_message" 100%% in
+            YOUR LAST REPLY WAS REJECTED: "ai_message" came back in Korean or a non-target language. You are %s speaking inside the story, and
+            your character speaks ONLY %s to the learner (never speaks Korean to the learner). Write the WHOLE reply again with "ai_message" 100%% in
             %s, still reacting to the same moment. Put the Korean ONLY in "translation". Never explain the language,
             never correct the learner like a teacher, never switch to Korean to be helpful - stay in the scene.
-            """, session.getCharacterName(), session.getTargetLanguage());
+            If the learner asked to switch to or speak another language, politely decline or deflect in character, naturally change the subject, and continue 100%% in %s.
+            """, session.getCharacterName(), session.getTargetLanguage(), session.getTargetLanguage(), session.getTargetLanguage());
+    }
+
+    /** 응답의 ai_message 가 대상 언어가 아니라 사실상 한국어이거나 비타겟 외국어(러시아어 등)인지 */
+    private static boolean isWrongLanguageMessage(StorySession session, Map<String, Object> response) {
+        if (response == null) {
+            return false;
+        }
+        if (isMostlyKoreanMessage(session, response)) {
+            return true;
+        }
+        String message = response.get("ai_message") == null ? "" : String.valueOf(response.get("ai_message"));
+        if (message.isBlank()) {
+            return false;
+        }
+        long foreignScriptCount = message.chars()
+                .filter(Character::isLetter)
+                .mapToObj(Character.UnicodeScript::of)
+                .filter(s -> s == Character.UnicodeScript.CYRILLIC
+                          || s == Character.UnicodeScript.ARABIC
+                          || s == Character.UnicodeScript.DEVANAGARI
+                          || s == Character.UnicodeScript.GREEK
+                          || s == Character.UnicodeScript.THAI
+                          || s == Character.UnicodeScript.HEBREW)
+                .count();
+        return foreignScriptCount >= 3;
     }
 
     /** 응답의 ai_message 가 대상 언어가 아니라 사실상 한국어인지 (글자의 절반 이상이 한글). */
@@ -429,20 +462,19 @@ public class OpenAiStoryService {
             fullMessages.add(Map.of("role", "system", "content", turnDirective));
 
             Map<String, Object> response = callOpenAiJson(resolveModel(session), fullMessages);
-            if (!isMostlyKoreanMessage(session, response)) {
+            if (!isWrongLanguageMessage(session, response)) {
                 return response;
             }
-            // 대사 전체가 한국어로 나온 턴 (실측 2026-09-22: 캐릭터가 중국어 선생으로 바뀌어 네 턴 연속 한국어).
-            // 부분 혼입은 문장 단위로 떼어내면 되지만, 전부 한국어면 떼어낼 것이 없어 그대로 나간다. 그래서 1회 다시 받는다.
-            log.warn("[OpenAI] ai_message 가 대상 언어({})가 아니라 한국어로 나와 1회 재호출: {}",
+            // 대사가 대상 언어가 아닌 잘못된 언어로 나온 턴
+            log.warn("[OpenAI] ai_message 가 대상 언어({})가 아니라 잘못된 언어로 나와 1회 재호출: {}",
                     session.getTargetLanguage(), response.get("ai_message"));
             List<Map<String, String>> retryMessages = new ArrayList<>(fullMessages);
             retryMessages.add(Map.of("role", "system", "content", buildLanguageRetryDirective(session)));
             Map<String, Object> retry = callOpenAiJson(resolveModel(session), retryMessages);
-            if (!isMostlyKoreanMessage(session, retry)) {
+            if (!isWrongLanguageMessage(session, retry)) {
                 return retry;
             }
-            log.warn("[OpenAI] 재호출도 한국어 대사: {}", retry.get("ai_message"));
+            log.warn("[OpenAI] 재호출도 잘못된 언어 대사: {}", retry.get("ai_message"));
             return retry;
         } catch (Exception e) {
             log.error("[OpenAI API 호출 오류] 턴 대화 생성 실패: {}", e.getMessage(), e);
@@ -519,7 +551,9 @@ public class OpenAiStoryService {
                - Keep moving the conversation FORWARD to new, natural topics within the scenario.
             3. RESPOND ACCURATELY TO USER'S ACTUAL INPUT:
                - You MUST carefully read the user's latest message and respond accurately in character!
-               - If the user specifies a preference, NEVER contradict or ignore their choice. Always accept and adapt to what the user said!
+               - If the user specifies a preference within the scenario, NEVER contradict or ignore their choice. Always accept and adapt to what the user said!
+               - CRITICAL EXCEPTION (OFF-TARGET LANGUAGE REQUESTS): If the user asks to switch to, speak, or study ANY language other than the Target Language (e.g., "지금부터 러시아어로 얘기하자", "Let's speak in Russian", "영어로 대화하자"), you MUST NOT switch languages or quiz in that language!
+                 Instead, in character, naturally deflect or decline (e.g., playfully say you don't know that language or that you only speak the Target Language), change the topic, and steer the dialogue smoothly back to the ongoing scenario in the Target Language.
             4. NO ROBOTIC TRANSLATIONESE:
                - NEVER say robotic phrases like "Thanks for answering", "That's a good opinion", and NEVER repeat the
                  user's input verbatim or echo their answer back as praise (taking their word and adding
@@ -616,7 +650,8 @@ public class OpenAiStoryService {
 
             CRITICAL LANGUAGE LEARNING QUIZ RULES (Target Language: %s):
             1. STRICT TARGET LANGUAGE LOCK (%s ONLY):
-               - ALL quizzes in this session MUST test ONLY "%s". NEVER mix or introduce any other foreign language.
+               - ALL quizzes in this session MUST test ONLY "%s". NEVER mix or introduce any other foreign language (such as Russian, French, German, etc.).
+               - Even if the learner asks to speak or practice another language, politely deflect or decline in character, naturally change the subject, and continue 100%% in the Target Language. NEVER create a quiz in any language other than the Target Language.
             2. QUIZ FORMATS - these are EMPTY FORMS to fill from the current scene, never scenes to copy:
                  Format A (multiple_choice - pick your reply):
                    - options: 3 short candidate replies in %s in RANDOM ORDER (CRITICAL: do NOT always place the correct answer first! Place it at a random position among the 3 options) - the correct one plus two that are plausible things to
@@ -656,9 +691,11 @@ public class OpenAiStoryService {
                - Once a specific word, phrase, or concept has been tested in a previous quiz, that word or topic MUST NOT be the main focus, question subject, or correct answer in any subsequent quiz!
                - Each quiz MUST pick a fresh, completely different Target Language expression.
             5. EVERY EXPLANATORY FIELD IS WRITTEN IN KOREAN: "question", "hint", "explanation", "reply_meaning",
-               "learner_told_me", "next_beat" and "story_so_far" are Korean - the learner reads them to understand what
-               is being asked. NEVER write them in the Target Language. Only "correct_answer", "options", "tiles" and
-               "acceptable_answers" are in the Target Language.
+               "learner_told_me", "next_beat" and "story_so_far" are 100%% natural Korean.
+               - In Japanese/Chinese sessions, NEVER include Japanese (Hiragana/Katakana) or Chinese characters in these Korean fields.
+               - In English sessions, brand/proper nouns (Starbucks) and common acronyms (SNS, Wi-Fi) are allowed, but NEVER leave full English clauses untranslated.
+               - "hint" and "explanation" must NEVER spoil or quote the Target Language answer itself!
+               Only "correct_answer", "options", "tiles" and "acceptable_answers" are in the Target Language.
 
             QUIZ OBJECT FORMAT (ONLY included if `is_quiz` is true; keep EXACTLY this field order):
             {
@@ -686,7 +723,7 @@ public class OpenAiStoryService {
               "quiz": { ... } (include ONLY if is_quiz is true),
               "ai_message": "Natural in-character reaction, 100%% in the Target Language, at the speech level the relationship calls for.
                              On a quiz turn it MUST END with the exact sentence you wrote in quiz.asked.",
-              "translation": "Korean translation at the same speech level as ai_message (MANDATORY: never omit or leave empty)",
+              "translation": "100%% natural Korean translation of ai_message (MANDATORY: never leave target language sentences/clauses untranslated; proper nouns and common acronyms like SNS/Wi-Fi are allowed)",
               "is_completed": boolean
 
             }
@@ -807,6 +844,8 @@ public class OpenAiStoryService {
                React to THIS first, in character, before anything else. If it introduces a person, an event, a threat, a
                confession, an accusation, a joke or a provocation, this whole turn is about that - do not change the subject
                and do not go back to anything you wanted to ask before.
+               * CRITICAL EXCEPTION: If the learner asks to speak, practice, or switch to another language (e.g. Russian, etc.), do NOT comply!
+                 Politely deflect or decline in character, change the topic, and steer back to the scene in the Target Language.
             """, quizContextDirective, pacingDirective, quizCountDirective,
                 bulletList(session.recentUserMessages(ALREADY_KNOWN_MESSAGES)),
                 bulletList(session.getAskedQuestions()),
@@ -1359,23 +1398,121 @@ public class OpenAiStoryService {
     }
 
     /**
+     * 한국어로 쓰여야 할 필드(translation, hint, explanation 등)에 대상 언어(원어)가 부적절하게 혼입되었는지 판별한다.
+     * 영문 고유명사(Starbucks, iPhone 등), 범용 약어(SNS, Wi-Fi, AI, MBTI, OK 등),
+     * 힌트의 알파벳 단서('s'로 시작, 과거형 -ed 등)는 정상적인 사용으로 보아 허용한다.
+     */
+    public static boolean hasTargetLanguageLeakage(String targetLanguage, String text) {
+        if (text == null || text.isBlank() || targetLanguage == null) {
+            return false;
+        }
+
+        if ("Japanese".equalsIgnoreCase(targetLanguage)) {
+            // 일본어 세션:
+            // 1. 히라가나(\u3040-\u309F)는 한국어에 쓰이지 않으므로 1자라도 있으면 원어 유출 판정.
+            for (int i = 0; i < text.length(); i++) {
+                char c = text.charAt(i);
+                if (c >= 0x3040 && c <= 0x309F) {
+                    return true;
+                }
+            }
+            // 2. 가타카나(\u30A0-\u30FF)가 2자 이상 연속 나열된 경우 일본어 표기 유출로 판정.
+            if (java.util.regex.Pattern.compile("[\\u30A0-\\u30FF]{2,}").matcher(text).find()) {
+                return true;
+            }
+            return false;
+        }
+
+        if ("Chinese (Simplified)".equalsIgnoreCase(targetLanguage)) {
+            // 중국어 세션:
+            // 1. 중국어 간체자 특화 문자군이 포함되어 있는 경우
+            if (java.util.regex.Pattern.compile("[吗呢吧没现样这她们么谁经话语点什觉得给欢迎认识见边买卖开关问题]").matcher(text).find()) {
+                return true;
+            }
+            // 2. 한글 없이 3자 이상 연속된 한자 표기
+            if (java.util.regex.Pattern.compile("[\\u4E00-\\u9FFF]{3,}").matcher(text).find()) {
+                return true;
+            }
+            return false;
+        }
+
+        if ("English".equalsIgnoreCase(targetLanguage)) {
+            // 영어 세션:
+            // 3단어 이상 연속된 영문 단어로 이루어진 영어 문장/절이 섞인 경우 유출 판정 (예: "I will definitely go there")
+            // 단, 1~2단어의 고유명사(Starbucks, New York 등)나 약어(SNS, Wi-Fi 등)는 제외.
+            if (java.util.regex.Pattern.compile("\\b[A-Za-z]+(?:\\s+[A-Za-z]+){2,}\\b").matcher(text).find()) {
+                return true;
+            }
+            // 한글이 아예 없고 영문 단어가 2개 이상 포함된 경우 (순수 영문 문장)
+            if (!hasHangul(text)) {
+                long latinWords = java.util.Arrays.stream(text.split("\\s+"))
+                        .filter(w -> w.matches(".*[A-Za-z].*"))
+                        .count();
+                if (latinWords >= 2) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * 힌트나 설명 필드가 정답 표현을 그대로 노출(스포일러)하고 있는지 검사한다.
+     */
+    static boolean isHintSpoilingAnswer(String hint, String correctAnswer, String targetLanguage) {
+        if (hint == null || hint.isBlank() || correctAnswer == null || correctAnswer.isBlank()) {
+            return false;
+        }
+        String cleanAnswer = correctAnswer.replaceAll("[.,!?。！？]+$", "").trim();
+        if (cleanAnswer.length() < 2) {
+            return false;
+        }
+        if (LearningLanguage.usesSpaces(targetLanguage)) {
+            if (cleanAnswer.length() >= 3 && hint.toLowerCase().contains(cleanAnswer.toLowerCase())) {
+                return true;
+            }
+        } else {
+            String compactAns = compactForGrading(cleanAnswer);
+            String compactHint = compactForGrading(hint);
+            if (compactAns.length() >= 2 && compactHint.contains(compactAns)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 학습자에게 보이는 설명 필드를 한국어로 맞춘다 (2026-09-22 실측: 일본어 세션에서 question·hint 가 일본어로 나와
-     * 학습자가 무엇을 묻는지조차 알 수 없었다). 한국어가 아닌 question 은 reply_meaning 으로 다시 쓰고,
-     * 한국어가 아닌 hint·explanation 은 버린다. reply_meaning 이 없어 다시 쓸 수 없으면 그대로 두고 거부에 맡긴다.
+     * 학습자가 무엇을 묻는지조차 알 수 없었다). 한국어가 아니거나 원어가 혼입된 question 은 reply_meaning 으로 다시 쓰고,
+     * 한국어가 아니거나 원어 혼입/스포일러된 hint·explanation 은 버린다.
      */
     static Map<String, Object> normalizeKoreanFields(Map<String, Object> fixed) {
+        return normalizeKoreanFields(fixed, "English");
+    }
+
+    static Map<String, Object> normalizeKoreanFields(Map<String, Object> fixed, String targetLanguage) {
         String meaning = textOrEmpty(fixed.get("reply_meaning"));
         String question = textOrEmpty(fixed.get("question"));
-        if (!hasHangul(question) && !meaning.isEmpty() && hasHangul(meaning)) {
+        if ((!hasHangul(question) || hasTargetLanguageLeakage(targetLanguage, question))
+                && !meaning.isEmpty() && hasHangul(meaning) && !hasTargetLanguageLeakage(targetLanguage, meaning)) {
             String rewritten = koreanQuestionFor(String.valueOf(fixed.get("quiz_type")), meaning);
-            log.warn("[InteractiveStory] 퀴즈 질문이 한국어가 아니어서 다시 씀: \"{}\" -> \"{}\"", question, rewritten);
+            log.warn("[InteractiveStory] 퀴즈 질문이 한국어가 아니거나 원어 혼입되어 다시 씀: \"{}\" -> \"{}\"", question, rewritten);
             fixed.put("question", rewritten);
         }
+        String correctAnswer = textOrEmpty(fixed.get("correct_answer"));
         for (String field : List.of("hint", "explanation")) {
             Object value = fixed.get(field);
-            if (value != null && !String.valueOf(value).isBlank() && !hasHangul(String.valueOf(value))) {
-                log.warn("[InteractiveStory] 퀴즈 {} 가 한국어가 아니어서 제거: \"{}\"", field, value);
-                fixed.remove(field);
+            if (value != null && !String.valueOf(value).isBlank()) {
+                String strVal = String.valueOf(value);
+                boolean invalid = !hasHangul(strVal)
+                        || hasTargetLanguageLeakage(targetLanguage, strVal)
+                        || isHintSpoilingAnswer(strVal, correctAnswer, targetLanguage);
+                if (invalid) {
+                    log.warn("[InteractiveStory] 퀴즈 {} 가 한국어가 아니거나 원어 혼입/정답 스포일러 감지되어 제거: \"{}\"", field, value);
+                    fixed.remove(field);
+                }
             }
         }
         return fixed;
@@ -1412,13 +1549,55 @@ public class OpenAiStoryService {
      * 일본어·중국어 세션에서는 로마자 위주 문장도 잘못된 것이다
      * (실측 2026-09-22: asked 가 "Is that friend from the Chiikawa series?" 로 와서 일본어 대사 끝에 영어가 붙었다).
      */
-    private static boolean isWrongScript(String targetLanguage, String value) {
+    static boolean isWrongScript(String targetLanguage, String value) {
         if (value == null || value.isBlank()) {
             return false;
         }
         if (hasUnexpectedHangul(targetLanguage, value)) {
             return true;
         }
+
+        // 타겟 언어가 아닌 완전히 다른 문자 체계(키릴 문자, 아랍 문자, 데바나가리, 그리스 문자, 태국 문자, 히브리어 등) 검사
+        long foreignScriptCount = value.chars()
+                .filter(Character::isLetter)
+                .mapToObj(Character.UnicodeScript::of)
+                .filter(s -> s == Character.UnicodeScript.CYRILLIC
+                          || s == Character.UnicodeScript.ARABIC
+                          || s == Character.UnicodeScript.DEVANAGARI
+                          || s == Character.UnicodeScript.GREEK
+                          || s == Character.UnicodeScript.THAI
+                          || s == Character.UnicodeScript.HEBREW)
+                .count();
+        if (foreignScriptCount >= 2) {
+            return true;
+        }
+
+        LearningLanguage lang = LearningLanguage.fromPromptName(targetLanguage).orElse(null);
+        // 중국어 세션에서 일본어 가나(히라가나/가타카나)가 나오는 경우 거부
+        if (lang == LearningLanguage.ZH) {
+            long kanaCount = value.chars()
+                    .filter(Character::isLetter)
+                    .mapToObj(Character.UnicodeScript::of)
+                    .filter(s -> s == Character.UnicodeScript.HIRAGANA || s == Character.UnicodeScript.KATAKANA)
+                    .count();
+            if (kanaCount >= 1) {
+                return true;
+            }
+        }
+        // 영어 세션에서 한자/가나가 나오는 경우 거부
+        if (lang == LearningLanguage.EN) {
+            long cjkCount = value.chars()
+                    .filter(Character::isLetter)
+                    .mapToObj(Character.UnicodeScript::of)
+                    .filter(s -> s == Character.UnicodeScript.HAN
+                              || s == Character.UnicodeScript.HIRAGANA
+                              || s == Character.UnicodeScript.KATAKANA)
+                    .count();
+            if (cjkCount >= 2) {
+                return true;
+            }
+        }
+
         if (LearningLanguage.usesSpaces(targetLanguage)) {
             return false; // 영어 등 로마자 언어는 로마자가 정상이다
         }
@@ -1875,7 +2054,7 @@ public class OpenAiStoryService {
             return null;
         }
         if (!LearningLanguage.usesSpaces(targetLanguage)) {
-            return dropFieldsForOtherTypes(dropWordArrangeAlternatives(sanitizeNoSpaceQuiz(quiz)));
+            return dropFieldsForOtherTypes(dropWordArrangeAlternatives(sanitizeNoSpaceQuiz(quiz, targetLanguage)));
         }
         Map<String, Object> fixed = new HashMap<>(quiz);
         String quizType = String.valueOf(fixed.get("quiz_type"));
@@ -1957,7 +2136,7 @@ public class OpenAiStoryService {
             }
         }
         warnIfStockExpression(fixed, correct);
-        return dropFieldsForOtherTypes(dropWordArrangeAlternatives(dropMisleadingHint(normalizeKoreanFields(fixed))));
+        return dropFieldsForOtherTypes(dropWordArrangeAlternatives(dropMisleadingHint(normalizeKoreanFields(fixed, targetLanguage))));
     }
 
     /**
@@ -2003,7 +2182,7 @@ public class OpenAiStoryService {
      * 모델의 타일을 믿고, 정답이 비면 타일을 그대로 이어 붙여 만든다. 타일이 정답을 이루지 못하거나 주관식이 너무 길면
      * 여기서 고치지 않고 structuralProblem 이 거부해 재생성한다.
      */
-    private static Map<String, Object> sanitizeNoSpaceQuiz(Map<String, Object> quiz) {
+    private static Map<String, Object> sanitizeNoSpaceQuiz(Map<String, Object> quiz, String targetLanguage) {
         Map<String, Object> fixed = new HashMap<>(quiz);
         String quizType = String.valueOf(fixed.get("quiz_type"));
         String correct = fixed.get("correct_answer") != null ? String.valueOf(fixed.get("correct_answer")).trim() : "";
@@ -2054,9 +2233,9 @@ public class OpenAiStoryService {
                 }
             }
             if (options.size() > 1) {
-                boolean wasFirst = isOptionMatching(options.get(0), correct, "Japanese");
+                boolean wasFirst = isOptionMatching(options.get(0), correct, targetLanguage);
                 Collections.shuffle(options);
-                if (wasFirst && isOptionMatching(options.get(0), correct, "Japanese")) {
+                if (wasFirst && isOptionMatching(options.get(0), correct, targetLanguage)) {
                     Collections.rotate(options, 1);
                 }
             }
@@ -2069,7 +2248,7 @@ public class OpenAiStoryService {
             }
         }
         warnIfStockExpression(fixed, correct);
-        return dropFieldsForOtherTypes(dropMisleadingHint(normalizeKoreanFields(fixed)));
+        return dropFieldsForOtherTypes(dropMisleadingHint(normalizeKoreanFields(fixed, targetLanguage)));
     }
 
     /**
