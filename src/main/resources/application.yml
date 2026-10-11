@@ -88,8 +88,14 @@ qring:
       # 오답 생성 N일차 알림. 매일 cron 시각(Asia/Seoul)에 "오늘 - days-after" 날짜에 생긴 오답이
       # 아직 남아 있는(다시 풀지 않은) 사용자에게 1회 발송한다. 7일이 지나면 오답 노트에서 사라지므로 하루 전 알림.
       enabled: ${QRING_PUSH_WRONG_ANSWER_REMINDER_ENABLED:true}
-      cron: ${QRING_PUSH_WRONG_ANSWER_REMINDER_CRON:0 0 20 * * *}
+      cron: ${QRING_PUSH_WRONG_ANSWER_REMINDER_CRON:0 0 21 * * *}
       days-after: 6
+    inactivity-reminder:
+      # 학습 공백 알림. 매일 cron 시각(Asia/Seoul)에 마지막 학습일이 "오늘 - days" 인 사용자에게 1회 발송한다.
+      # 학습 기준은 연속 학습일과 같은 user_study_log. 오답 알림(20:00)과 겹치지 않게 19:00.
+      enabled: ${QRING_PUSH_INACTIVITY_REMINDER_ENABLED:true}
+      cron: ${QRING_PUSH_INACTIVITY_REMINDER_CRON:0 0 21 * * *}
+      days: 7
   admin:
     # 관리자 전용 API(/admin/**) 허용 userId 목록 (쉼표 구분). 비어 있으면 아무도 접근 불가.
     user-ids: ${ADMIN_USER_IDS:}
