@@ -6,6 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: qring-backend
+    restart: unless-stopped
 
     env_file:
       # MAIL_USERNAME / MAIL_PASSWORD / OAuth 키 / JWT_SECRET / QRING_EMAIL_DEV_MODE 등 주입
