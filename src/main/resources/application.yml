@@ -1,7 +1,7 @@
 spring:
   datasource:
-    url: jdbc:mysql://qring.c72ooi4qiyuu.ap-northeast-2.rds.amazonaws.com:3306/qring_db?serverTimezone=Asia/Seoul&useUnicode=true&characterEncoding=utf8
-    username: admin
+    url: jdbc:mysql://gateway01.ap-northeast-1.prod.aws.tidbcloud.com:4000/qring_db?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: KrBfEWSZXsGjdr3.team
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
@@ -49,13 +49,13 @@ qring:
     # 가입·check-email 시 이메일 도메인의 DNS MX 레코드 실존 여부 검증 (로컬/CI 에서는 끌 수 있음)
     dns-check:
       enabled: ${QRING_EMAIL_DNS_CHECK:true}
-      timeout-ms: 2000        # 1회 질의 타임아웃
+      timeout-ms: 2000 # 1회 질의 타임아웃
       retries: 1
-      cache-ttl-valid: 24h    # MX 있음 판정 캐시
-      cache-ttl-invalid: 1h   # MX 없음 판정 캐시 (DNS 를 막 고친 도메인이 오래 막히지 않게 짧게)
+      cache-ttl-valid: 24h # MX 있음 판정 캐시
+      cache-ttl-invalid: 1h # MX 없음 판정 캐시 (DNS 를 막 고친 도메인이 오래 막히지 않게 짧게)
   openai:
     api-key: ${OPENAI_API_KEY:}
-    model: ${OPENAI_MODEL:gpt-4.1-mini}   # 하위 호환: tiers.standard.model 의 기본값으로 쓰인다
+    model: ${OPENAI_MODEL:gpt-4.1-mini} # 하위 호환: tiers.standard.model 의 기본값으로 쓰인다
     # 인터랙티브 스토리 모델 티어 (설계: INTERACTIVE_STORY_MODEL_TIER_DESIGN.md).
     # 가격의 원본은 여기이며 프론트는 같은 값을 하드코딩한다 (조회 API 없음, 팀 결정 2026-09-16).
     tiers:
@@ -65,8 +65,8 @@ qring:
         extend-cost: 100
       premium:
         model: ${OPENAI_MODEL_PREMIUM:gpt-4.1}
-        start-cost: 550     # 기본 400 + 업그레이드 150
-        extend-cost: 100    # 프리미엄 인상 여부는 팀 논의 후 결정 (보류)
+        start-cost: 550 # 기본 400 + 업그레이드 150
+        extend-cost: 100 # 프리미엄 인상 여부는 팀 논의 후 결정 (보류)
   story:
     guard:
       # 인터랙티브 스토리 입력의 최소 안전장치 (StoryContentGuard).
