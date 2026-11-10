@@ -15,11 +15,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.qring.qring_backend.auth.security.AdminAccessGuard;
 import com.qring.qring_backend.push.dto.PushTestRequest;
+import com.qring.qring_backend.push.dto.StudyInactivityReminderRunResult;
 import com.qring.qring_backend.push.dto.WrongAnswerReminderRunResult;
 import com.qring.qring_backend.push.service.PushMessage;
 import com.qring.qring_backend.push.service.PushSendResult;
 import com.qring.qring_backend.push.service.PushSender;
 import com.qring.qring_backend.push.service.PushTokenService;
+import com.qring.qring_backend.push.service.StudyInactivityReminderService;
 import com.qring.qring_backend.push.service.WrongAnswerReminderService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +33,7 @@ import lombok.RequiredArgsConstructor;
  * 푸시 관리자 API (ADMIN_USER_IDS 등록자만). 실기기 검증용 —
  *   - 특정 사용자 기기로 테스트 푸시
  *   - 오답 N일차 알림을 스케줄 시각을 기다리지 않고 즉시 실행 (대상 생성일 지정 가능)
+ *   - 학습 공백 알림을 즉시 실행 (대상 마지막 학습일 지정 가능)
  */
 @Tag(name = "Push Admin")
 @RestController
@@ -42,6 +45,7 @@ public class PushAdminController {
     private final PushTokenService pushTokenService;
     private final PushSender pushSender;
     private final WrongAnswerReminderService reminderService;
+    private final StudyInactivityReminderService inactivityReminderService;
 
     @Operation(summary = "사용자 기기 전부에 테스트 푸시 (관리자)")
     @PostMapping("/test")
@@ -70,6 +74,19 @@ public class PushAdminController {
         WrongAnswerReminderRunResult result = createdDate == null
                 ? reminderService.runForToday()
                 : reminderService.run(createdDate);
+        return ResponseEntity.ok(result);
+    }
+
+    @Operation(summary = "학습 공백 알림 즉시 실행 (관리자). lastStudyDate 생략 시 오늘-days")
+    @PostMapping("/inactivity-reminder/run")
+    public ResponseEntity<StudyInactivityReminderRunResult> runInactivityReminder(
+            Authentication authentication,
+            @RequestParam(value = "lastStudyDate", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate lastStudyDate) {
+        adminAccessGuard.checkAdmin((Long) authentication.getPrincipal());
+        StudyInactivityReminderRunResult result = lastStudyDate == null
+                ? inactivityReminderService.runForToday()
+                : inactivityReminderService.run(lastStudyDate);
         return ResponseEntity.ok(result);
     }
 
