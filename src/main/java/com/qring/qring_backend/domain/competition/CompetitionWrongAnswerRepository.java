@@ -46,6 +46,7 @@ public interface CompetitionWrongAnswerRepository extends JpaRepository<Competit
         WHERE wa.userId = :userId AND wa.level = :level
         AND wa.langCode = :langCode
         AND wa.createdAt >= :cutoff
+        ORDER BY wa.createdAt ASC, wa.wrongAnswerId ASC
     """)
     List<CompetitionWrongAnswer> findByUserIdAndLevelAndLangCode(@Param("userId") Long userId,
                                                                   @Param("level") Integer level,
