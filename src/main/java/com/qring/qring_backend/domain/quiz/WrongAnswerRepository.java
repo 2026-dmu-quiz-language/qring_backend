@@ -82,7 +82,8 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
            "WHERE wa.userId = :userId AND wa.contentId = :contentId " +
            "AND qc.langCode = :langCode " +
            "AND (:level IS NULL OR qd.difficulty = :level) " +
-           "AND wa.createdAt >= :cutoff")
+           "AND wa.createdAt >= :cutoff " +
+           "ORDER BY wa.createdAt ASC, wa.id ASC")
     List<QuizContent> findIncorrectQuizContentsByUserIdAndContentId(
             @Param("userId") Long userId,
             @Param("contentId") Long contentId,
