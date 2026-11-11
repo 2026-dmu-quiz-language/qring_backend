@@ -38,6 +38,7 @@ public interface ContentRepository extends JpaRepository<Content, Long> {
                 LEFT JOIN UserContentUnlock u ON u.content.contentId = c.contentId
                     AND u.userId = :userId AND u.language = :language
                 GROUP BY c.contentId, c.category.categoryName, c.thumbnailUrl, c.title, c.requiredPoints
+                ORDER BY c.contentId ASC
             """)
     List<ContentListResponseDto> findContentListByUserId(
             @Param("userId") Long userId,
